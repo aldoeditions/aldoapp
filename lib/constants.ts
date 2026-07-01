@@ -55,22 +55,30 @@ export const ARTIST_PHASES: StatusOption[] = [
 ];
 export const ARTIST_PHASE = dict(ARTIST_PHASES);
 
-/** Étapes du pipeline de prospection. */
+/**
+ * Étapes du pipeline de prospection.
+ * ⚠️ Les `value` correspondent EXACTEMENT aux CHECK constraints en base
+ * (accentués, avec espaces) — vérifiés par introspection.
+ */
 export const PIPE_STATUSES: StatusOption[] = [
   { value: "prospect", label: "Prospect", variant: "gray" },
-  { value: "contacte", label: "Contacté", variant: "blue" },
-  { value: "interesse", label: "Intéressé", variant: "orange" },
-  { value: "confirme", label: "Confirmé", variant: "green" },
-  { value: "refuse", label: "Refusé", variant: "red" },
+  { value: "contacté", label: "Contacté", variant: "blue" },
+  { value: "intéressé", label: "Intéressé", variant: "orange" },
+  { value: "confirmé", label: "Confirmé", variant: "green" },
 ];
 export const PIPE_STATUS = dict(PIPE_STATUSES);
 
-/** Statut générique des éléments de suivi (kit, visuels, contrat, infos). */
+/**
+ * Statut générique des éléments de suivi (kit, visuels, infos).
+ * ⚠️ `value` = valeurs réelles observées en base. Le vocabulaire exact varie
+ * un peu par colonne (kit_impression / visuels / demande_infos) — à affiner
+ * lors du module Prospection/Suivi.
+ */
 export const SUIVI_STATUSES: StatusOption[] = [
-  { value: "a_demander", label: "À demander", variant: "gray" },
-  { value: "demande", label: "Demandé", variant: "blue" },
-  { value: "en_attente", label: "En attente", variant: "orange" },
-  { value: "valide", label: "Validé", variant: "green" },
+  { value: "a demander", label: "À demander", variant: "gray" },
+  { value: "a envoyer", label: "À envoyer", variant: "orange" },
+  { value: "envoyé", label: "Envoyé", variant: "blue" },
+  { value: "reçu", label: "Reçu", variant: "green" },
 ];
 export const SUIVI_STATUS = dict(SUIVI_STATUSES);
 
@@ -111,11 +119,14 @@ export const ORDER_STATUSES: StatusOption[] = [
 ];
 export const ORDER_STATUS = dict(ORDER_STATUSES);
 
-/** Statut d'un contrat artiste. */
+/**
+ * Statut d'un contrat artiste.
+ * ⚠️ `value` = CHECK constraint réelle en base (« a envoyer » / « envoyé » / « signé »).
+ */
 export const CONTRACT_STATUSES: StatusOption[] = [
-  { value: "a_envoyer", label: "À envoyer", variant: "gray" },
-  { value: "envoye", label: "Envoyé", variant: "blue" },
-  { value: "signe", label: "Signé", variant: "green" },
+  { value: "a envoyer", label: "À envoyer", variant: "gray" },
+  { value: "envoyé", label: "Envoyé", variant: "blue" },
+  { value: "signé", label: "Signé", variant: "green" },
 ];
 export const CONTRACT_STATUS = dict(CONTRACT_STATUSES);
 
@@ -132,3 +143,9 @@ export const PAYMENT_STATUS = dict(PAYMENT_STATUSES);
 
 export const TEAM = ["Louison", "Tom", "Charley"] as const;
 export type TeamMember = (typeof TEAM)[number];
+
+/**
+ * Type d'entité artiste — CHECK constraint réelle en base.
+ * (Le médium artistique est saisi librement dans le champ « style ».)
+ */
+export const ARTIST_TYPES = ["Artiste", "Collectif", "Studio"] as const;
