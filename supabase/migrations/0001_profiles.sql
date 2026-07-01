@@ -48,10 +48,14 @@ create or replace function public.prevent_role_self_escalation()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if new.role is distinct from old.role then
-    if not exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    ) then
+    -- Autorise : service_role / SQL editor (auth.uid() nul) ET les admins.
+    -- Bloque uniquement un utilisateur AUTHENTIFIÉ non-admin qui tente de
+    -- changer un rôle (évite le blocage de bootstrapping du 1er admin).
+    if auth.uid() is not null
+       and not exists (
+         select 1 from public.profiles p
+         where p.id = auth.uid() and p.role = 'admin'
+       ) then
       new.role := old.role; -- ignore silencieusement la tentative
     end if;
   end if;
