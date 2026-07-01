@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: #f7f6f3;
+    color: #1a1a1a;
+    @apply font-sans;
+  }
+
+  /* Titres en serif éditorial */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif;
+  }
+
+  /* Scrollbar discrète */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d8d5cd;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c4c0b6;
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* Carte standard du design system */
+  .card {
+    @apply rounded-card border border-border bg-surface shadow-card;
+  }
+
+  /* Libellé de section / suréclat éditorial */
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-faint;
+  }
+}
