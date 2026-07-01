@@ -156,6 +156,23 @@ export const PAYMENT_STATUSES: StatusOption[] = [
 ];
 export const PAYMENT_STATUS = dict(PAYMENT_STATUSES);
 
+/** Type de charge. ⚠️ `value` = CHECK constraint réelle (Fixe / Variable). */
+export const CHARGE_TYPES: StatusOption[] = [
+  { value: "Fixe", label: "Fixe", variant: "blue" },
+  { value: "Variable", label: "Variable", variant: "orange" },
+];
+export const CHARGE_TYPE = dict(CHARGE_TYPES);
+
+/**
+ * Catégorie de charge. ⚠️ CHECK constraint réelle limitée à Marketing / Autre.
+ * Le détail (Shopify, Webflow, Ads…) se met dans le nom de la charge.
+ */
+export const CHARGE_CATEGORIES: StatusOption[] = [
+  { value: "Marketing", label: "Marketing", variant: "blue" },
+  { value: "Autre", label: "Autre", variant: "gray" },
+];
+export const CHARGE_CATEGORY = dict(CHARGE_CATEGORIES);
+
 /* ------------------------------------------------------------------ */
 /* Équipe                                                              */
 /* ------------------------------------------------------------------ */
