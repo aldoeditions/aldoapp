@@ -25,16 +25,20 @@ create policy "profiles_select_self"
   on public.profiles for select
   using (auth.uid() = id);
 
--- …et tout admin lit tous les profils.
+-- Fonction is_admin() en SECURITY DEFINER : contourne la RLS, donc pas de
+-- récursion quand on l'utilise dans une policy sur `profiles`.
+create or replace function public.is_admin()
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- …et tout admin lit tous les profils (via la fonction, sans récursion).
 drop policy if exists "profiles_select_admin" on public.profiles;
 create policy "profiles_select_admin"
   on public.profiles for select
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 -- Chacun met à jour son nom/avatar (pas son rôle : géré par trigger ci-dessous).
 drop policy if exists "profiles_update_self" on public.profiles;
