@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
-import { getArtists, getArtistPhaseCounts } from "@/lib/data/artists";
+import { getArtists, getSignedCounts } from "@/lib/data/artists";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Avatar } from "@/components/ui/Avatar";
@@ -14,39 +14,41 @@ import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 export default async function ArtistesPage({
   searchParams,
 }: {
-  searchParams: { phase?: string; q?: string };
+  searchParams: { archived?: string; q?: string };
 }) {
   const user = await requireModule("artistes");
   const editable = canEdit(user.role, "artistes");
+  const archived = searchParams.archived === "1";
 
   const [artists, counts] = await Promise.all([
-    getArtists({ phase: searchParams.phase, q: searchParams.q }),
-    getArtistPhaseCounts(),
+    getArtists({ archived, q: searchParams.q }),
+    getSignedCounts(),
   ]);
-  const total = Object.values(counts).reduce((s, n) => s + n, 0);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Pipeline"
+        eyebrow="Roster"
         title="Artistes"
-        description="Annuaire des artistes — prospection, suivi de lancement et artistes actifs."
+        description="Artistes signés : œuvres, contrats, paiements et suivi de lancement."
         action={editable ? <ArtistFormButton /> : undefined}
       />
 
-      <ArtistsFilters counts={counts} total={total} />
+      <ArtistsFilters signed={counts.signed} archived={counts.archived} />
 
       {artists.length === 0 ? (
         <EmptyState
           title={
-            searchParams.q || searchParams.phase
+            searchParams.q
               ? "Aucun artiste ne correspond"
-              : "Aucun artiste pour l'instant"
+              : archived
+                ? "Aucun artiste archivé"
+                : "Aucun artiste signé"
           }
           description={
-            searchParams.q || searchParams.phase
-              ? "Ajuste les filtres ou la recherche."
-              : "Ajoute ton premier artiste pour démarrer le pipeline."
+            searchParams.q
+              ? "Ajuste la recherche."
+              : "Les artistes signés depuis la Prospection apparaîtront ici."
           }
           action={editable ? <ArtistFormButton /> : undefined}
         />

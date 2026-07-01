@@ -1,64 +1,58 @@
 import { requireModule } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
-import { getPipeline, getSuiviArtists } from "@/lib/data/prospection";
+import { getProspects, getPipeline, getProspectCount } from "@/lib/data/prospection";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardHeader, CardBody } from "@/components/ui/Card";
+import { Card, CardBody } from "@/components/ui/Card";
 import { KanbanBoard } from "@/components/prospection/KanbanBoard";
-import { SuiviTable } from "@/components/prospection/SuiviTable";
+import { ProspectsTable } from "@/components/prospection/ProspectsTable";
+import { ProspectionFilters } from "@/components/prospection/ProspectionFilters";
 import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 
-export default async function ProspectionPage() {
+export default async function ProspectionPage({
+  searchParams,
+}: {
+  searchParams: { view?: string; q?: string; pipe?: string; by?: string };
+}) {
   const user = await requireModule("prospection");
   const editable = canEdit(user.role, "prospection");
+  const isKanban = searchParams.view === "kanban";
 
-  const [columns, suivi] = await Promise.all([
-    getPipeline(),
-    getSuiviArtists(),
+  const filter = { q: searchParams.q, pipe: searchParams.pipe, by: searchParams.by };
+
+  const [total, prospects, columns] = await Promise.all([
+    getProspectCount(),
+    isKanban ? Promise.resolve([]) : getProspects(filter),
+    isKanban ? getPipeline(filter) : Promise.resolve([]),
   ]);
 
-  const total = columns.reduce((s, c) => s + c.cards.length, 0);
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Pipeline"
         title="Prospection"
-        description="Pipeline d'acquisition des artistes et suivi de lancement."
-        action={
-          editable ? (
-            <ArtistFormButton label="Nouveau prospect" />
-          ) : undefined
-        }
+        description={`Base de prospection — ${total} artiste(s) à contacter ou en cours.`}
+        action={editable ? <ArtistFormButton label="Nouveau prospect" /> : undefined}
       />
 
-      {/* Board pipeline */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="font-serif text-lg text-text">Pipeline</h2>
-          <span className="rounded-full bg-border/70 px-2 py-0.5 text-2xs text-muted">
-            {total}
-          </span>
-          {editable && (
-            <span className="ml-auto text-2xs text-faint">
-              Glisse une carte pour changer d&apos;étape
-            </span>
-          )}
-        </div>
-        <KanbanBoard columns={columns} editable={editable} />
-      </section>
+      <ProspectionFilters />
 
-      {/* Suivi de lancement */}
-      <section>
+      {isKanban ? (
+        <>
+          {editable && (
+            <p className="text-2xs text-faint">
+              Glisse une carte pour changer d&apos;étape. Pour signer un artiste,
+              utilise la vue Tableau.
+            </p>
+          )}
+          <KanbanBoard columns={columns} editable={editable} />
+        </>
+      ) : (
         <Card>
-          <CardHeader
-            title="Suivi de lancement"
-            subtitle="Kit impression, visuels, infos et contrat des artistes confirmés."
-          />
           <CardBody className="p-0">
-            <SuiviTable artists={suivi} editable={editable} />
+            <ProspectsTable prospects={prospects} editable={editable} />
           </CardBody>
         </Card>
-      </section>
+      )}
     </div>
   );
 }

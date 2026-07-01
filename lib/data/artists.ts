@@ -9,14 +9,17 @@ import type {
   ArtistFile,
 } from "@/types/database";
 
-export type ArtistsFilter = {
-  phase?: string;
+export type SignedArtistsFilter = {
+  archived?: boolean;
   q?: string;
 };
 
-/** Liste des artistes (vue enrichie) avec filtre phase + recherche nom. */
+/**
+ * Artistes SIGNÉS (vue Artistes) : phase actif/suivi par défaut,
+ * ou archivés (inactif). Ne renvoie jamais de prospects.
+ */
 export async function getArtists(
-  filter: ArtistsFilter = {},
+  filter: SignedArtistsFilter = {},
 ): Promise<ArtistWithStats[]> {
   const supabase = createClient();
   let query = supabase
@@ -24,7 +27,10 @@ export async function getArtists(
     .select("*")
     .order("name", { ascending: true });
 
-  if (filter.phase) query = query.eq("phase", filter.phase as ArtistPhase);
+  const phases: ArtistPhase[] = filter.archived
+    ? ["inactif"]
+    : ["actif", "suivi"];
+  query = query.in("phase", phases);
   if (filter.q) query = query.ilike("name", `%${filter.q}%`);
 
   const { data, error } = await query;
@@ -32,16 +38,20 @@ export async function getArtists(
   return data ?? [];
 }
 
-/** Répartition du nombre d'artistes par phase (pour les onglets de filtre). */
-export async function getArtistPhaseCounts(): Promise<Record<string, number>> {
+/** Compteurs signés / archivés pour les onglets de la vue Artistes. */
+export async function getSignedCounts(): Promise<{
+  signed: number;
+  archived: number;
+}> {
   const supabase = createClient();
   const { data } = await supabase.from("artists").select("phase");
-  const counts: Record<string, number> = {};
+  let signed = 0;
+  let archived = 0;
   for (const row of data ?? []) {
-    const p = row.phase ?? "—";
-    counts[p] = (counts[p] ?? 0) + 1;
+    if (row.phase === "actif" || row.phase === "suivi") signed++;
+    else if (row.phase === "inactif") archived++;
   }
-  return counts;
+  return { signed, archived };
 }
 
 export type ArtistDetail = {

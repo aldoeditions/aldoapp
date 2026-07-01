@@ -14,6 +14,21 @@ async function assertCanEdit() {
   }
 }
 
+/** Signe un prospect → phase actif : il quitte Prospection pour Artistes. */
+export async function signArtist(id: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artists")
+    .update({ phase: "actif" })
+    .eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/prospection");
+  revalidatePath("/artistes");
+  revalidatePath(`/artistes/${id}`);
+}
+
 /** Déplace un prospect vers une autre étape de pipeline (drag & drop). */
 export async function updatePipeStatus(id: string, status: string) {
   await assertCanEdit();

@@ -9,16 +9,13 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 import { DeleteArtistButton } from "@/components/artists/DeleteArtistButton";
+import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import {
   ARTIST_PHASE,
   OEUVRE_STATUS,
   FILE_STATUS,
   CONTRACT_STATUS,
   PAYMENT_STATUS,
-  PIPE_STATUS,
-  KIT_STATUS,
-  VISUELS_STATUS,
-  DEMANDE_STATUS,
 } from "@/lib/constants";
 import { euros, euros0, nombre, dateCourte, pourcent } from "@/lib/format";
 
@@ -236,31 +233,16 @@ export default async function ArtistDetailPage({
           <Card>
             <CardHeader title="Suivi de lancement" />
             <CardBody className="py-2">
-              <div className="divide-y divide-border">
-                <div className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Pipeline</span>
-                  <StatusBadge value={artist.pipe_status} dict={PIPE_STATUS} />
-                </div>
-                <div className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Contacté par</span>
-                  <span className="text-text">
-                    {artist.contacted_by ?? "—"}
-                    {artist.first_contact_date ? ` · ${dateCourte(artist.first_contact_date)}` : ""}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Kit impression</span>
-                  <StatusBadge value={artist.kit_impression} dict={KIT_STATUS} fallback="—" />
-                </div>
-                <div className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Visuels</span>
-                  <StatusBadge value={artist.visuels} dict={VISUELS_STATUS} fallback="—" />
-                </div>
-                <div className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Demande infos</span>
-                  <StatusBadge value={artist.demande_infos} dict={DEMANDE_STATUS} fallback="—" />
-                </div>
-              </div>
+              <SuiviEditor
+                id={artist.id ?? ""}
+                editable={editable}
+                values={{
+                  kit_impression: artist.kit_impression,
+                  visuels: artist.visuels,
+                  demande_infos: artist.demande_infos,
+                  contrat_status: artist.contrat_status,
+                }}
+              />
             </CardBody>
           </Card>
 

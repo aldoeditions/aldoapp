@@ -13,22 +13,42 @@ export type PipeCard = {
   pipe_status: string | null;
 };
 
-export type PipeColumn = {
-  status: string;
-  label: string;
-  cards: PipeCard[];
+const SELECT =
+  "id, name, avatar_url, type, style, renommee, contacted_by, first_contact_date, pipe_status";
+
+export type ProspectsFilter = {
+  q?: string;
+  pipe?: string;
+  by?: string;
 };
 
-/** Prospects (phase prospect/suivi) regroupés par étape de pipeline. */
-export async function getPipeline(): Promise<PipeColumn[]> {
+/** Base de prospection = artistes en phase `prospect` (filtrable). */
+export async function getProspects(
+  filter: ProspectsFilter = {},
+): Promise<PipeCard[]> {
   const supabase = createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("artists")
-    .select(
-      "id, name, avatar_url, type, style, renommee, contacted_by, first_contact_date, pipe_status",
-    )
-    .in("phase", ["prospect", "suivi"])
-    .order("first_contact_date", { ascending: false, nullsFirst: false });
+    .select(SELECT)
+    .eq("phase", "prospect")
+    .order("first_contact_date", { ascending: false, nullsFirst: false })
+    .order("name", { ascending: true });
+
+  if (filter.pipe) query = query.eq("pipe_status", filter.pipe);
+  if (filter.by) query = query.eq("contacted_by", filter.by);
+  if (filter.q) query = query.ilike("name", `%${filter.q}%`);
+
+  const { data } = await query;
+  return (data ?? []) as PipeCard[];
+}
+
+export type PipeColumn = { status: string; label: string; cards: PipeCard[] };
+
+/** Prospects regroupés par étape (pour la vue Kanban). */
+export async function getPipeline(
+  filter: ProspectsFilter = {},
+): Promise<PipeColumn[]> {
+  const prospects = await getProspects({ q: filter.q, by: filter.by });
 
   const columns: PipeColumn[] = PIPE_STATUSES.map((s) => ({
     status: s.value,
@@ -36,37 +56,21 @@ export async function getPipeline(): Promise<PipeColumn[]> {
     cards: [],
   }));
   const byStatus = new Map(columns.map((c) => [c.status, c]));
-  const fallback = columns[0]; // "prospect"
+  const fallback = columns[0];
 
-  for (const a of data ?? []) {
+  for (const a of prospects) {
     const col = (a.pipe_status && byStatus.get(a.pipe_status)) || fallback;
-    col.cards.push(a as PipeCard);
+    col.cards.push(a);
   }
   return columns;
 }
 
-export type SuiviArtist = {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-  phase: string | null;
-  pipe_status: string | null;
-  kit_impression: string | null;
-  visuels: string | null;
-  demande_infos: string | null;
-  contrat_status: string | null;
-};
-
-/** Artistes en suivi de lancement (phase suivi ou pipeline confirmé). */
-export async function getSuiviArtists(): Promise<SuiviArtist[]> {
+/** Compteur de prospects (total, pour l'en-tête). */
+export async function getProspectCount(): Promise<number> {
   const supabase = createClient();
-  const { data } = await supabase
+  const { count } = await supabase
     .from("artists")
-    .select(
-      "id, name, avatar_url, phase, pipe_status, kit_impression, visuels, demande_infos, contrat_status",
-    )
-    .or("phase.eq.suivi,pipe_status.eq.confirmé")
-    .order("name", { ascending: true });
-
-  return (data ?? []) as SuiviArtist[];
+    .select("id", { count: "exact", head: true })
+    .eq("phase", "prospect");
+  return count ?? 0;
 }

@@ -3,20 +3,19 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
 import { cn } from "@/lib/cn";
-import { ARTIST_PHASES } from "@/lib/constants";
 
-/** Onglets de phase + recherche, pilotés par l'URL (?phase=&q=). */
+/** Onglets Actifs / Archivés + recherche (vue Artistes = signés). */
 export function ArtistsFilters({
-  counts,
-  total,
+  signed,
+  archived,
 }: {
-  counts: Record<string, number>;
-  total: number;
+  signed: number;
+  archived: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const activePhase = params.get("phase") ?? "";
+  const isArchived = params.get("archived") === "1";
   const q = params.get("q") ?? "";
 
   const setParam = useCallback(
@@ -30,42 +29,35 @@ export function ArtistsFilters({
   );
 
   const tabs = [
-    { value: "", label: "Tous", count: total },
-    ...ARTIST_PHASES.map((p) => ({
-      value: p.value,
-      label: p.label,
-      count: counts[p.value] ?? 0,
-    })),
+    { key: "", label: "Actifs", count: signed, active: !isArchived },
+    { key: "1", label: "Archivés", count: archived, active: isArchived },
   ];
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap gap-1">
-        {tabs.map((t) => {
-          const active = activePhase === t.value;
-          return (
-            <button
-              key={t.value || "all"}
-              onClick={() => setParam("phase", t.value)}
+      <div className="flex gap-1">
+        {tabs.map((t) => (
+          <button
+            key={t.label}
+            onClick={() => setParam("archived", t.key)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+              t.active
+                ? "bg-text text-white"
+                : "text-muted hover:bg-border/50 hover:text-text",
+            )}
+          >
+            {t.label}
+            <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-text text-white"
-                  : "text-muted hover:bg-border/50 hover:text-text",
+                "rounded-full px-1.5 text-2xs",
+                t.active ? "bg-white/20" : "bg-border/60 text-muted",
               )}
             >
-              {t.label}
-              <span
-                className={cn(
-                  "rounded-full px-1.5 text-2xs",
-                  active ? "bg-white/20" : "bg-border/60 text-muted",
-                )}
-              >
-                {t.count}
-              </span>
-            </button>
-          );
-        })}
+              {t.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       <div className="relative sm:w-64">
