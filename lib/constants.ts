@@ -82,31 +82,26 @@ export const SUIVI_STATUSES: StatusOption[] = [
 ];
 export const SUIVI_STATUS = dict(SUIVI_STATUSES);
 
-/** Statut d'un drop / campagne. */
+/** Statut d'un drop / campagne. ⚠️ `value` = CHECK constraint réelle. */
 export const DROP_STATUSES: StatusOption[] = [
-  { value: "brouillon", label: "Brouillon", variant: "gray" },
-  { value: "planifie", label: "Planifié", variant: "blue" },
-  { value: "en_cours", label: "En cours", variant: "orange" },
-  { value: "termine", label: "Terminé", variant: "green" },
+  { value: "à venir", label: "À venir", variant: "blue" },
+  { value: "en cours", label: "En cours", variant: "green" },
+  { value: "terminé", label: "Terminé", variant: "gray" },
 ];
 export const DROP_STATUS = dict(DROP_STATUSES);
 
-/** Statut d'une œuvre. */
+/** Statut d'une œuvre. ⚠️ `value` = CHECK constraint réelle. */
 export const OEUVRE_STATUSES: StatusOption[] = [
   { value: "brouillon", label: "Brouillon", variant: "gray" },
-  { value: "en_preparation", label: "En préparation", variant: "orange" },
-  { value: "pret", label: "Prêt", variant: "blue" },
-  { value: "en_ligne", label: "En ligne", variant: "green" },
-  { value: "archive", label: "Archivé", variant: "gray" },
+  { value: "actif", label: "Actif", variant: "green" },
+  { value: "archivé", label: "Archivé", variant: "gray" },
 ];
 export const OEUVRE_STATUS = dict(OEUVRE_STATUSES);
 
-/** Statut de validation d'un fichier déposé. */
+/** Statut de validation d'un fichier / visuel. ⚠️ `value` = CHECK constraint réelle. */
 export const FILE_STATUSES: StatusOption[] = [
-  { value: "a_demander", label: "À demander", variant: "gray" },
-  { value: "en_attente", label: "En attente", variant: "orange" },
-  { value: "valide", label: "Validé", variant: "green" },
-  { value: "rejete", label: "Rejeté", variant: "red" },
+  { value: "en attente", label: "En attente", variant: "orange" },
+  { value: "validé", label: "Validé", variant: "green" },
 ];
 export const FILE_STATUS = dict(FILE_STATUSES);
 
