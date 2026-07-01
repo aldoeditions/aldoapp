@@ -132,10 +132,9 @@ export const FILE_STATUS = dict(FILE_STATUSES);
 
 /** Statut d'une commande Shopify. */
 export const ORDER_STATUSES: StatusOption[] = [
-  { value: "nouvelle", label: "Nouvelle", variant: "blue" },
-  { value: "en_impression", label: "En impression", variant: "orange" },
-  { value: "expediee", label: "Expédiée", variant: "green" },
-  { value: "annulee", label: "Annulée", variant: "red" },
+  { value: "en attente", label: "En attente", variant: "orange" },
+  { value: "imprimé", label: "Imprimé", variant: "blue" },
+  { value: "expédié", label: "Expédié", variant: "green" },
 ];
 export const ORDER_STATUS = dict(ORDER_STATUSES);
 
