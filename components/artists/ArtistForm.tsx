@@ -9,6 +9,10 @@ import {
   PIPE_STATUSES,
   CONTRACT_STATUSES,
   ARTIST_TYPES,
+  KIT_STATUSES,
+  VISUELS_STATUSES,
+  DEMANDE_STATUSES,
+  TEAM,
 } from "@/lib/constants";
 import type { Artist } from "@/types/database";
 
@@ -176,6 +180,31 @@ export function ArtistForm({ artist }: { artist?: Artist | null }) {
           <div className="grid grid-cols-2 gap-3">
             <Select label="Contrat" name="contrat_status" defaultValue={artist?.contrat_status} options={CONTRACT_STATUSES} />
             <Field label="Lien Drive" name="drive_link" defaultValue={artist?.drive_link} placeholder="https://" />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <p className="eyebrow mb-3">Prospection & suivi</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Contacté par"
+              name="contacted_by"
+              defaultValue={artist?.contacted_by}
+              options={TEAM.map((t) => ({ value: t, label: t }))}
+            />
+            <Field
+              label="1er contact"
+              name="first_contact_date"
+              type="date"
+              defaultValue={artist?.first_contact_date}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Select label="Kit impr." name="kit_impression" defaultValue={artist?.kit_impression} options={KIT_STATUSES} />
+            <Select label="Visuels" name="visuels" defaultValue={artist?.visuels} options={VISUELS_STATUSES} />
+            <Select label="Infos" name="demande_infos" defaultValue={artist?.demande_infos} options={DEMANDE_STATUSES} />
           </div>
         </div>
       </div>

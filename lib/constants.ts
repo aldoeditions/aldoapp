@@ -82,6 +82,31 @@ export const SUIVI_STATUSES: StatusOption[] = [
 ];
 export const SUIVI_STATUS = dict(SUIVI_STATUSES);
 
+/* --- Suivi de lancement : vocabulaires spécifiques par colonne (CHECK réelles) --- */
+
+/** kit_impression : a envoyer · envoyé · reçu */
+export const KIT_STATUSES: StatusOption[] = [
+  { value: "a envoyer", label: "À envoyer", variant: "orange" },
+  { value: "envoyé", label: "Envoyé", variant: "blue" },
+  { value: "reçu", label: "Reçu", variant: "green" },
+];
+export const KIT_STATUS = dict(KIT_STATUSES);
+
+/** visuels : a demander · en attente · validé */
+export const VISUELS_STATUSES: StatusOption[] = [
+  { value: "a demander", label: "À demander", variant: "gray" },
+  { value: "en attente", label: "En attente", variant: "orange" },
+  { value: "validé", label: "Validé", variant: "green" },
+];
+export const VISUELS_STATUS = dict(VISUELS_STATUSES);
+
+/** demande_infos : a demander · reçu */
+export const DEMANDE_STATUSES: StatusOption[] = [
+  { value: "a demander", label: "À demander", variant: "gray" },
+  { value: "reçu", label: "Reçu", variant: "green" },
+];
+export const DEMANDE_STATUS = dict(DEMANDE_STATUSES);
+
 /** Statut d'un drop / campagne. ⚠️ `value` = CHECK constraint réelle. */
 export const DROP_STATUSES: StatusOption[] = [
   { value: "à venir", label: "À venir", variant: "blue" },
