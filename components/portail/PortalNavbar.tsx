@@ -9,9 +9,10 @@ import { Avatar } from "@/components/ui/Avatar";
 
 const LINKS = [
   { href: "/portail", label: "Accueil" },
-  { href: "/portail/profil", label: "Profil" },
-  { href: "/portail/fichiers", label: "Fichiers" },
+  { href: "/portail/oeuvres", label: "Œuvres" },
   { href: "/portail/ventes", label: "Ventes" },
+  { href: "/portail/fichiers", label: "Fichiers" },
+  { href: "/portail/profil", label: "Profil" },
   { href: "/portail/contrats", label: "Contrats" },
   { href: "/portail/calendrier", label: "Calendrier" },
 ];

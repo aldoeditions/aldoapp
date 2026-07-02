@@ -399,6 +399,20 @@ export type Database = {
         };
         Relationships: [];
       };
+      artist_sales: {
+        Row: {
+          id: string | null;
+          sold_at: string | null;
+          wave: string | null;
+          oeuvre_name: string | null;
+          format: string | null;
+          drop_id: string | null;
+          quantity: number | null;
+          unit_price: number | null;
+          total_price: number | null;
+        };
+        Relationships: [];
+      };
       artists_with_stats: {
         Row: {
           id: string | null;

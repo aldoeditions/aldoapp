@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { COMMISSION_PCT } from "@/lib/constants";
-import type { Artist, Drop } from "@/types/database";
+import type { Artist, Drop, Oeuvre } from "@/types/database";
+
+const round = (n: number) => Math.round(n * 100) / 100;
 
 /** Fiche de l'artiste connecté (RLS : ne renvoie que sa propre ligne). */
 export async function getMyArtist(): Promise<Artist | null> {
@@ -114,4 +116,152 @@ export async function getMyActions(iban: string | null): Promise<TodoAction[]> {
     actions.push({ label: "Dépose tes fichiers d'impression HD", href: "/portail/fichiers" });
 
   return actions;
+}
+
+/* --------------------- Œuvres --------------------- */
+
+export type MyOeuvre = Oeuvre & { drop_name: string | null };
+
+/** Œuvres de l'artiste (+ nom du drop), filtrables par drop. */
+export async function getMyOeuvres(dropId?: string): Promise<MyOeuvre[]> {
+  const supabase = createClient();
+  let q = supabase
+    .from("oeuvres")
+    .select("*, drops(name)")
+    .order("created_at", { ascending: false });
+  if (dropId) q = q.eq("drop_id", dropId);
+
+  const { data } = await q.returns<(Oeuvre & { drops: { name: string } | null })[]>();
+  return (data ?? []).map((o) => {
+    const { drops, ...rest } = o;
+    return { ...rest, drop_name: drops?.name ?? null };
+  });
+}
+
+/** Drops de l'artiste (pour le filtre). */
+export async function getMyDrops(): Promise<{ id: string; name: string }[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("drops")
+    .select("id, name")
+    .order("start_date", { ascending: false });
+  return (data ?? []).map((d) => ({ id: d.id, name: d.name }));
+}
+
+/* --------------------- Ventes --------------------- */
+
+export type Sale = {
+  id: string;
+  sold_at: string | null;
+  oeuvre_name: string | null;
+  format: string | null;
+  drop_id: string | null;
+  quantity: number;
+  total_price: number;
+};
+
+/** Historique des ventes (vue sécurisée : prix de vente uniquement). */
+export async function getMySales(): Promise<Sale[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("artist_sales")
+    .select("*")
+    .order("sold_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((s) => ({
+    id: s.id ?? "",
+    sold_at: s.sold_at,
+    oeuvre_name: s.oeuvre_name,
+    format: s.format,
+    drop_id: s.drop_id,
+    quantity: s.quantity ?? 0,
+    total_price: s.total_price ?? 0,
+  }));
+}
+
+export type SalesKpis = {
+  ventesMois: number;
+  caMois: number;
+  commissionMois: number;
+  ventesTotal: number;
+  caTotal: number;
+  commissionTotal: number;
+};
+
+/** KPIs ventes : du mois en cours + total historique. */
+export function computeSalesKpis(sales: Sale[], commissionPct: number | null): SalesKpis {
+  const pct = (commissionPct ?? COMMISSION_PCT * 100) / 100;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  let ventesMois = 0, caMois = 0, ventesTotal = 0, caTotal = 0;
+  for (const s of sales) {
+    ventesTotal += s.quantity;
+    caTotal += s.total_price;
+    if (s.sold_at) {
+      const d = new Date(s.sold_at);
+      if (d.getFullYear() === y && d.getMonth() === m) {
+        ventesMois += s.quantity;
+        caMois += s.total_price;
+      }
+    }
+  }
+  return {
+    ventesMois,
+    caMois: round(caMois),
+    commissionMois: round(caMois * pct),
+    ventesTotal,
+    caTotal: round(caTotal),
+    commissionTotal: round(caTotal * pct),
+  };
+}
+
+/** Ventes agrégées par campagne (pour le graphe). */
+export async function getVentesParCampagne(): Promise<
+  { name: string; ca: number; ventes: number }[]
+> {
+  const supabase = createClient();
+  const [oeuvresRes, dropsRes] = await Promise.all([
+    supabase.from("oeuvres").select("drop_id, nb_ventes, ca_brut"),
+    supabase.from("drops").select("id, name"),
+  ]);
+  const dropName = new Map((dropsRes.data ?? []).map((d) => [d.id, d.name]));
+  const agg = new Map<string, { name: string; ca: number; ventes: number }>();
+  for (const o of oeuvresRes.data ?? []) {
+    const key = o.drop_id ?? "none";
+    const name = o.drop_id ? dropName.get(o.drop_id) ?? "—" : "Hors campagne";
+    const cur = agg.get(key) ?? { name, ca: 0, ventes: 0 };
+    cur.ca += o.ca_brut ?? 0;
+    cur.ventes += o.nb_ventes ?? 0;
+    agg.set(key, cur);
+  }
+  return Array.from(agg.values());
+}
+
+/* --------------------- Paiements --------------------- */
+
+export type MyPayment = {
+  id: string;
+  amount: number;
+  status: string | null;
+  paid_at: string | null;
+  created_at: string | null;
+  reference: string | null;
+};
+
+/** Paiements de l'artiste (RLS scoping). */
+export async function getMyPayments(): Promise<MyPayment[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("payments")
+    .select("id, amount, status, paid_at, created_at, reference")
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    amount: p.amount ?? 0,
+    status: p.status,
+    paid_at: p.paid_at,
+    created_at: p.created_at,
+    reference: p.reference,
+  }));
 }
