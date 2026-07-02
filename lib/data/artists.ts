@@ -118,6 +118,35 @@ export async function getArtistDetail(id: string): Promise<ArtistDetail | null> 
   };
 }
 
+export type PendingFile = ArtistFile & {
+  artist_name: string | null;
+  oeuvre_name: string | null;
+};
+
+/** Fichiers déposés en attente de validation (vue équipe). */
+export async function getPendingFiles(): Promise<PendingFile[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("artist_files")
+    .select("*, artists(name), oeuvres(name)")
+    .eq("status", "en attente")
+    .order("created_at", { ascending: false })
+    .returns<
+      (ArtistFile & {
+        artists: { name: string } | null;
+        oeuvres: { name: string } | null;
+      })[]
+    >();
+  return (data ?? []).map((f) => {
+    const { artists, oeuvres, ...rest } = f;
+    return {
+      ...rest,
+      artist_name: artists?.name ?? null,
+      oeuvre_name: oeuvres?.name ?? null,
+    };
+  });
+}
+
 /** Ligne artiste brute (pour pré-remplir un formulaire d'édition). */
 export async function getArtistRow(id: string): Promise<Artist | null> {
   const supabase = createClient();

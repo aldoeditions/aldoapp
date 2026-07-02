@@ -1,10 +1,12 @@
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { getPendingFiles } from "@/lib/data/artists";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ButtonLink } from "@/components/ui/Button";
+import { FilesReview } from "@/components/artists/FilesReview";
 import { euros0, nombre } from "@/lib/format";
 
 export default async function DashboardPage() {
@@ -30,6 +32,8 @@ export default async function DashboardPage() {
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
+  const pendingFiles = await getPendingFiles();
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -48,6 +52,30 @@ export default async function DashboardPage() {
           hint={`${nombre(nbDrops ?? 0)} drop(s)`}
         />
       </div>
+
+      {/* Fichiers en attente de validation */}
+      <Card>
+        <CardHeader
+          title="Fichiers en attente"
+          subtitle="Fichiers déposés par les artistes, à valider avant impression."
+          action={
+            pendingFiles.length > 0 ? (
+              <span className="rounded-full bg-warningBg px-2.5 py-0.5 text-2xs font-semibold text-warning">
+                {nombre(pendingFiles.length)} à traiter
+              </span>
+            ) : undefined
+          }
+        />
+        <CardBody className={pendingFiles.length > 0 ? "p-0" : undefined}>
+          {pendingFiles.length === 0 ? (
+            <p className="py-4 text-center text-sm text-faint">
+              Aucun fichier en attente. 🎉
+            </p>
+          ) : (
+            <FilesReview files={pendingFiles} />
+          )}
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { COMMISSION_PCT } from "@/lib/constants";
-import type { Artist, Drop, Oeuvre } from "@/types/database";
+import type { Artist, Drop, Oeuvre, ArtistFile, Contract } from "@/types/database";
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
@@ -264,4 +264,38 @@ export async function getMyPayments(): Promise<MyPayment[]> {
     created_at: p.created_at,
     reference: p.reference,
   }));
+}
+
+/* --------------------- Fichiers & contrat --------------------- */
+
+/** Fichiers déposés par l'artiste. */
+export async function getMyFiles(): Promise<ArtistFile[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("artist_files")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data ?? []) as ArtistFile[];
+}
+
+/** Œuvres de l'artiste (id + nom) pour un sélecteur. */
+export async function getMyOeuvresLite(): Promise<{ id: string; name: string }[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("oeuvres")
+    .select("id, name")
+    .order("name", { ascending: true });
+  return (data ?? []).map((o) => ({ id: o.id, name: o.name }));
+}
+
+/** Contrat le plus récent de l'artiste (lecture seule). */
+export async function getMyContract(): Promise<Contract | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("contracts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as Contract) ?? null;
 }

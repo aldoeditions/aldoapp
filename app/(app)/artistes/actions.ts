@@ -147,6 +147,40 @@ export async function deleteArtist(id: string) {
   redirect("/artistes");
 }
 
+/** Valide un fichier déposé (équipe). */
+export async function validateFile(id: string) {
+  const user = await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artist_files")
+    .update({
+      status: "validé",
+      review_note: null,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.profile?.name ?? user.email,
+    })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/");
+}
+
+/** Refuse un fichier déposé avec une note (équipe). */
+export async function rejectFile(id: string, note: string) {
+  const user = await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artist_files")
+    .update({
+      status: "refusé",
+      review_note: note || "Fichier à redéposer.",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.profile?.name ?? user.email,
+    })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/");
+}
+
 export type InviteResult = {
   error?: string;
   password?: string;

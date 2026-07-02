@@ -53,6 +53,14 @@ export function commission(
   return Math.round((montant ?? 0) * pct * 100) / 100;
 }
 
+/** Taille de fichier lisible, ex. 1536000 → « 1,5 Mo ». */
+export function taille(bytes: number | null | undefined): string {
+  const b = bytes ?? 0;
+  if (b < 1024) return `${b} o`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} Ko`;
+  return `${(b / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
 /** Initiales pour les avatars, ex. « Louison Dupont » → « LD ». */
 export function initiales(name: string | null | undefined): string {
   if (!name) return "?";

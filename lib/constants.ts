@@ -123,12 +123,20 @@ export const OEUVRE_STATUSES: StatusOption[] = [
 ];
 export const OEUVRE_STATUS = dict(OEUVRE_STATUSES);
 
-/** Statut de validation d'un fichier / visuel. ⚠️ `value` = CHECK constraint réelle. */
+/** Statut de validation d'un fichier / visuel (oeuvres.file_status). */
 export const FILE_STATUSES: StatusOption[] = [
   { value: "en attente", label: "En attente", variant: "orange" },
   { value: "validé", label: "Validé", variant: "green" },
 ];
 export const FILE_STATUS = dict(FILE_STATUSES);
+
+/** Statut d'un fichier déposé (artist_files.status). ⚠️ CHECK réelle. */
+export const ARTIST_FILE_STATUSES: StatusOption[] = [
+  { value: "en attente", label: "En attente", variant: "orange" },
+  { value: "validé", label: "Validé", variant: "green" },
+  { value: "refusé", label: "Refusé", variant: "red" },
+];
+export const ARTIST_FILE_STATUS = dict(ARTIST_FILE_STATUSES);
 
 /** Statut d'une commande Shopify. */
 export const ORDER_STATUSES: StatusOption[] = [
