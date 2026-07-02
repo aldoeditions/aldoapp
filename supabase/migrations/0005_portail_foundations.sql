@@ -33,6 +33,18 @@ returns uuid language sql security definer set search_path = public stable as $$
 $$;
 
 -- 5. Refonte RLS par-artiste (remplace la policy "authenticated_all")
+-- S'assurer que RLS est ACTIVÉ (sinon les policies sont inertes).
+alter table public.artists       enable row level security;
+alter table public.oeuvres       enable row level security;
+alter table public.drops         enable row level security;
+alter table public.orders        enable row level security;
+alter table public.order_items   enable row level security;
+alter table public.params        enable row level security;
+alter table public.charges       enable row level security;
+alter table public.artist_files  enable row level security;
+alter table public.contracts     enable row level security;
+alter table public.payments      enable row level security;
+
 -- artists : équipe = tout ; artiste = sa seule ligne (lecture + update)
 drop policy if exists "authenticated_all" on public.artists;
 drop policy if exists "artists_team" on public.artists;
