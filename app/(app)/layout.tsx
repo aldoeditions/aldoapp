@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth/session";
+import { requireTeam } from "@/lib/auth/session";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 
@@ -7,7 +7,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireUser();
+  const user = await requireTeam();
   const displayName = user.profile?.name ?? user.email.split("@")[0];
 
   return (

@@ -55,6 +55,9 @@ export type Database = {
           commission_pct: number | null;
           drive_link: string | null;
           dans_le_pipe: boolean | null;
+          user_id: string | null;
+          iban: string | null;
+          bic: string | null;
         };
         Insert: {
           id?: string;
@@ -74,6 +77,9 @@ export type Database = {
           style?: string | null;
           renommee?: string | null;
           phase: ArtistPhase;
+          user_id?: string | null;
+          iban?: string | null;
+          bic?: string | null;
           pipe_status?: string | null;
           contacted_by?: string | null;
           first_contact_date?: string | null;
@@ -100,6 +106,8 @@ export type Database = {
           end_date: string;
           objectif_ca: number | null;
           notes: string | null;
+          date_impression_1: string | null;
+          date_impression_2: string | null;
         };
         Insert: {
           id?: string;
@@ -111,6 +119,8 @@ export type Database = {
           end_date: string;
           objectif_ca?: number | null;
           notes?: string | null;
+          date_impression_1?: string | null;
+          date_impression_2?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["drops"]["Insert"]>;
         Relationships: [];
@@ -419,6 +429,9 @@ export type Database = {
           commission_pct: number | null;
           drive_link: string | null;
           dans_le_pipe: boolean | null;
+          user_id: string | null;
+          iban: string | null;
+          bic: string | null;
           nb_oeuvres: number | null;
           total_ventes: number | null;
           total_ca: number | null;

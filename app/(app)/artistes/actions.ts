@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -144,4 +145,74 @@ export async function deleteArtist(id: string) {
 
   revalidatePath("/artistes");
   redirect("/artistes");
+}
+
+export type InviteResult = {
+  error?: string;
+  password?: string;
+  email?: string;
+  info?: string;
+};
+
+/**
+ * Invite un artiste au portail : crée son compte Auth (rôle artist) avec un
+ * mot de passe temporaire, et le lie à sa fiche (`artists.user_id`).
+ * Renvoie le mot de passe temporaire à communiquer à l'artiste.
+ */
+export async function inviteArtist(artistId: string): Promise<InviteResult> {
+  await assertCanEdit();
+  const supabase = createClient();
+
+  const { data: artist } = await supabase
+    .from("artists")
+    .select("id, name, email, user_id")
+    .eq("id", artistId)
+    .maybeSingle();
+
+  if (!artist) return { error: "Artiste introuvable." };
+  if (!artist.email)
+    return { error: "Ajoute d'abord un email sur la fiche de l'artiste." };
+  if (artist.user_id)
+    return { error: "Cet artiste a déjà un compte relié au portail." };
+
+  const admin = createAdminClient();
+  const password = "Aldo-" + randomUUID().replace(/-/g, "").slice(0, 10);
+
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email: artist.email,
+    password,
+    email_confirm: true,
+    user_metadata: { name: artist.name, role: "artist" },
+  });
+
+  let userId = created?.user?.id;
+  let tempPassword: string | undefined = password;
+
+  if (error) {
+    // Email déjà utilisé → on relie le compte existant.
+    const { data: list } = await admin.auth.admin.listUsers();
+    const existing = list?.users?.find(
+      (u) => u.email?.toLowerCase() === artist.email!.toLowerCase(),
+    );
+    if (!existing) return { error: error.message };
+    userId = existing.id;
+    tempPassword = undefined;
+    await admin.from("profiles").update({ role: "artist" }).eq("id", userId);
+  }
+
+  if (!userId) return { error: "Création du compte impossible." };
+
+  // Liaison (session équipe → passe le trigger de protection des colonnes).
+  const { error: linkErr } = await supabase
+    .from("artists")
+    .update({ user_id: userId })
+    .eq("id", artistId);
+  if (linkErr) return { error: linkErr.message };
+
+  revalidatePath(`/artistes/${artistId}`);
+  return {
+    email: artist.email,
+    password: tempPassword,
+    info: tempPassword ? undefined : "Compte existant relié au portail.",
+  };
 }

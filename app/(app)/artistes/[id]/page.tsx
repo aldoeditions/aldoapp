@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 import { DeleteArtistButton } from "@/components/artists/DeleteArtistButton";
+import { InviteButton } from "@/components/artists/InviteButton";
 import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import {
   ARTIST_PHASE,
@@ -109,7 +110,12 @@ export default async function ArtistDetailPage({
           </div>
 
           {editable && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <InviteButton
+                artistId={row.id}
+                hasEmail={Boolean(row.email)}
+                alreadyLinked={Boolean(row.user_id)}
+              />
               <ArtistFormButton artist={row} variant="secondary" label="Modifier" />
               <DeleteArtistButton id={artist.id ?? ""} name={artist.name ?? ""} />
             </div>

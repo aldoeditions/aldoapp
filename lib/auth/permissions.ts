@@ -8,12 +8,24 @@
  *   - creatif  : pipeline + produit (œuvres/fichiers), pas de finances
  */
 
-export type Role = "admin" | "marketing" | "creatif";
+export type Role = "admin" | "marketing" | "creatif" | "artist";
+
+/** Rôles de l'équipe Aldo (accès à l'admin). L'artiste vit sur /portail. */
+export const TEAM_ROLES: Role[] = ["admin", "marketing", "creatif"];
+
+export function isTeam(role: string | null | undefined): boolean {
+  return role === "admin" || role === "marketing" || role === "creatif";
+}
+
+export function isArtist(role: string | null | undefined): boolean {
+  return role === "artist";
+}
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: "Admin",
   marketing: "Marketing",
   creatif: "Créatif",
+  artist: "Artiste",
 };
 
 /** Clés des modules (= segments de route). */
@@ -63,12 +75,26 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
     charges: "none",
     parametres: "none",
   },
+  // L'artiste n'a aucun accès aux modules admin (il vit sur /portail).
+  artist: {
+    dashboard: "none",
+    prospection: "none",
+    artistes: "none",
+    drops: "none",
+    commandes: "none",
+    finances: "none",
+    charges: "none",
+    parametres: "none",
+  },
 };
 
 const FALLBACK_ROLE: Role = "creatif";
 
 export function asRole(role: string | null | undefined): Role {
-  return role === "admin" || role === "marketing" || role === "creatif"
+  return role === "admin" ||
+    role === "marketing" ||
+    role === "creatif" ||
+    role === "artist"
     ? role
     : FALLBACK_ROLE;
 }

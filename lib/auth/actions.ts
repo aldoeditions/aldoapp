@@ -8,3 +8,9 @@ export async function logout() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function logoutPortal() {
+  const supabase = createClient();
+  await supabase.auth.signOut();
+  redirect("/portail/login");
+}
