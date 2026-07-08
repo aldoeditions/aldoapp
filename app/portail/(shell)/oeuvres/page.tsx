@@ -2,6 +2,7 @@ import { requireArtist } from "@/lib/auth/session";
 import { getMyOeuvres, getMyDrops } from "@/lib/data/portal";
 import { OeuvreCard } from "@/components/portail/OeuvreCard";
 import { DropFilter } from "@/components/portail/DropFilter";
+import { PortalHeader } from "@/components/portail/PortalHeader";
 
 export default async function OeuvresPage({
   searchParams,
@@ -15,16 +16,12 @@ export default async function OeuvresPage({
   ]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-1.5">Ta vitrine</p>
-        <h1 className="font-serif text-2xl tracking-tight text-text sm:text-3xl">
-          Mes œuvres
-        </h1>
-        <p className="mt-1.5 text-sm text-muted">
-          Toutes tes affiches éditées avec Aldo, et leurs performances.
-        </p>
-      </div>
+    <div className="space-y-7">
+      <PortalHeader
+        eyebrow="Ta vitrine"
+        title="Mes œuvres"
+        description="Toutes tes affiches éditées avec Aldo, et leurs performances."
+      />
 
       <DropFilter drops={drops} />
 

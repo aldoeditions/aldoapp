@@ -6,22 +6,19 @@ import { ARTIST_FILE_STATUS } from "@/lib/constants";
 import { taille, dateCourte } from "@/lib/format";
 import { FileUploader } from "@/components/portail/FileUploader";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
+import { PortalHeader } from "@/components/portail/PortalHeader";
 
 export default async function FichiersPage() {
   await requireArtist();
   const [files, oeuvres] = await Promise.all([getMyFiles(), getMyOeuvresLite()]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-1.5">Impression</p>
-        <h1 className="font-serif text-2xl tracking-tight text-text sm:text-3xl">
-          Mes fichiers
-        </h1>
-        <p className="mt-1.5 text-sm text-muted">
-          Dépose tes fichiers d&apos;impression HD. L&apos;équipe Aldo les valide avant impression.
-        </p>
-      </div>
+    <div className="space-y-7">
+      <PortalHeader
+        eyebrow="Impression"
+        title="Mes fichiers"
+        description="Dépose tes fichiers d'impression HD. L'équipe Aldo les valide avant impression."
+      />
 
       <Card>
         <CardHeader title="Déposer un fichier" />

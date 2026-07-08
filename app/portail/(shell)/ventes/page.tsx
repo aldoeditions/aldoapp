@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { PAYMENT_STATUS } from "@/lib/constants";
 import { euros, euros0, nombre, dateCourte } from "@/lib/format";
 import { SalesChart } from "@/components/portail/SalesChart";
+import { PortalHeader } from "@/components/portail/PortalHeader";
 import { COMMISSION_PCT } from "@/lib/constants";
 
 export default async function VentesPage() {
@@ -27,16 +28,12 @@ export default async function VentesPage() {
   const kpis = computeSalesKpis(sales, artist?.commission_pct ?? null);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-1.5">Ton activité</p>
-        <h1 className="font-serif text-2xl tracking-tight text-text sm:text-3xl">
-          Mes ventes
-        </h1>
-        <p className="mt-1.5 text-sm text-muted">
-          Tes ventes, ta commission ({Math.round(pct * 100)} %) et tes paiements.
-        </p>
-      </div>
+    <div className="space-y-7">
+      <PortalHeader
+        eyebrow="Ton activité"
+        title="Mes ventes"
+        description={`Tes ventes, ta commission (${Math.round(pct * 100)} %) et tes paiements.`}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

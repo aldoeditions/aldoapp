@@ -8,6 +8,7 @@ import {
 } from "@/lib/data/portal";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
+import { PortalHeader } from "@/components/portail/PortalHeader";
 import { euros0, euros, nombre, dateCourte } from "@/lib/format";
 
 function joursRestants(end: string | null): number | null {
@@ -27,18 +28,12 @@ export default async function PortalHome() {
   const restants = joursRestants(campaigns.current?.drop.end_date ?? null);
 
   return (
-    <div className="space-y-8">
-      {/* En-tête */}
-      <div>
-        <p className="eyebrow mb-1.5">Ton espace</p>
-        <h1 className="font-serif text-3xl tracking-tight text-text">
-          Bonjour {prenom} 👋
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          Retrouve ici tes ventes, tes fichiers, tes contrats et tes commissions,
-          en temps réel.
-        </p>
-      </div>
+    <div className="space-y-9">
+      <PortalHeader
+        eyebrow="Ton espace"
+        title={<>Bonjour {prenom} 👋</>}
+        description="Retrouve ici tes ventes, tes fichiers, tes contrats et tes commissions, en temps réel."
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -6,6 +6,7 @@ import { CONTRACT_STATUS } from "@/lib/constants";
 import { dateCourte, pourcent } from "@/lib/format";
 import { ProfileForm } from "@/components/portail/ProfileForm";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
+import { PortalHeader } from "@/components/portail/PortalHeader";
 
 export default async function ProfilPage() {
   await requireArtist();
@@ -14,16 +15,12 @@ export default async function ProfilPage() {
   if (!artist) return null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-1.5">Ton compte</p>
-        <h1 className="font-serif text-2xl tracking-tight text-text sm:text-3xl">
-          Mon profil
-        </h1>
-        <p className="mt-1.5 text-sm text-muted">
-          Tiens tes informations à jour pour Aldo et pour tes futurs acheteurs.
-        </p>
-      </div>
+    <div className="space-y-7">
+      <PortalHeader
+        eyebrow="Ton compte"
+        title="Mon profil"
+        description="Tiens tes informations à jour pour Aldo et pour tes futurs acheteurs."
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
