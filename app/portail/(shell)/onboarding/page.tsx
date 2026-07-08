@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireArtist } from "@/lib/auth/session";
 import { getMyArtist } from "@/lib/data/portal";
+import { Mascotte } from "@/components/brand/Logo";
 
 export default async function OnboardingPage() {
   await requireArtist();
@@ -15,7 +16,8 @@ export default async function OnboardingPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-6">
-      <div className="text-center">
+      <div className="flex flex-col items-center text-center">
+        <Mascotte className="mb-3 h-28 w-auto" />
         <p className="eyebrow mb-2">Bienvenue</p>
         <h1 className="font-serif text-3xl tracking-tight text-text">
           Ravis de t&apos;accueillir, {prenom} 🎉
@@ -30,7 +32,7 @@ export default async function OnboardingPage() {
           <li key={s.href}>
             <Link
               href={s.href}
-              className="flex items-start gap-4 rounded-xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-float"
+              className="flex items-start gap-4 rounded-xl border border-border bg-surface p-5 shadow-card transition-shadow hover:shadow-float"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accentBg font-semibold text-accent">
                 {i + 1}

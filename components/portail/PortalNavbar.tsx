@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { logoutPortal } from "@/lib/auth/actions";
 import { Avatar } from "@/components/ui/Avatar";
+import { Logo } from "@/components/brand/Logo";
 
 const LINKS = [
   { href: "/portail", label: "Accueil" },
@@ -32,11 +33,11 @@ export function PortalNavbar({
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
         {/* Marque */}
-        <Link href="/portail" className="flex items-center gap-2">
-          <span className="font-serif text-xl tracking-tight text-text">Aldo</span>
+        <Link href="/portail" className="flex items-center gap-2.5">
+          <Logo className="h-6 text-accent" />
           <span className="hidden text-2xs font-semibold uppercase tracking-[0.16em] text-faint sm:inline">
             Espace artiste
           </span>
@@ -89,7 +90,7 @@ export function PortalNavbar({
 
       {/* Nav mobile */}
       {open && (
-        <nav className="border-t border-line bg-surface px-4 py-2 md:hidden">
+        <nav className="border-t border-border bg-surface px-4 py-2 md:hidden">
           {LINKS.map((l) => (
             <Link
               key={l.href}

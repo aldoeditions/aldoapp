@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PortalLoginForm } from "./login-form";
+import { Logo, Mascotte } from "@/components/brand/Logo";
 
 export const metadata: Metadata = {
   title: "Espace artiste — Aldo Éditions",
@@ -16,18 +17,19 @@ export default function PortalLoginPage({
       : undefined;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <p className="eyebrow mb-2">Espace artiste</p>
-          <h1 className="font-serif text-4xl tracking-tight text-text">Aldo Éditions</h1>
-          <p className="mt-3 text-sm text-muted">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Mascotte className="mb-2 h-24 w-auto" />
+          <Logo className="h-8 text-accent" />
+          <p className="eyebrow mt-3">Espace artiste</p>
+          <p className="mt-2 text-sm text-muted">
             Bienvenue dans ton espace. Retrouve tes ventes, tes fichiers,
             tes contrats et tes commissions.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-line bg-surface p-7 shadow-card">
+        <div className="rounded-2xl border border-border bg-surface p-7 shadow-card">
           <PortalLoginForm notice={notice} />
         </div>
 

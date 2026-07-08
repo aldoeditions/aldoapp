@@ -29,7 +29,7 @@ export default async function OeuvresPage({
       <DropFilter drops={drops} />
 
       {oeuvres.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-10 text-center shadow-card">
+        <div className="rounded-xl border border-border bg-surface p-10 text-center shadow-card">
           <p className="font-serif text-lg text-text">Aucune œuvre pour l&apos;instant</p>
           <p className="mt-1.5 text-sm text-muted">
             Tes œuvres apparaîtront ici dès qu&apos;Aldo les aura ajoutées à une campagne.

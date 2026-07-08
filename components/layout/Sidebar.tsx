@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { canView, type ModuleKey, type Role } from "@/lib/auth/permissions";
+import { Logo } from "@/components/brand/Logo";
 import { NAV } from "./nav";
 
 function isActive(pathname: string, href: string): boolean {
@@ -15,15 +16,13 @@ export function Sidebar({ role }: { role: Role }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col bg-sidebar text-white/90">
+    <aside className="grain flex h-screen w-60 shrink-0 flex-col bg-sidebar text-white/90">
       {/* Marque */}
       <div className="px-5 pb-5 pt-6">
         <Link href="/" className="block">
-          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-white/40">
+          <Logo className="h-6 text-white" />
+          <p className="mt-2 text-2xs font-semibold uppercase tracking-[0.18em] text-white/40">
             Administration
-          </p>
-          <p className="mt-1 font-serif text-xl tracking-tight text-white">
-            Aldo Éditions
           </p>
         </Link>
       </div>

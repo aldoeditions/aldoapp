@@ -5,7 +5,7 @@ import type { MyOeuvre } from "@/lib/data/portal";
 
 export function OeuvreCard({ oeuvre }: { oeuvre: MyOeuvre }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card transition-shadow hover:shadow-float">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card transition-shadow hover:shadow-float">
       {/* Visuel */}
       <div className="relative aspect-[4/5] bg-bg">
         {oeuvre.file_url ? (

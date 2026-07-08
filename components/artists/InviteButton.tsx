@@ -41,7 +41,7 @@ export function InviteButton({
       </button>
 
       {result && (
-        <div className="absolute right-0 z-10 mt-2 w-72 rounded-lg border border-line bg-surface p-4 shadow-float">
+        <div className="absolute right-0 z-10 mt-2 w-72 rounded-lg border border-border bg-surface p-4 shadow-float">
           {result.error ? (
             <p className="text-sm text-danger">{result.error}</p>
           ) : (

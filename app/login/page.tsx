@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { Logo } from "@/components/brand/Logo";
 
 export const metadata: Metadata = {
   title: "Connexion — Aldo Éditions",
@@ -13,11 +14,9 @@ export default function LoginPage({
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <p className="eyebrow mb-2">Administration</p>
-          <h1 className="font-serif text-3xl tracking-tight text-text">
-            Aldo Éditions
-          </h1>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Logo className="h-9 text-accent" />
+          <p className="eyebrow mt-4">Administration</p>
           <p className="mt-2 text-sm text-muted">
             Connecte-toi pour accéder au back-office.
           </p>

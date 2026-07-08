@@ -59,7 +59,7 @@ export function ProfileForm({ artist }: { artist: Artist }) {
       </div>
 
       {/* RIB */}
-      <div className="rounded-xl border border-line bg-bg/60 p-4">
+      <div className="rounded-xl border border-border bg-bg/60 p-4">
         <p className="eyebrow mb-1">Mes informations bancaires</p>
         <p className="mb-3 text-2xs text-faint">
           Nécessaires pour te verser tes commissions. Visibles uniquement par toi et l&apos;équipe Aldo.
