@@ -17,6 +17,7 @@ import { euros, euros0, nombre, dateCourte } from "@/lib/format";
 import { DropFormButton } from "@/components/drops/DropFormButton";
 import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
 import { DeleteDropButton, DeleteOeuvreButton } from "@/components/drops/DeleteButtons";
+import { ReapplyCostsButton } from "@/components/drops/ReapplyCostsButton";
 
 export default async function DropDetailPage({
   params,
@@ -69,7 +70,10 @@ export default async function DropDetailPage({
             {drop.notes && <p className="mt-2 max-w-2xl text-sm text-muted">{drop.notes}</p>}
           </div>
           {editable && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {drop.status !== "terminé" && oeuvres.length > 0 && (
+                <ReapplyCostsButton dropId={drop.id} />
+              )}
               <DropFormButton drop={drop} variant="secondary" label="Modifier" />
               <DeleteDropButton id={drop.id} name={drop.name} />
             </div>

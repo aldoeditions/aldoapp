@@ -94,6 +94,45 @@ export async function deleteDrop(id: string) {
   redirect("/drops");
 }
 
+/**
+ * Réapplique les coûts unitaires ACTUELS (params) aux œuvres du drop.
+ * Met à jour cout_impression / cout_packaging de chaque œuvre selon son format
+ * → le P&L du drop reflète les coûts à jour. À réserver aux drops non terminés.
+ */
+export async function reapplyDropCosts(dropId: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+
+  const { data: paramRows } = await supabase
+    .from("params")
+    .select("type, format, valeur");
+  const impression: Record<string, number> = {};
+  const packaging: Record<string, number> = {};
+  for (const r of paramRows ?? []) {
+    if (r.type === "Impression") impression[r.format] = r.valeur ?? 0;
+    else if (r.type === "Packaging") packaging[r.format] = r.valeur ?? 0;
+  }
+
+  const { data: oeuvres } = await supabase
+    .from("oeuvres")
+    .select("id, format")
+    .eq("drop_id", dropId);
+
+  for (const o of oeuvres ?? []) {
+    await supabase
+      .from("oeuvres")
+      .update({
+        cout_impression: impression[o.format] ?? null,
+        cout_packaging: packaging[o.format] ?? null,
+      })
+      .eq("id", o.id);
+  }
+
+  revalidatePath(`/drops/${dropId}`);
+  revalidatePath("/finances");
+  revalidatePath(`/finances/${dropId}`);
+}
+
 /* ------------------------------ ŒUVRES ------------------------------ */
 
 async function uploadVisuel(oeuvreId: string, file: File): Promise<string | null> {
