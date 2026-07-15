@@ -13,6 +13,7 @@ import {
 } from "@/lib/constants";
 import { euros } from "@/lib/format";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
+import { OeuvreFileReplace } from "./OeuvreFileReplace";
 import type { Oeuvre } from "@/types/database";
 import type { CostByFormat } from "@/lib/data/drops";
 
@@ -92,6 +93,14 @@ export function OeuvreForm({
               L&apos;aperçu se remplit automatiquement quand le fichier déposé par
               l&apos;artiste est validé.
             </p>
+          )}
+          {editing && oeuvre?.id && oeuvre.artist_id && (
+            <OeuvreFileReplace
+              oeuvreId={oeuvre.id}
+              artistId={oeuvre.artist_id}
+              dropId={dropId}
+              hasFile={Boolean(hdFile)}
+            />
           )}
         </div>
       </div>

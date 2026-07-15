@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
+import { syncOeuvreVisuel } from "@/lib/files/visuel";
 import type { TablesInsert, TablesUpdate, ArtistPhase } from "@/types/database";
 
 const BUCKET = "artist-assets";
@@ -170,29 +171,8 @@ export async function validateFile(id: string) {
     .single();
   if (error) throw error;
 
-  if (file?.oeuvre_id && (file.mime_type ?? "").startsWith("image/")) {
-    // Best-effort : ne jamais faire échouer la validation si la copie rate.
-    try {
-      const admin = createAdminClient();
-      const { data: blob } = await admin.storage
-        .from("artist-files")
-        .download(file.file_path);
-      if (blob) {
-        const ext = (file.filename?.split(".").pop() || "jpg").toLowerCase();
-        const path = `oeuvres/${file.oeuvre_id}/visuel-${randomUUID()}.${ext}`;
-        const bytes = new Uint8Array(await blob.arrayBuffer());
-        const up = await admin.storage.from(BUCKET).upload(path, bytes, {
-          contentType: file.mime_type ?? undefined,
-          upsert: true,
-        });
-        if (!up.error) {
-          const url = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-          await supabase.from("oeuvres").update({ file_url: url }).eq("id", file.oeuvre_id);
-        }
-      }
-    } catch {
-      /* copie du visuel non bloquante */
-    }
+  if (file?.oeuvre_id) {
+    await syncOeuvreVisuel(file.oeuvre_id, file.file_path, file.filename, file.mime_type);
   }
 
   revalidatePath("/");

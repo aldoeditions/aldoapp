@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
+import { syncOeuvreVisuel } from "@/lib/files/visuel";
 import type {
   TablesInsert,
   TablesUpdate,
@@ -214,6 +215,49 @@ export async function saveOeuvre(
 
   revalidatePath(`/drops/${dropId}`);
   return { error: null, ok: true };
+}
+
+/**
+ * Enregistre une nouvelle version du fichier d'une œuvre, uploadée côté admin
+ * (déjà déposée sur le Storage privé). Marquée « validé » directement — l'aperçu
+ * public de l'œuvre est régénéré. Conserve l'historique des dépôts précédents.
+ */
+export async function registerOeuvreFile(input: {
+  oeuvreId: string;
+  artistId: string;
+  dropId: string;
+  path: string;
+  filename: string;
+  size: number;
+  mime: string;
+}): Promise<{ error?: string }> {
+  try {
+    const user = await requireUser();
+    if (!canEdit(user.role, "drops")) return { error: "Accès refusé." };
+    const supabase = createClient();
+
+    const { error } = await supabase.from("artist_files").insert({
+      artist_id: input.artistId,
+      oeuvre_id: input.oeuvreId,
+      filename: input.filename,
+      file_path: input.path,
+      file_size: input.size,
+      mime_type: input.mime,
+      status: "validé",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.profile?.name ?? user.email,
+    } as TablesInsert<"artist_files">);
+    if (error) return { error: error.message };
+
+    await syncOeuvreVisuel(input.oeuvreId, input.path, input.filename, input.mime);
+
+    revalidatePath(`/drops/${input.dropId}`);
+    revalidatePath("/drops");
+    revalidatePath("/");
+    return {};
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur inattendue." };
+  }
 }
 
 export async function deleteOeuvre(id: string, dropId: string) {
