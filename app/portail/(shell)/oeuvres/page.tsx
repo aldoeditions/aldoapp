@@ -1,8 +1,9 @@
 import { requireArtist } from "@/lib/auth/session";
-import { getMyOeuvres, getMyDrops } from "@/lib/data/portal";
+import { getMyArtist, getMyOeuvres, getMyDrops } from "@/lib/data/portal";
 import { OeuvreCard } from "@/components/portail/OeuvreCard";
 import { DropFilter } from "@/components/portail/DropFilter";
 import { PortalHeader } from "@/components/portail/PortalHeader";
+import { COMMISSION_PCT } from "@/lib/constants";
 
 export default async function OeuvresPage({
   searchParams,
@@ -10,10 +11,12 @@ export default async function OeuvresPage({
   searchParams: { drop?: string };
 }) {
   await requireArtist();
-  const [oeuvres, drops] = await Promise.all([
+  const [artist, oeuvres, drops] = await Promise.all([
+    getMyArtist(),
     getMyOeuvres(searchParams.drop),
     getMyDrops(),
   ]);
+  const pct = (artist?.commission_pct ?? COMMISSION_PCT * 100) / 100;
 
   return (
     <div className="space-y-7">
@@ -35,7 +38,7 @@ export default async function OeuvresPage({
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {oeuvres.map((o) => (
-            <OeuvreCard key={o.id} oeuvre={o} />
+            <OeuvreCard key={o.id} oeuvre={o} commissionPct={pct} />
           ))}
         </div>
       )}

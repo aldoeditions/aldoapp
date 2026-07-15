@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { PortalHeader } from "@/components/portail/PortalHeader";
 import { euros0, euros, nombre, dateCourte } from "@/lib/format";
+import { COMMISSION_PCT } from "@/lib/constants";
 
 function joursRestants(end: string | null): number | null {
   if (!end) return null;
@@ -26,6 +27,7 @@ export default async function PortalHome() {
   ]);
   const prenom = (artist?.name ?? "").split(" ")[0] || "artiste";
   const restants = joursRestants(campaigns.current?.drop.end_date ?? null);
+  const pct = (artist?.commission_pct ?? COMMISSION_PCT * 100) / 100;
 
   return (
     <div className="space-y-9">
@@ -38,8 +40,8 @@ export default async function PortalHome() {
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Ventes totales" value={nombre(stats.nb_ventes)} hint="affiches vendues" />
-        <StatCard label="CA généré" value={euros0(stats.ca_brut)} accent />
-        <StatCard label="Commission à recevoir" value={euros0(stats.commission_due)} hint={`${euros0(stats.commission_payee)} déjà versés`} />
+        <StatCard label="Commission à recevoir" value={euros0(stats.commission_due)} accent hint={`${euros0(stats.commission_payee)} déjà versés`} />
+        <StatCard label="Commission totale gagnée" value={euros0(stats.commission_estimee)} hint="depuis le début" />
       </div>
 
       {/* Actions à faire */}
@@ -95,7 +97,7 @@ export default async function PortalHome() {
                     <th className="px-5 py-2.5 font-semibold">Ton œuvre</th>
                     <th className="px-3 py-2.5 font-semibold">Format</th>
                     <th className="px-3 py-2.5 text-right font-semibold">Ventes</th>
-                    <th className="px-5 py-2.5 text-right font-semibold">CA</th>
+                    <th className="px-5 py-2.5 text-right font-semibold">Ta commission</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -104,7 +106,7 @@ export default async function PortalHome() {
                       <td className="px-5 py-2.5 font-medium text-text">{o.name}</td>
                       <td className="px-3 py-2.5 text-muted">{o.format}</td>
                       <td className="px-3 py-2.5 text-right text-text">{nombre(o.nb_ventes)}</td>
-                      <td className="px-5 py-2.5 text-right font-medium text-text">{euros(o.ca_brut)}</td>
+                      <td className="px-5 py-2.5 text-right font-medium text-accent">{euros(o.ca_brut * pct)}</td>
                     </tr>
                   ))}
                 </tbody>

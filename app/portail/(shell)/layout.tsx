@@ -18,12 +18,12 @@ export default async function PortalLayout({
 
       <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
         <main className="flex flex-1 flex-col md:overflow-y-auto">
-          <div className="mx-auto w-full max-w-4xl flex-1 px-5 py-8 sm:px-8 sm:py-10">
+          <div className="w-full flex-1 px-5 py-8 sm:px-8 sm:py-10">
             {children}
           </div>
 
           <footer className="mt-auto border-t border-border">
-            <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-2 px-5 py-5 text-2xs text-faint sm:flex-row sm:px-8">
+            <div className="flex flex-col items-center justify-between gap-2 px-5 py-5 text-2xs text-faint sm:flex-row sm:px-8">
               <Logo className="h-4 text-muted" />
               <span>
                 Une question ? Écris-nous à{" "}

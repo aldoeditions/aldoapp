@@ -10,11 +10,11 @@ import {
   CartesianGrid,
 } from "recharts";
 
-/** Graphe des ventes (CA) par campagne. */
+/** Graphe des commissions par campagne. */
 export function SalesChart({
   data,
 }: {
-  data: { name: string; ca: number; ventes: number }[];
+  data: { name: string; commission: number; ventes: number }[];
 }) {
   if (data.length === 0) {
     return (
@@ -44,14 +44,14 @@ export function SalesChart({
           />
           <Tooltip
             cursor={{ fill: "#EEF0FF" }}
-            formatter={(v) => [`${v} €`, "CA"] as [string, string]}
+            formatter={(v) => [`${v} €`, "Commission"] as [string, string]}
             contentStyle={{
               borderRadius: 8,
               border: "1px solid #E8E5DF",
               fontSize: 12,
             }}
           />
-          <Bar dataKey="ca" fill="#0627b7" radius={[6, 6, 0, 0]} maxBarSize={64} />
+          <Bar dataKey="commission" fill="#0627b7" radius={[6, 6, 0, 0]} maxBarSize={64} />
         </BarChart>
       </ResponsiveContainer>
     </div>

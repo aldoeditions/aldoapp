@@ -3,7 +3,13 @@ import { OEUVRE_STATUS } from "@/lib/constants";
 import { euros, nombre } from "@/lib/format";
 import type { MyOeuvre } from "@/lib/data/portal";
 
-export function OeuvreCard({ oeuvre }: { oeuvre: MyOeuvre }) {
+export function OeuvreCard({
+  oeuvre,
+  commissionPct,
+}: {
+  oeuvre: MyOeuvre;
+  commissionPct: number;
+}) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card transition-shadow hover:shadow-float">
       {/* Visuel */}
@@ -37,9 +43,10 @@ export function OeuvreCard({ oeuvre }: { oeuvre: MyOeuvre }) {
             <p className="font-medium text-text">{euros(oeuvre.price)}</p>
           </div>
           <div className="text-right">
-            <p className="text-2xs text-faint">Ventes · CA</p>
+            <p className="text-2xs text-faint">Ventes · commission</p>
             <p className="font-medium text-text">
-              {nombre(oeuvre.nb_ventes)} · {euros(oeuvre.ca_brut)}
+              {nombre(oeuvre.nb_ventes)} ·{" "}
+              <span className="text-accent">{euros((oeuvre.ca_brut ?? 0) * commissionPct)}</span>
             </p>
           </div>
         </div>

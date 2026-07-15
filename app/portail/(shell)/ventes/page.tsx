@@ -38,16 +38,22 @@ export default async function VentesPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Ventes du mois" value={nombre(kpis.ventesMois)} />
-        <StatCard label="CA du mois" value={euros0(kpis.caMois)} />
         <StatCard label="Commission du mois" value={euros0(kpis.commissionMois)} accent />
-        <StatCard label="Commission totale" value={euros0(kpis.commissionTotal)} hint={`${nombre(kpis.ventesTotal)} ventes cumulées`} />
+        <StatCard label="Ventes totales" value={nombre(kpis.ventesTotal)} hint="cumulées" />
+        <StatCard label="Commission totale" value={euros0(kpis.commissionTotal)} hint="depuis le début" />
       </div>
 
       {/* Graphe par campagne */}
       <Card>
-        <CardHeader title="Ventes par campagne" subtitle="Chiffre d'affaires généré par drop." />
+        <CardHeader title="Commission par campagne" subtitle="Ta commission estimée par drop." />
         <CardBody>
-          <SalesChart data={parCampagne} />
+          <SalesChart
+            data={parCampagne.map((c) => ({
+              name: c.name,
+              commission: Math.round(c.ca * pct * 100) / 100,
+              ventes: c.ventes,
+            }))}
+          />
         </CardBody>
       </Card>
 
@@ -68,7 +74,6 @@ export default async function VentesPage() {
                     <th className="px-3 py-2.5 font-semibold">Œuvre</th>
                     <th className="px-3 py-2.5 font-semibold">Format</th>
                     <th className="px-3 py-2.5 text-right font-semibold">Qté</th>
-                    <th className="px-3 py-2.5 text-right font-semibold">Montant</th>
                     <th className="px-5 py-2.5 text-right font-semibold">Ma commission</th>
                   </tr>
                 </thead>
@@ -79,7 +84,6 @@ export default async function VentesPage() {
                       <td className="px-3 py-2.5 font-medium text-text">{s.oeuvre_name ?? "—"}</td>
                       <td className="px-3 py-2.5 text-muted">{s.format ?? "—"}</td>
                       <td className="px-3 py-2.5 text-right text-muted">{nombre(s.quantity)}</td>
-                      <td className="px-3 py-2.5 text-right text-text">{euros(s.total_price)}</td>
                       <td className="px-5 py-2.5 text-right font-medium text-accent">
                         {euros(s.total_price * pct)}
                       </td>
