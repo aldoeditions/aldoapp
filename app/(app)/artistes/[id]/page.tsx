@@ -11,6 +11,8 @@ import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 import { DeleteArtistButton } from "@/components/artists/DeleteArtistButton";
 import { InviteButton } from "@/components/artists/InviteButton";
 import { SuiviEditor } from "@/components/artists/SuiviEditor";
+import { FilesReview } from "@/components/artists/FilesReview";
+import type { PendingFile } from "@/lib/data/artists";
 import {
   ARTIST_PHASE,
   OEUVRE_STATUS,
@@ -71,6 +73,17 @@ export default async function ArtistDetailPage({
   if (!detail || !row) notFound();
 
   const { artist, oeuvres, contracts, payments, files } = detail;
+
+  // Fichiers déposés en attente → mêmes actions Valider/Refuser que le Dashboard.
+  const pendingFiles: PendingFile[] = editable
+    ? files
+        .filter((f) => f.status === "en attente")
+        .map((f) => ({
+          ...f,
+          artist_name: artist.name,
+          oeuvre_name: oeuvres.find((o) => o.id === f.oeuvre_id)?.name ?? null,
+        }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -275,7 +288,25 @@ export default async function ArtistDetailPage({
             </CardBody>
           </Card>
 
-          {/* Fichiers */}
+          {/* Fichiers en attente de validation (actionnable) */}
+          {pendingFiles.length > 0 && (
+            <Card>
+              <CardHeader
+                title="Fichiers en attente"
+                subtitle="Fichiers déposés par l'artiste, à valider avant impression."
+                action={
+                  <span className="rounded-full bg-warningBg px-2.5 py-0.5 text-2xs font-semibold text-warning">
+                    {nombre(pendingFiles.length)} à traiter
+                  </span>
+                }
+              />
+              <CardBody className="p-0">
+                <FilesReview files={pendingFiles} />
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Fichiers (historique complet) */}
           <Card>
             <CardHeader title="Fichiers" subtitle={`${files.length}`} />
             <CardBody className="p-0">

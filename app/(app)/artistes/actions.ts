@@ -147,11 +147,11 @@ export async function deleteArtist(id: string) {
   redirect("/artistes");
 }
 
-/** Valide un fichier déposé (équipe). */
+/** Valide un fichier déposé (équipe) + répercute sur l'œuvre liée. */
 export async function validateFile(id: string) {
   const user = await assertCanEdit();
   const supabase = createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("artist_files")
     .update({
       status: "validé",
@@ -159,16 +159,28 @@ export async function validateFile(id: string) {
       reviewed_at: new Date().toISOString(),
       reviewed_by: user.profile?.name ?? user.email,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("oeuvre_id")
+    .single();
   if (error) throw error;
+
+  // Le fichier validé fait passer le statut « Fichier » de l'œuvre liée à « validé ».
+  if (data?.oeuvre_id) {
+    await supabase
+      .from("oeuvres")
+      .update({ file_status: "validé" })
+      .eq("id", data.oeuvre_id);
+  }
+
   revalidatePath("/");
+  revalidatePath("/artistes");
 }
 
-/** Refuse un fichier déposé avec une note (équipe). */
+/** Refuse un fichier déposé avec une note (équipe) + remet l'œuvre « en attente ». */
 export async function rejectFile(id: string, note: string) {
   const user = await assertCanEdit();
   const supabase = createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("artist_files")
     .update({
       status: "refusé",
@@ -176,9 +188,20 @@ export async function rejectFile(id: string, note: string) {
       reviewed_at: new Date().toISOString(),
       reviewed_by: user.profile?.name ?? user.email,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("oeuvre_id")
+    .single();
   if (error) throw error;
+
+  if (data?.oeuvre_id) {
+    await supabase
+      .from("oeuvres")
+      .update({ file_status: "en attente" })
+      .eq("id", data.oeuvre_id);
+  }
+
   revalidatePath("/");
+  revalidatePath("/artistes");
 }
 
 export type InviteResult = {
