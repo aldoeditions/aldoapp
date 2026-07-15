@@ -5,6 +5,7 @@ import { logout } from "@/lib/auth/actions";
 import { initiales } from "@/lib/format";
 import { ROLE_LABEL, type Role } from "@/lib/auth/permissions";
 import { LogoutIcon } from "./icons";
+import { MobileNav } from "./MobileNav";
 import { NAV } from "./nav";
 
 function currentLabel(pathname: string): string {
@@ -31,11 +32,12 @@ export function Topbar({
   const label = currentLabel(pathname);
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-bg/80 px-6 backdrop-blur">
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <span className="text-faint">Aldo Éditions</span>
-        <span className="text-faint">/</span>
-        <span className="font-medium text-text">{label}</span>
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-3 border-b border-border bg-bg/80 px-4 backdrop-blur sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 text-sm text-muted">
+        <MobileNav role={role} />
+        <span className="hidden text-faint sm:inline">Aldo Éditions</span>
+        <span className="hidden text-faint sm:inline">/</span>
+        <span className="truncate font-medium text-text">{label}</span>
       </div>
 
       <div className="flex items-center gap-3">

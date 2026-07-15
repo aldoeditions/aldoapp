@@ -89,7 +89,7 @@ export default async function PortalHome() {
             {campaigns.current.oeuvres.length === 0 ? (
               <p className="px-5 py-6 text-center text-sm text-faint">Aucune de tes œuvres dans cette campagne.</p>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto"><table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                     <th className="px-5 py-2.5 font-semibold">Ton œuvre</th>
@@ -108,7 +108,7 @@ export default async function PortalHome() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </CardBody>
         </Card>

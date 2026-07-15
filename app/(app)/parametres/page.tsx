@@ -49,7 +49,7 @@ export default async function ParametresPage() {
           subtitle="Impression + packaging, hors commission artiste."
         />
         <CardBody className="p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                 <th className="px-5 py-3 font-semibold">Format</th>
@@ -78,7 +78,7 @@ export default async function ParametresPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
 

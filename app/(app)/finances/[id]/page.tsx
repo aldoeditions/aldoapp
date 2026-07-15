@@ -116,7 +116,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
               {oeuvres.length === 0 ? (
                 <p className="px-5 py-8 text-center text-sm text-faint">Aucune œuvre.</p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                       <th className="px-5 py-2.5 font-semibold">Œuvre</th>
@@ -139,7 +139,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
               <p className="px-5 py-2 text-2xs text-faint">* Marge hors charges du drop (commission + production).</p>
             </CardBody>

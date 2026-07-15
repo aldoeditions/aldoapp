@@ -43,7 +43,7 @@ export default async function ChargesPage({
         action={newBtn}
       />
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Total charges" value={euros(totals.total)} accent />
         <StatCard label="Fixes" value={euros(totals.fixe)} />
         <StatCard label="Variables" value={euros(totals.variable)} />

@@ -101,7 +101,7 @@ export default async function VentesPage() {
               Aucun paiement pour le moment. Tes commissions te seront versées par l&apos;équipe Aldo.
             </p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                   <th className="px-5 py-2.5 font-semibold">Date</th>
@@ -120,7 +120,7 @@ export default async function VentesPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </CardBody>
       </Card>

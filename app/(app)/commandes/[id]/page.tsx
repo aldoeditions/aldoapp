@@ -104,7 +104,7 @@ export default async function OrderDetailPage({
               {items.length === 0 ? (
                 <p className="px-5 py-8 text-center text-sm text-faint">Aucun article.</p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                       <th className="px-5 py-2.5 font-semibold">Œuvre</th>
@@ -131,7 +131,7 @@ export default async function OrderDetailPage({
                       <td className="px-5 py-3 text-right font-serif text-lg text-text">{euros(order.total_amount)}</td>
                     </tr>
                   </tfoot>
-                </table>
+                </table></div>
               )}
             </CardBody>
           </Card>

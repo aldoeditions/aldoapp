@@ -152,7 +152,7 @@ async function WavesList({ editable }: { editable: boolean }) {
               {r.items.length === 0 ? (
                 <p className="px-5 py-6 text-center text-sm text-faint">Aucun article.</p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                       <th className="px-5 py-2.5 font-semibold">Œuvre à imprimer</th>
@@ -169,7 +169,7 @@ async function WavesList({ editable }: { editable: boolean }) {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </CardBody>
           </Card>

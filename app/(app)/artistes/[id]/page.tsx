@@ -144,7 +144,7 @@ export default async function ArtistDetailPage({
                   &amp; Œuvres en place.
                 </p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                       <th className="px-5 py-2.5 font-semibold">Œuvre</th>
@@ -167,7 +167,7 @@ export default async function ArtistDetailPage({
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </CardBody>
           </Card>
@@ -181,7 +181,7 @@ export default async function ArtistDetailPage({
                   Aucun paiement enregistré.
                 </p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                       <th className="px-5 py-2.5 font-semibold">Drop</th>
@@ -202,7 +202,7 @@ export default async function ArtistDetailPage({
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </CardBody>
           </Card>
