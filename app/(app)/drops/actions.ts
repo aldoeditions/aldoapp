@@ -158,7 +158,6 @@ function oeuvreFieldsFrom(fd: FormData, dropId: string) {
     cout_impression: num(fd, "cout_impression"),
     cout_packaging: num(fd, "cout_packaging"),
     status: str(fd, "status") ?? "brouillon",
-    file_status: str(fd, "file_status"),
   };
 }
 

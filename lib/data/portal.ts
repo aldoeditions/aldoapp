@@ -99,8 +99,8 @@ export async function getMyActions(iban: string | null): Promise<TodoAction[]> {
   const supabase = createClient();
   const [contractsRes, oeuvresRes, filesRes] = await Promise.all([
     supabase.from("contracts").select("status"),
-    supabase.from("oeuvres").select("file_status"),
-    supabase.from("artist_files").select("id"),
+    supabase.from("oeuvres").select("id"),
+    supabase.from("artist_files").select("oeuvre_id, status"),
   ]);
 
   const actions: TodoAction[] = [];
@@ -112,7 +112,11 @@ export async function getMyActions(iban: string | null): Promise<TodoAction[]> {
 
   const oeuvres = oeuvresRes.data ?? [];
   const files = filesRes.data ?? [];
-  if (oeuvres.some((o) => o.file_status !== "validé") || files.length === 0)
+  // Une œuvre est « prête » si elle a au moins un fichier validé.
+  const validatedOeuvres = new Set(
+    files.filter((f) => f.status === "validé").map((f) => f.oeuvre_id),
+  );
+  if (oeuvres.some((o) => !validatedOeuvres.has(o.id)) || files.length === 0)
     actions.push({ label: "Dépose tes fichiers d'impression HD", href: "/portail/fichiers" });
 
   return actions;

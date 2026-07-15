@@ -29,7 +29,21 @@ export async function getDrops(): Promise<DropWithStats[]> {
   }));
 }
 
-export type OeuvreWithArtist = Oeuvre & { artist_name: string | null };
+export type OeuvreWithArtist = Oeuvre & {
+  artist_name: string | null;
+  /** État fichier DÉRIVÉ des fichiers réellement déposés (source de vérité). */
+  file_state: "validé" | "en attente" | "refusé" | null;
+};
+
+/** Priorité d'affichage de l'état fichier d'une œuvre à partir de ses dépôts. */
+function deriveFileState(
+  statuses: (string | null)[],
+): OeuvreWithArtist["file_state"] {
+  if (statuses.some((s) => s === "validé")) return "validé";
+  if (statuses.some((s) => s === "en attente")) return "en attente";
+  if (statuses.some((s) => s === "refusé")) return "refusé";
+  return null;
+}
 
 export type DropDetail = {
   drop: Drop;
@@ -58,9 +72,29 @@ export async function getDropDetail(id: string): Promise<DropDetail | null> {
       .returns<(Oeuvre & { artists: { name: string } | null })[]>(),
   ]);
 
+  const oeuvreIds = (oeuvresRes.data ?? []).map((o) => o.id);
+  const { data: filesData } = oeuvreIds.length
+    ? await supabase
+        .from("artist_files")
+        .select("oeuvre_id, status")
+        .in("oeuvre_id", oeuvreIds)
+    : { data: [] as { oeuvre_id: string | null; status: string | null }[] };
+
+  const statusesByOeuvre = new Map<string, (string | null)[]>();
+  for (const f of filesData ?? []) {
+    if (!f.oeuvre_id) continue;
+    const arr = statusesByOeuvre.get(f.oeuvre_id) ?? [];
+    arr.push(f.status);
+    statusesByOeuvre.set(f.oeuvre_id, arr);
+  }
+
   const oeuvres = (oeuvresRes.data ?? []).map((o) => {
     const { artists, ...rest } = o;
-    return { ...rest, artist_name: artists?.name ?? null };
+    return {
+      ...rest,
+      artist_name: artists?.name ?? null,
+      file_state: deriveFileState(statusesByOeuvre.get(o.id) ?? []),
+    };
   });
 
   return {

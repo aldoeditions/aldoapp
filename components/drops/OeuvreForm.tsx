@@ -7,7 +7,6 @@ import { Select, SubmitButton, FormError, inputCls, labelCls } from "@/component
 import { Avatar } from "@/components/ui/Avatar";
 import {
   OEUVRE_STATUSES,
-  FILE_STATUSES,
   FORMATS,
   COMMISSION_PCT,
   type FormatKey,
@@ -155,10 +154,7 @@ export function OeuvreForm({
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Select label="Statut" name="status" defaultValue={oeuvre?.status ?? "brouillon"} options={OEUVRE_STATUSES} />
-        <Select label="Fichier" name="file_status" defaultValue={oeuvre?.file_status} placeholder="—" options={FILE_STATUSES} />
-      </div>
+      <Select label="Statut" name="status" defaultValue={oeuvre?.status ?? "brouillon"} options={OEUVRE_STATUSES} />
 
       <FormError error={state.error} />
       <SubmitButton label={editing ? "Enregistrer" : "Ajouter l'œuvre"} />

@@ -12,7 +12,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/Badge";
-import { DROP_STATUS, OEUVRE_STATUS, FILE_STATUS, COMMISSION_PCT } from "@/lib/constants";
+import { DROP_STATUS, OEUVRE_STATUS, ARTIST_FILE_STATUS, COMMISSION_PCT } from "@/lib/constants";
 import { euros, euros0, nombre, dateCourte } from "@/lib/format";
 import { DropFormButton } from "@/components/drops/DropFormButton";
 import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
@@ -151,7 +151,7 @@ export default async function DropDetailPage({
                           <StatusBadge value={o.status} dict={OEUVRE_STATUS} />
                         </td>
                         <td className="px-5 py-2.5">
-                          <StatusBadge value={o.file_status} dict={FILE_STATUS} fallback="—" />
+                          <StatusBadge value={o.file_state} dict={ARTIST_FILE_STATUS} fallback="—" />
                         </td>
                         {editable && (
                           <td className="px-5 py-2.5">
