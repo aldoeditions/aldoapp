@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -22,8 +23,11 @@ export type SessionUser = {
 /**
  * Récupère l'utilisateur courant + son profil (rôle) + son artiste lié.
  * Renvoie `null` si non connecté.
+ *
+ * Mémoïsé par requête (React `cache`) : layout + page partagent le même
+ * appel (un seul getUser + une seule requête profil par rendu).
  */
-export async function getSessionUser(): Promise<SessionUser | null> {
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = createClient();
   const {
     data: { user },
@@ -57,7 +61,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     role,
     artistId,
   };
-}
+});
 
 /** Exige une session ; redirige vers /login sinon. */
 export async function requireUser(): Promise<SessionUser> {
