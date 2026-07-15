@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
@@ -25,8 +26,15 @@ export async function requestPasswordReset(
   const email = String(formData.get("email") ?? "").trim();
   if (!email) return { error: "Renseigne ton adresse e-mail." };
 
-  const supabase = createClient();
-  const redirectTo = `${siteOrigin()}/auth/confirm?next=/portail/reset-password`;
+  // Flux « implicit » : le lien renverra les jetons dans le fragment d'URL,
+  // consommés côté navigateur par /auth/callback. Indépendant de l'appareil
+  // (pas de code_verifier requis), et compatible avec le template par défaut.
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false } },
+  );
+  const redirectTo = `${siteOrigin()}/auth/callback?next=/portail/reset-password`;
   await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   // Réponse volontairement neutre (pas de fuite sur l'existence du compte).
