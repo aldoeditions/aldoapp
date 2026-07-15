@@ -149,12 +149,15 @@ export async function deleteArtist(id: string) {
 
 /**
  * Valide un fichier déposé (équipe). Le statut « Fichier » d'une œuvre est
- * DÉRIVÉ de ses fichiers déposés (cf. getDropDetail) — rien à écrire ailleurs.
+ * DÉRIVÉ de ses fichiers déposés (cf. getDropDetail).
+ *
+ * Bonus : si le dépôt est une image, on la recopie dans le bucket public et on
+ * l'utilise comme VISUEL d'aperçu de l'œuvre (le master HD, lui, reste privé).
  */
 export async function validateFile(id: string) {
   const user = await assertCanEdit();
   const supabase = createClient();
-  const { error } = await supabase
+  const { data: file, error } = await supabase
     .from("artist_files")
     .update({
       status: "validé",
@@ -162,11 +165,39 @@ export async function validateFile(id: string) {
       reviewed_at: new Date().toISOString(),
       reviewed_by: user.profile?.name ?? user.email,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("oeuvre_id, file_path, filename, mime_type")
+    .single();
   if (error) throw error;
+
+  if (file?.oeuvre_id && (file.mime_type ?? "").startsWith("image/")) {
+    // Best-effort : ne jamais faire échouer la validation si la copie rate.
+    try {
+      const admin = createAdminClient();
+      const { data: blob } = await admin.storage
+        .from("artist-files")
+        .download(file.file_path);
+      if (blob) {
+        const ext = (file.filename?.split(".").pop() || "jpg").toLowerCase();
+        const path = `oeuvres/${file.oeuvre_id}/visuel-${randomUUID()}.${ext}`;
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        const up = await admin.storage.from(BUCKET).upload(path, bytes, {
+          contentType: file.mime_type ?? undefined,
+          upsert: true,
+        });
+        if (!up.error) {
+          const url = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+          await supabase.from("oeuvres").update({ file_url: url }).eq("id", file.oeuvre_id);
+        }
+      }
+    } catch {
+      /* copie du visuel non bloquante */
+    }
+  }
 
   revalidatePath("/");
   revalidatePath("/artistes");
+  revalidatePath("/drops");
 }
 
 /** Refuse un fichier déposé avec une note (équipe). */

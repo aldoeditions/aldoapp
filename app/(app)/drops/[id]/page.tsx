@@ -18,6 +18,7 @@ import { DropFormButton } from "@/components/drops/DropFormButton";
 import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
 import { DeleteDropButton, DeleteOeuvreButton } from "@/components/drops/DeleteButtons";
 import { ReapplyCostsButton } from "@/components/drops/ReapplyCostsButton";
+import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
 
 export default async function DropDetailPage({
   params,
@@ -151,12 +152,17 @@ export default async function DropDetailPage({
                           <StatusBadge value={o.status} dict={OEUVRE_STATUS} />
                         </td>
                         <td className="px-5 py-2.5">
-                          <StatusBadge value={o.file_state} dict={ARTIST_FILE_STATUS} fallback="—" />
+                          <div className="flex items-center gap-2.5">
+                            <StatusBadge value={o.file_state} dict={ARTIST_FILE_STATUS} fallback="—" />
+                            {o.hd_file && (
+                              <FileDownloadButton bucket="artist-files" path={o.hd_file.path} label="HD" />
+                            )}
+                          </div>
                         </td>
                         {editable && (
                           <td className="px-5 py-2.5">
                             <div className="flex items-center justify-end gap-3">
-                              <OeuvreFormButton dropId={drop.id} artists={artists} costs={costs} oeuvre={o} variant="row" />
+                              <OeuvreFormButton dropId={drop.id} artists={artists} costs={costs} oeuvre={o} hdFile={o.hd_file} variant="row" />
                               <DeleteOeuvreButton id={o.id} dropId={drop.id} name={o.name} />
                             </div>
                           </td>

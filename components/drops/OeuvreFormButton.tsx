@@ -11,12 +11,14 @@ export function OeuvreFormButton({
   artists,
   costs,
   oeuvre,
+  hdFile = null,
   variant = "primary",
 }: {
   dropId: string;
   artists: { id: string; name: string }[];
   costs: CostByFormat;
   oeuvre?: Oeuvre | null;
+  hdFile?: { path: string; filename: string | null } | null;
   variant?: "primary" | "row";
 }) {
   const [open, setOpen] = useState(false);
@@ -54,6 +56,7 @@ export function OeuvreFormButton({
             artists={artists}
             costs={costs}
             oeuvre={oeuvre}
+            hdFile={hdFile}
             onSuccess={() => setOpen(false)}
           />
         )}

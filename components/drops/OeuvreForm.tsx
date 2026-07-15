@@ -12,6 +12,7 @@ import {
   type FormatKey,
 } from "@/lib/constants";
 import { euros } from "@/lib/format";
+import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
 import type { Oeuvre } from "@/types/database";
 import type { CostByFormat } from "@/lib/data/drops";
 
@@ -22,12 +23,14 @@ export function OeuvreForm({
   artists,
   costs,
   oeuvre,
+  hdFile = null,
   onSuccess,
 }: {
   dropId: string;
   artists: { id: string; name: string }[];
   costs: CostByFormat;
   oeuvre?: Oeuvre | null;
+  hdFile?: { path: string; filename: string | null } | null;
   onSuccess: () => void;
 }) {
   const editing = Boolean(oeuvre);
@@ -87,6 +90,18 @@ export function OeuvreForm({
             }}
             className="text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
           />
+          {hdFile && (
+            <div className="mt-2">
+              <FileDownloadButton
+                bucket="artist-files"
+                path={hdFile.path}
+                label="Télécharger le fichier HD"
+              />
+              <p className="mt-0.5 text-2xs text-faint">
+                Master d&apos;impression déposé par l&apos;artiste.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

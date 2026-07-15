@@ -29,10 +29,19 @@ export async function getDrops(): Promise<DropWithStats[]> {
   }));
 }
 
+type DepositedFile = {
+  status: string | null;
+  file_path: string;
+  filename: string | null;
+  created_at: string | null;
+};
+
 export type OeuvreWithArtist = Oeuvre & {
   artist_name: string | null;
   /** État fichier DÉRIVÉ des fichiers réellement déposés (source de vérité). */
   file_state: "validé" | "en attente" | "refusé" | null;
+  /** Master HD à télécharger pour l'impression (bucket privé artist-files). */
+  hd_file: { path: string; filename: string | null } | null;
 };
 
 /** Priorité d'affichage de l'état fichier d'une œuvre à partir de ses dépôts. */
@@ -43,6 +52,17 @@ function deriveFileState(
   if (statuses.some((s) => s === "en attente")) return "en attente";
   if (statuses.some((s) => s === "refusé")) return "refusé";
   return null;
+}
+
+/** Master HD à imprimer : le fichier validé le plus récent, sinon le plus récent. */
+function pickHdFile(files: DepositedFile[]): OeuvreWithArtist["hd_file"] {
+  if (!files.length) return null;
+  const validated = files.filter((f) => f.status === "validé");
+  const pool = validated.length ? validated : files;
+  const best = pool
+    .slice()
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
+  return best ? { path: best.file_path, filename: best.filename } : null;
 }
 
 export type DropDetail = {
@@ -76,24 +96,26 @@ export async function getDropDetail(id: string): Promise<DropDetail | null> {
   const { data: filesData } = oeuvreIds.length
     ? await supabase
         .from("artist_files")
-        .select("oeuvre_id, status")
+        .select("oeuvre_id, status, file_path, filename, created_at")
         .in("oeuvre_id", oeuvreIds)
-    : { data: [] as { oeuvre_id: string | null; status: string | null }[] };
+    : { data: [] as (DepositedFile & { oeuvre_id: string | null })[] };
 
-  const statusesByOeuvre = new Map<string, (string | null)[]>();
+  const filesByOeuvre = new Map<string, DepositedFile[]>();
   for (const f of filesData ?? []) {
     if (!f.oeuvre_id) continue;
-    const arr = statusesByOeuvre.get(f.oeuvre_id) ?? [];
-    arr.push(f.status);
-    statusesByOeuvre.set(f.oeuvre_id, arr);
+    const arr = filesByOeuvre.get(f.oeuvre_id) ?? [];
+    arr.push(f);
+    filesByOeuvre.set(f.oeuvre_id, arr);
   }
 
   const oeuvres = (oeuvresRes.data ?? []).map((o) => {
     const { artists, ...rest } = o;
+    const files = filesByOeuvre.get(o.id) ?? [];
     return {
       ...rest,
       artist_name: artists?.name ?? null,
-      file_state: deriveFileState(statusesByOeuvre.get(o.id) ?? []),
+      file_state: deriveFileState(files.map((f) => f.status)),
+      hd_file: pickHdFile(files),
     };
   });
 
