@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PortalLoginForm } from "./login-form";
+import { ForgotPassword } from "./forgot-password";
 import { Logo, Mascotte } from "@/components/brand/Logo";
 
 export const metadata: Metadata = {
@@ -14,7 +15,9 @@ export default function PortalLoginPage({
   const notice =
     searchParams.error === "unlinked"
       ? "Ton compte n'est pas encore relié à ta fiche artiste. Contacte l'équipe Aldo."
-      : undefined;
+      : searchParams.error === "link"
+        ? "Ce lien est invalide ou expiré. Redemande un lien de réinitialisation ci-dessous."
+        : undefined;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-10">
@@ -31,6 +34,7 @@ export default function PortalLoginPage({
 
         <div className="rounded-2xl border border-border bg-surface p-7 shadow-card">
           <PortalLoginForm notice={notice} />
+          <ForgotPassword />
         </div>
 
         <p className="mt-6 text-center text-2xs text-faint">

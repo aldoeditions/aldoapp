@@ -1,9 +1,37 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
+
+export type ForgotState = { error: string | null; sent?: boolean };
+
+/** Base URL publique (prod) ou origine de la requête (local/preview). */
+function siteOrigin(): string {
+  const env = process.env.NEXT_PUBLIC_SITE_URL;
+  if (env) return env.replace(/\/$/, "");
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
+}
+
+export async function requestPasswordReset(
+  _prev: ForgotState,
+  formData: FormData,
+): Promise<ForgotState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Renseigne ton adresse e-mail." };
+
+  const supabase = createClient();
+  const redirectTo = `${siteOrigin()}/auth/confirm?next=/portail/reset-password`;
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+  // Réponse volontairement neutre (pas de fuite sur l'existence du compte).
+  return { error: null, sent: true };
+}
 
 export async function loginPortal(
   _prev: LoginState,
