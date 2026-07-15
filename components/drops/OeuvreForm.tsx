@@ -50,7 +50,6 @@ export function OeuvreForm({
   const [packaging, setPackaging] = useState<string>(
     String(oeuvre?.cout_packaging ?? costs[initialFormat].packaging),
   );
-  const [preview, setPreview] = useState<string | null>(oeuvre?.file_url ?? null);
 
   // Changement de format → réinitialise prix + coûts depuis params.
   function onFormatChange(f: FormatKey) {
@@ -72,26 +71,13 @@ export function OeuvreForm({
 
   return (
     <form action={formAction} className="space-y-4 px-5 py-5">
-      {/* Visuel */}
+      {/* Visuel — rempli automatiquement à la validation du fichier de l'artiste */}
       <div className="flex items-center gap-4">
-        <Avatar name={oeuvre?.name} src={preview} size="lg" className="rounded-md" />
-        <div>
-          <label className={labelCls} htmlFor="visuel">
-            Visuel
-          </label>
-          <input
-            id="visuel"
-            name="visuel"
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              setPreview(f ? URL.createObjectURL(f) : (oeuvre?.file_url ?? null));
-            }}
-            className="text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
-          />
-          {hdFile && (
-            <div className="mt-2">
+        <Avatar name={oeuvre?.name} src={oeuvre?.file_url ?? null} size="lg" className="rounded-md" />
+        <div className="min-w-0">
+          <p className={labelCls}>Visuel</p>
+          {hdFile ? (
+            <>
               <FileDownloadButton
                 bucket="artist-files"
                 path={hdFile.path}
@@ -100,7 +86,12 @@ export function OeuvreForm({
               <p className="mt-0.5 text-2xs text-faint">
                 Master d&apos;impression déposé par l&apos;artiste.
               </p>
-            </div>
+            </>
+          ) : (
+            <p className="text-2xs text-faint">
+              L&apos;aperçu se remplit automatiquement quand le fichier déposé par
+              l&apos;artiste est validé.
+            </p>
           )}
         </div>
       </div>
