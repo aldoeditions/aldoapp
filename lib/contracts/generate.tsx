@@ -86,6 +86,34 @@ export function buildContractData(input: GenInput): ContractData {
   };
 }
 
+/**
+ * Regroupe les œuvres d'un même VISUEL (même titre) en une seule ligne d'annexe,
+ * en fusionnant les formats (ex. A3 + A4 → « A3, A4 »). Dans l'app, un visuel
+ * décliné en A3 et A4 = deux lignes `oeuvres` distinctes du même drop.
+ */
+export function groupOeuvresByTitle(
+  rows: { title: string; format: string | null; fileInfo: string; createdAt: string | null }[],
+): ContractOeuvre[] {
+  const map = new Map<
+    string,
+    { title: string; formats: Set<string>; fileInfo: string; createdAt: string | null }
+  >();
+  for (const r of rows) {
+    const key = r.title.trim().toLowerCase();
+    const cur = map.get(key) ?? { title: r.title.trim(), formats: new Set<string>(), fileInfo: "", createdAt: null };
+    if (r.format) cur.formats.add(r.format);
+    if (!cur.fileInfo && r.fileInfo) cur.fileInfo = r.fileInfo;
+    if (r.createdAt && (!cur.createdAt || r.createdAt < cur.createdAt)) cur.createdAt = r.createdAt;
+    map.set(key, cur);
+  }
+  return Array.from(map.values()).map((g) => ({
+    title: g.title,
+    format: Array.from(g.formats).sort().join(", ") || "—",
+    fileInfo: g.fileInfo || "Fichier HD fourni",
+    createdAt: dateJjMmAaaa(g.createdAt),
+  }));
+}
+
 /** Remplace les caractères hors WinAnsi (Helvetica) par un équivalent sûr. */
 function winAnsiSafe(s: string): string {
   return s.replace(/[^\x00-\xFF–—×€’“”…]/g, "?");

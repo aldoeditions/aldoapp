@@ -7,10 +7,13 @@ import {
   Text,
   View,
   Image,
+  Svg,
+  Path,
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
 import { buildContractBody, parseBlocks } from "./body";
+import { ALDO_LOGO } from "./aldo-logo";
 import type { ContractData } from "./types";
 
 /* ------------------------------- Fonts -------------------------------- */
@@ -70,31 +73,34 @@ const s = StyleSheet.create({
     color: GREY,
   },
   article: {
-    fontFamily: "Instrument Serif",
-    fontSize: 15,
+    fontFamily: "DM Sans",
+    fontWeight: 700,
+    fontSize: 13,
     color: ACCENT,
-    marginTop: 15,
-    marginBottom: 6,
+    marginTop: 22,
+    marginBottom: 10,
   },
-  heading: { fontFamily: "DM Sans", fontWeight: 700, fontSize: 10, marginTop: 8, marginBottom: 2 },
-  struct: { fontFamily: "DM Sans", fontWeight: 700, marginTop: 6, marginBottom: 3 },
-  para: { marginBottom: 5, textAlign: "left" },
-  letter: { marginBottom: 5, marginLeft: 4, textAlign: "left" },
-  bulletRow: { flexDirection: "row", marginLeft: 12, marginBottom: 3, paddingRight: 6 },
+  heading: { fontFamily: "DM Sans", fontWeight: 700, fontSize: 10, color: ACCENT, marginTop: 13, marginBottom: 6 },
+  struct: { fontFamily: "DM Sans", fontWeight: 700, marginTop: 8, marginBottom: 4 },
+  para: { marginBottom: 6.5, textAlign: "left" },
+  letter: { marginBottom: 6.5, marginLeft: 4, textAlign: "left" },
+  bulletRow: { flexDirection: "row", marginLeft: 12, marginBottom: 4, paddingRight: 6 },
   bulletDot: { width: 10, color: ACCENT },
   bulletText: { flex: 1, textAlign: "left" },
 
   /* Cover */
-  coverLogoWrap: { alignItems: "center", marginTop: 30, marginBottom: 40 },
+  coverLogoWrap: { alignItems: "center", marginTop: 30, marginBottom: 44 },
   coverLogo: { height: 46, objectFit: "contain" },
-  coverLogoText: { fontFamily: "Instrument Serif", fontSize: 30, color: ACCENT, letterSpacing: 1 },
+  coverLogoSvg: { width: 150, height: 60 },
+  coverLogoText: { fontFamily: "DM Sans", fontWeight: 700, fontSize: 28, color: ACCENT, letterSpacing: 1 },
   coverTitle: {
-    fontFamily: "Instrument Serif",
-    fontSize: 25,
+    fontFamily: "DM Sans",
+    fontWeight: 700,
+    fontSize: 21,
     color: INK,
     textAlign: "center",
     marginBottom: 4,
-    lineHeight: 1.15,
+    lineHeight: 1.25,
   },
   coverRule: { height: 2, width: 60, backgroundColor: ACCENT, alignSelf: "center", marginVertical: 18 },
   coverParties: { textAlign: "center", fontSize: 12, marginBottom: 2 },
@@ -115,8 +121,8 @@ const s = StyleSheet.create({
   signRole: { color: GREY, fontSize: 8.5 },
 
   /* Annexe */
-  annexeTitle: { fontFamily: "Instrument Serif", fontSize: 20, color: ACCENT, marginBottom: 10 },
-  annexeIntro: { marginTop: 2, marginBottom: 16, color: GREY },
+  annexeTitle: { fontFamily: "DM Sans", fontWeight: 700, fontSize: 16, color: ACCENT, marginBottom: 8 },
+  annexeIntro: { marginBottom: 16, color: GREY },
   tHead: { flexDirection: "row", backgroundColor: "#f4f5fb", borderBottomWidth: 1, borderColor: ACCENT },
   tHeadCell: { fontWeight: 700, fontSize: 8.5, paddingVertical: 6, paddingHorizontal: 6 },
   tRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#e6e6ea" },
@@ -133,8 +139,10 @@ function Body({ blocks }: { blocks: ReturnType<typeof parseBlocks> }) {
   return (
     <>
       {blocks.map((b, i) => {
-        if (b.type === "article") return <Text key={i} style={s.article}>{b.text}</Text>;
-        if (b.type === "heading") return <Text key={i} style={s.heading}>{b.text}</Text>;
+        // minPresenceAhead : évite un titre orphelin en bas de page (il bascule
+        // à la page suivante s'il n'y a pas assez de contenu derrière lui).
+        if (b.type === "article") return <Text key={i} style={s.article} minPresenceAhead={56}>{b.text}</Text>;
+        if (b.type === "heading") return <Text key={i} style={s.heading} minPresenceAhead={40}>{b.text}</Text>;
         if (b.type === "struct") return <Text key={i} style={s.struct}>{b.text}</Text>;
         if (b.type === "letter") return <Text key={i} style={s.letter}>{b.text}</Text>;
         if (b.type === "bullet")
@@ -185,7 +193,11 @@ export function ContractDocument({ data }: { data: ContractData }) {
           {hasLogo ? (
             <Image src={LOGO_PATH} style={s.coverLogo} />
           ) : (
-            <Text style={s.coverLogoText}>ALDO ÉDITIONS</Text>
+            <Svg viewBox={ALDO_LOGO.viewBox} style={s.coverLogoSvg}>
+              {ALDO_LOGO.paths.map((d, i) => (
+                <Path key={i} d={d} fill={ALDO_LOGO.fill} />
+              ))}
+            </Svg>
           )}
         </View>
 
@@ -200,7 +212,6 @@ export function ContractDocument({ data }: { data: ContractData }) {
           <RecapRow k="Artiste" v={data.fullName} />
           <RecapRow k="Campagne" v={data.campaignName} />
           <RecapRow k="Période" v={periode} />
-          <RecapRow k="Taux de rémunération" v={`${data.commissionPct} %`} />
           <RecapRow k="Date de génération" v={data.generationDate} />
         </View>
       </Page>

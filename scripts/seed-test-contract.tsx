@@ -5,8 +5,7 @@
  */
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { buildContractData, renderContractPdf } from "../lib/contracts/generate";
-import { dateJjMmAaaa } from "../lib/contracts/format";
+import { buildContractData, renderContractPdf, groupOeuvresByTitle } from "../lib/contracts/generate";
 
 const env: Record<string, string> = {};
 for (const l of readFileSync(".env.local", "utf8").split(/\r?\n/)) {
@@ -58,23 +57,27 @@ const s = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_K
   const drop = (await s.from("drops").select("*").eq("name", "Drop de Mars 2026").maybeSingle()).data;
   if (!drop) throw new Error("Drop de Mars 2026 introuvable");
 
-  // 4. Une œuvre de Diane dans ce drop (pour l'annexe)
-  const oExist = await s.from("oeuvres").select("id").eq("artist_id", artistId).eq("drop_id", drop.id).maybeSingle();
-  if (!oExist.data) {
-    const oi = await s.from("oeuvres").insert({
-      name: "Herbier #1", artist_id: artistId, drop_id: drop.id,
-      format: "A3", price: 40, status: "actif",
-    }).select("id").single();
-    if (oi.error) throw oi.error;
+  // 4. « Herbier #1 » en A3 ET A4 (même visuel) → doit fusionner dans l'annexe.
+  const already = (await s.from("oeuvres").select("id, format").eq("artist_id", artistId).eq("drop_id", drop.id)).data ?? [];
+  for (const fmt of ["A3", "A4"]) {
+    if (!already.some((o) => o.format === fmt)) {
+      const oi = await s.from("oeuvres").insert({
+        name: "Herbier #1", artist_id: artistId, drop_id: drop.id,
+        format: fmt, price: fmt === "A3" ? 40 : 25, status: "actif",
+      }).select("id").single();
+      if (oi.error) throw oi.error;
+    }
   }
   const oeuvres = (await s.from("oeuvres").select("name, format, created_at").eq("artist_id", artistId).eq("drop_id", drop.id)).data ?? [];
 
-  // 5. Génération PDF (mêmes libs que l'action serveur)
+  // 5. Génération PDF (mêmes libs que l'action serveur, avec fusion des formats)
   const data = buildContractData({
     artist: artistFields,
     iban: "FR76 1027 8375 3600 0105 2050 567",
     drop,
-    oeuvres: oeuvres.map((o) => ({ title: o.name, format: o.format ?? "—", fileInfo: "Fichier HD fourni", createdAt: dateJjMmAaaa(o.created_at) })),
+    oeuvres: groupOeuvresByTitle(
+      oeuvres.map((o) => ({ title: o.name, format: o.format ?? null, fileInfo: "Fichier HD fourni", createdAt: o.created_at })),
+    ),
     commissionPct: 30,
   });
   const pdf = await renderContractPdf(data);

@@ -5,9 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
-import { buildContractData, renderContractPdf } from "@/lib/contracts/generate";
-import { dateJjMmAaaa } from "@/lib/contracts/format";
-import type { ContractOeuvre } from "@/lib/contracts/types";
+import { buildContractData, renderContractPdf, groupOeuvresByTitle } from "@/lib/contracts/generate";
 
 const BUCKET = "contracts";
 
@@ -71,15 +69,18 @@ export async function generateContract(
       if (!cur || f.status === "validé") bestFile.set(f.oeuvre_id, { mime_type: f.mime_type, file_size: f.file_size });
     }
 
-    const oeuvres: ContractOeuvre[] = oeuvreRows.map((o) => {
-      const f = bestFile.get(o.id);
-      return {
-        title: o.name,
-        format: o.format ?? "—",
-        fileInfo: f ? `${mimeLabel(f.mime_type)}${sizeMo(f.file_size)}` : "Fichier HD fourni",
-        createdAt: dateJjMmAaaa(o.created_at),
-      };
-    });
+    // Un visuel décliné en A3 + A4 = 2 lignes oeuvres → fusionnées en une seule.
+    const oeuvres = groupOeuvresByTitle(
+      oeuvreRows.map((o) => {
+        const f = bestFile.get(o.id);
+        return {
+          title: o.name,
+          format: o.format ?? null,
+          fileInfo: f ? `${mimeLabel(f.mime_type)}${sizeMo(f.file_size)}` : "Fichier HD fourni",
+          createdAt: o.created_at,
+        };
+      }),
+    );
 
     const commissionPct = artist.commission_pct ?? 30;
     const data = buildContractData({
