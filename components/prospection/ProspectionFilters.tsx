@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
 import { cn } from "@/lib/cn";
-import { PIPE_STATUSES, TEAM } from "@/lib/constants";
+import { PIPE_STATUSES } from "@/lib/constants";
 
 export function ProspectionFilters() {
   const router = useRouter();
@@ -12,7 +12,6 @@ export function ProspectionFilters() {
   const view = params.get("view") === "kanban" ? "kanban" : "table";
   const q = params.get("q") ?? "";
   const pipe = params.get("pipe") ?? "";
-  const by = params.get("by") ?? "";
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -57,13 +56,6 @@ export function ProspectionFilters() {
           ))}
         </select>
 
-        {/* Filtre contacté par */}
-        <select value={by} onChange={(e) => setParam("by", e.target.value)} className={selectCls}>
-          <option value="">Tous contacts</option>
-          {TEAM.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
       </div>
 
       {/* Bascule vue */}

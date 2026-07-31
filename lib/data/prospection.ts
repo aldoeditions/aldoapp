@@ -19,7 +19,6 @@ const SELECT =
 export type ProspectsFilter = {
   q?: string;
   pipe?: string;
-  by?: string;
 };
 
 /** Base de prospection = artistes en phase `prospect` (filtrable). */
@@ -35,7 +34,6 @@ export async function getProspects(
     .order("name", { ascending: true });
 
   if (filter.pipe) query = query.eq("pipe_status", filter.pipe);
-  if (filter.by) query = query.eq("contacted_by", filter.by);
   if (filter.q) query = query.ilike("name", `%${filter.q}%`);
 
   const { data } = await query;
@@ -48,7 +46,7 @@ export type PipeColumn = { status: string; label: string; cards: PipeCard[] };
 export async function getPipeline(
   filter: ProspectsFilter = {},
 ): Promise<PipeColumn[]> {
-  const prospects = await getProspects({ q: filter.q, by: filter.by });
+  const prospects = await getProspects({ q: filter.q });
 
   const columns: PipeColumn[] = PIPE_STATUSES.map((s) => ({
     status: s.value,

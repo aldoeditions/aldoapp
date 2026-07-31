@@ -12,7 +12,6 @@ import {
   KIT_STATUSES,
   VISUELS_STATUSES,
   DEMANDE_STATUSES,
-  TEAM,
 } from "@/lib/constants";
 import type { Artist } from "@/types/database";
 
@@ -187,20 +186,12 @@ export function ArtistForm({ artist }: { artist?: Artist | null }) {
       <div className="border-t border-border pt-4">
         <p className="eyebrow mb-3">Prospection & suivi</p>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Select
-              label="Contacté par"
-              name="contacted_by"
-              defaultValue={artist?.contacted_by}
-              options={TEAM.map((t) => ({ value: t, label: t }))}
-            />
-            <Field
-              label="1er contact"
-              name="first_contact_date"
-              type="date"
-              defaultValue={artist?.first_contact_date}
-            />
-          </div>
+          <Field
+            label="1er contact"
+            name="first_contact_date"
+            type="date"
+            defaultValue={artist?.first_contact_date}
+          />
           <div className="grid grid-cols-3 gap-3">
             <Select label="Kit impr." name="kit_impression" defaultValue={artist?.kit_impression} options={KIT_STATUSES} />
             <Select label="Visuels" name="visuels" defaultValue={artist?.visuels} options={VISUELS_STATUSES} />

@@ -115,9 +115,8 @@ export function KanbanBoard({
                     </p>
                   </div>
                 </div>
-                {(card.contacted_by || card.first_contact_date) && (
-                  <div className="mt-2 flex items-center justify-between text-2xs text-faint">
-                    <span>{card.contacted_by ?? ""}</span>
+                {card.first_contact_date && (
+                  <div className="mt-2 flex items-center justify-end text-2xs text-faint">
                     <span>{dateCourte(card.first_contact_date)}</span>
                   </div>
                 )}
