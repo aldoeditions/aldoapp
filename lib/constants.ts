@@ -157,6 +157,14 @@ export const CONTRACT_STATUSES: StatusOption[] = [
 ];
 export const CONTRACT_STATUS = dict(CONTRACT_STATUSES);
 
+/** Statut du DOCUMENT contrat généré (table contracts.status). */
+export const CONTRACT_DOC_STATUSES: StatusOption[] = [
+  { value: "brouillon", label: "Brouillon", variant: "gray" },
+  { value: "envoyé", label: "Envoyé", variant: "blue" },
+  { value: "signé", label: "Signé", variant: "green" },
+];
+export const CONTRACT_DOC_STATUS = dict(CONTRACT_DOC_STATUSES);
+
 /** Statut d'un paiement artiste. */
 export const PAYMENT_STATUSES: StatusOption[] = [
   { value: "a_payer", label: "À payer", variant: "orange" },
