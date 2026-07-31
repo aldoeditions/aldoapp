@@ -53,7 +53,6 @@ export function ProspectsTable({
             <th className="px-5 py-2.5 font-semibold">Artiste</th>
             <th className="px-3 py-2.5 font-semibold">Style</th>
             <th className="px-3 py-2.5 font-semibold">Étape</th>
-            <th className="px-3 py-2.5 font-semibold">Contacté par</th>
             <th className="px-3 py-2.5 font-semibold">1er contact</th>
             {editable && <th className="px-5 py-2.5" />}
           </tr>
@@ -89,7 +88,6 @@ export function ProspectsTable({
                   <span className="text-muted">{p.pipe_status ?? "—"}</span>
                 )}
               </td>
-              <td className="px-3 py-2.5 text-muted">{p.contacted_by ?? "—"}</td>
               <td className="px-3 py-2.5 text-muted">{dateCourte(p.first_contact_date)}</td>
               {editable && (
                 <td className="px-5 py-2.5 text-right">
