@@ -157,6 +157,12 @@ export const CONTRACT_STATUSES: StatusOption[] = [
 ];
 export const CONTRACT_STATUS = dict(CONTRACT_STATUSES);
 
+/** Civilité (identité contrat). */
+export const CIVILITIES: StatusOption[] = [
+  { value: "Madame", label: "Madame", variant: "gray" },
+  { value: "Monsieur", label: "Monsieur", variant: "gray" },
+];
+
 /** Statut du DOCUMENT contrat généré (table contracts.status). */
 export const CONTRACT_DOC_STATUSES: StatusOption[] = [
   { value: "brouillon", label: "Brouillon", variant: "gray" },

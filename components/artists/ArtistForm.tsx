@@ -12,6 +12,7 @@ import {
   KIT_STATUSES,
   VISUELS_STATUSES,
   DEMANDE_STATUSES,
+  CIVILITIES,
 } from "@/lib/constants";
 import type { Artist } from "@/types/database";
 
@@ -101,7 +102,13 @@ function SubmitButton({ editing }: { editing: boolean }) {
   );
 }
 
-export function ArtistForm({ artist }: { artist?: Artist | null }) {
+export function ArtistForm({
+  artist,
+  iban,
+}: {
+  artist?: Artist | null;
+  iban?: string | null;
+}) {
   const editing = Boolean(artist);
   const [state, formAction] = useFormState(
     saveArtist.bind(null, artist?.id ?? null),
@@ -152,6 +159,26 @@ export function ArtistForm({ artist }: { artist?: Artist | null }) {
       <div className="grid grid-cols-2 gap-3">
         <Field label="Renommée" name="renommee" defaultValue={artist?.renommee} placeholder="Émergent, Confirmé…" />
         <Field label="Commission %" name="commission_pct" type="number" defaultValue={artist?.commission_pct ?? 30} />
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <p className="eyebrow mb-3">Identité (contrat)</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <Select label="Civilité" name="civility" defaultValue={artist?.civility} options={CIVILITIES} />
+            <Field label="Prénom" name="first_name" defaultValue={artist?.first_name} />
+            <Field label="Nom" name="last_name" defaultValue={artist?.last_name} />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Date de naissance" name="birth_date" type="date" defaultValue={artist?.birth_date} />
+            <Field label="Lieu de naissance" name="birth_place" defaultValue={artist?.birth_place} placeholder="Ville" />
+            <Field label="N° MDA" name="mda_number" defaultValue={artist?.mda_number} placeholder="ou vide" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="IBAN" name="iban" defaultValue={iban} placeholder="FR76 …" />
+            <Field label="BIC" name="bic" defaultValue={artist?.bic} placeholder="optionnel" />
+          </div>
+        </div>
       </div>
 
       <div className="border-t border-border pt-4">

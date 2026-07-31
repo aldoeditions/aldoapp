@@ -43,6 +43,13 @@ export type Database = {
           type: string | null;
           style: string | null;
           renommee: string | null;
+          civility: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          birth_date: string | null;
+          birth_place: string | null;
+          mda_number: string | null;
+          dans_le_pipe_notion: string | null;
           phase: ArtistPhase;
           pipe_status: string | null;
           contacted_by: string | null;
@@ -76,6 +83,13 @@ export type Database = {
           type?: string | null;
           style?: string | null;
           renommee?: string | null;
+          civility?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          birth_date?: string | null;
+          birth_place?: string | null;
+          mda_number?: string | null;
+          dans_le_pipe_notion?: string | null;
           phase: ArtistPhase;
           user_id?: string | null;
           iban?: string | null;
@@ -93,6 +107,24 @@ export type Database = {
           dans_le_pipe?: boolean | null;
         };
         Update: Partial<Database["public"]["Tables"]["artists"]["Insert"]>;
+        Relationships: [];
+      };
+      artist_banking: {
+        Row: {
+          id: string;
+          artist_id: string;
+          iban: string;
+          bic: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          iban: string;
+          bic?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["artist_banking"]["Insert"]>;
         Relationships: [];
       };
       drops: {
@@ -310,8 +342,11 @@ export type Database = {
           id: string;
           created_at: string | null;
           artist_id: string;
+          drop_id: string | null;
           file_path: string | null;
+          pdf_path: string | null;
           status: string;
+          generated_at: string | null;
           sent_at: string | null;
           signed_at: string | null;
           commission_pct: number | null;
@@ -321,8 +356,11 @@ export type Database = {
           id?: string;
           created_at?: string | null;
           artist_id: string;
+          drop_id?: string | null;
           file_path?: string | null;
+          pdf_path?: string | null;
           status: string;
+          generated_at?: string | null;
           sent_at?: string | null;
           signed_at?: string | null;
           commission_pct?: number | null;

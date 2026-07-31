@@ -12,12 +12,13 @@ import { DeleteArtistButton } from "@/components/artists/DeleteArtistButton";
 import { InviteButton } from "@/components/artists/InviteButton";
 import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import { FilesReview } from "@/components/artists/FilesReview";
+import { ContractPanel } from "@/components/contracts/ContractPanel";
+import { getContractContext } from "@/lib/data/contracts";
 import type { PendingFile } from "@/lib/data/artists";
 import {
   ARTIST_PHASE,
   OEUVRE_STATUS,
   FILE_STATUS,
-  CONTRACT_STATUS,
   PAYMENT_STATUS,
 } from "@/lib/constants";
 import { euros, euros0, nombre, dateCourte, pourcent } from "@/lib/format";
@@ -66,13 +67,14 @@ export default async function ArtistDetailPage({
   const user = await requireModule("artistes");
   const editable = canEdit(user.role, "artistes");
 
-  const [detail, row] = await Promise.all([
+  const [detail, row, contractCtx] = await Promise.all([
     getArtistDetail(params.id),
     getArtistRow(params.id),
+    getContractContext(params.id),
   ]);
   if (!detail || !row) notFound();
 
-  const { artist, oeuvres, contracts, payments, files } = detail;
+  const { artist, oeuvres, payments, files } = detail;
 
   // Fichiers déposés en attente → mêmes actions Valider/Refuser que le Dashboard.
   const pendingFiles: PendingFile[] = editable
@@ -129,7 +131,7 @@ export default async function ArtistDetailPage({
                 hasEmail={Boolean(row.email)}
                 alreadyLinked={Boolean(row.user_id)}
               />
-              <ArtistFormButton artist={row} variant="secondary" label="Modifier" />
+              <ArtistFormButton artist={row} iban={contractCtx.iban} variant="secondary" label="Modifier" />
               <DeleteArtistButton id={artist.id ?? ""} name={artist.name ?? ""} />
             </div>
           )}
@@ -265,28 +267,12 @@ export default async function ArtistDetailPage({
             </CardBody>
           </Card>
 
-          {/* Contrats */}
-          <Card>
-            <CardHeader title="Contrats" subtitle={`${contracts.length}`} />
-            <CardBody className="p-0">
-              {contracts.length === 0 ? (
-                <p className="px-5 py-6 text-center text-sm text-faint">
-                  Aucun contrat.
-                </p>
-              ) : (
-                <ul>
-                  {contracts.map((c) => (
-                    <li key={c.id} className="flex items-center justify-between border-b border-border px-5 py-3 text-sm last:border-0">
-                      <span className="text-muted">
-                        {c.commission_pct != null ? `Commission ${c.commission_pct}%` : "Contrat"}
-                      </span>
-                      <StatusBadge value={c.status} dict={CONTRACT_STATUS} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardBody>
-          </Card>
+          {/* Contrat (génération PDF + statuts) */}
+          {editable && (
+            <Card>
+              <ContractPanel artistId={artist.id ?? ""} ctx={contractCtx} />
+            </Card>
+          )}
 
           {/* Fichiers en attente de validation (actionnable) */}
           {pendingFiles.length > 0 && (

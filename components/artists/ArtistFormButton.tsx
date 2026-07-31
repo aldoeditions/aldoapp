@@ -13,10 +13,12 @@ import type { Artist } from "@/types/database";
  */
 export function ArtistFormButton({
   artist,
+  iban,
   label,
   variant = "primary",
 }: {
   artist?: Artist | null;
+  iban?: string | null;
   label?: string;
   variant?: "primary" | "secondary";
 }) {
@@ -48,7 +50,7 @@ export function ArtistFormButton({
         onClose={() => setOpen(false)}
         title={editing ? "Modifier l'artiste" : "Nouvel artiste"}
       >
-        <ArtistForm artist={artist} />
+        <ArtistForm artist={artist} iban={iban} />
       </Drawer>
     </>
   );

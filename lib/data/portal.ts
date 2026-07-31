@@ -292,6 +292,33 @@ export async function getMyOeuvresLite(): Promise<{ id: string; name: string }[]
   return (data ?? []).map((o) => ({ id: o.id, name: o.name }));
 }
 
+export type MyContract = {
+  id: string;
+  status: string | null;
+  drop_name: string | null;
+  generated_at: string | null;
+  created_at: string | null;
+  pdf_path: string | null;
+  file_path: string | null;
+};
+
+/** Contrats visibles par l'artiste (envoyés/signés seulement, pas les brouillons). */
+export async function getMyContracts(): Promise<MyContract[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("contracts")
+    .select("id, status, generated_at, created_at, pdf_path, file_path, drops(name)")
+    .in("status", ["envoyé", "signé"])
+    .order("created_at", { ascending: false })
+    .returns<
+      (MyContract & { drops: { name: string } | null })[]
+    >();
+  return (data ?? []).map((c) => {
+    const { drops, ...rest } = c;
+    return { ...rest, drop_name: drops?.name ?? null };
+  });
+}
+
 /** Contrat le plus récent de l'artiste (lecture seule). */
 export async function getMyContract(): Promise<Contract | null> {
   const supabase = createClient();

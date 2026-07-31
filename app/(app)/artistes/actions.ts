@@ -50,6 +50,13 @@ function artistFieldsFrom(fd: FormData) {
     type: str(fd, "type"),
     style: str(fd, "style"),
     renommee: str(fd, "renommee"),
+    civility: str(fd, "civility"),
+    first_name: str(fd, "first_name"),
+    last_name: str(fd, "last_name"),
+    birth_date: str(fd, "birth_date"),
+    birth_place: str(fd, "birth_place"),
+    mda_number: str(fd, "mda_number"),
+    bic: str(fd, "bic"),
     phase: (str(fd, "phase") ?? "prospect") as ArtistPhase,
     pipe_status: str(fd, "pipe_status"),
     contrat_status: str(fd, "contrat_status"),
@@ -60,6 +67,20 @@ function artistFieldsFrom(fd: FormData) {
     visuels: str(fd, "visuels"),
     demande_infos: str(fd, "demande_infos"),
   };
+}
+
+/** Upsert de l'IBAN dans artist_banking (table séparée, donnée sensible). */
+async function saveBanking(
+  supabase: ReturnType<typeof createClient>,
+  artistId: string,
+  fd: FormData,
+) {
+  const iban = str(fd, "iban");
+  if (!iban) return; // pas d'IBAN saisi → on ne touche pas
+  const bic = str(fd, "bic");
+  await supabase
+    .from("artist_banking")
+    .upsert({ artist_id: artistId, iban, bic, updated_at: new Date().toISOString() }, { onConflict: "artist_id" });
 }
 
 async function uploadAvatar(artistId: string, file: File): Promise<string | null> {
@@ -127,6 +148,8 @@ export async function saveArtist(
         }
       }
     }
+
+    await saveBanking(supabase, targetId, fd);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erreur inattendue.";
     return { error: msg };
