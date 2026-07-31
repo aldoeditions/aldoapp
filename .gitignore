@@ -37,3 +37,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Imports de données brutes (PII prospects) — ne jamais committer
+/data/
