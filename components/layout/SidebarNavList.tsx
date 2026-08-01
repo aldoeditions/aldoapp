@@ -35,10 +35,10 @@ export function SidebarNavList({
               {group.title}
             </p>
             <ul className="space-y-0.5">
-              {items.map(({ key, label, href, Icon }) => {
+              {items.map(({ label, href, Icon }) => {
                 const active = isActive(pathname, href);
                 return (
-                  <li key={key}>
+                  <li key={href}>
                     <Link
                       href={href}
                       onClick={onNavigate}

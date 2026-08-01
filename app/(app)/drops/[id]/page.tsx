@@ -5,6 +5,7 @@ import { canEdit } from "@/lib/auth/permissions";
 import {
   getDropDetail,
   getArtistsForSelect,
+  getDropsForSelect,
   getCostParams,
   type CostByFormat,
 } from "@/lib/data/drops";
@@ -34,12 +35,17 @@ export default async function DropDetailPage({
 
   // Données nécessaires au formulaire d'œuvre (seulement si édition permise).
   let artists: { id: string; name: string }[] = [];
+  let drops: { id: string; name: string }[] = [];
   let costs: CostByFormat = {
     A3: { prix: 40, impression: 0, packaging: 0 },
     A4: { prix: 25, impression: 0, packaging: 0 },
   };
   if (editable) {
-    [artists, costs] = await Promise.all([getArtistsForSelect(), getCostParams()]);
+    [artists, drops, costs] = await Promise.all([
+      getArtistsForSelect(),
+      getDropsForSelect(),
+      getCostParams(),
+    ]);
   }
 
   const ca = pnl?.ca_brut ?? 0;
@@ -102,7 +108,7 @@ export default async function DropDetailPage({
           subtitle={`${oeuvres.length} œuvre(s)`}
           action={
             editable ? (
-              <OeuvreFormButton dropId={drop.id} artists={artists} costs={costs} />
+              <OeuvreFormButton drops={drops} defaultDropId={drop.id} artists={artists} costs={costs} />
             ) : undefined
           }
         />
@@ -162,7 +168,7 @@ export default async function DropDetailPage({
                         {editable && (
                           <td className="px-5 py-2.5">
                             <div className="flex items-center justify-end gap-3">
-                              <OeuvreFormButton dropId={drop.id} artists={artists} costs={costs} oeuvre={o} hdFile={o.hd_file} variant="row" />
+                              <OeuvreFormButton drops={drops} defaultDropId={drop.id} artists={artists} costs={costs} oeuvre={o} hdFile={o.hd_file} variant="row" />
                               <DeleteOeuvreButton id={o.id} dropId={drop.id} name={o.name} />
                             </div>
                           </td>

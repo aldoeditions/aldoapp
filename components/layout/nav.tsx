@@ -5,6 +5,7 @@ import {
   ProspectionIcon,
   ArtistesIcon,
   DropsIcon,
+  OeuvresIcon,
   CommandesIcon,
   FinancesIcon,
   ChargesIcon,
@@ -52,7 +53,8 @@ export const NAV: NavGroup[] = [
   {
     title: "Produit",
     items: [
-      { key: "drops", label: "Drops & Œuvres", href: "/drops", Icon: DropsIcon },
+      { key: "drops", label: "Drops", href: "/drops", Icon: DropsIcon },
+      { key: "drops", label: "Œuvres", href: "/oeuvres", Icon: OeuvresIcon },
       {
         key: "commandes",
         label: "Commandes",

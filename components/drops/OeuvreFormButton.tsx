@@ -7,19 +7,23 @@ import type { Oeuvre } from "@/types/database";
 import type { CostByFormat } from "@/lib/data/drops";
 
 export function OeuvreFormButton({
-  dropId,
+  drops,
+  defaultDropId = null,
   artists,
   costs,
   oeuvre,
   hdFile = null,
   variant = "primary",
+  label,
 }: {
-  dropId: string;
+  drops: { id: string; name: string }[];
+  defaultDropId?: string | null;
   artists: { id: string; name: string }[];
   costs: CostByFormat;
   oeuvre?: Oeuvre | null;
   hdFile?: { path: string; filename: string | null } | null;
   variant?: "primary" | "row";
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const editing = Boolean(oeuvre);
@@ -34,7 +38,7 @@ export function OeuvreFormButton({
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Ajouter une œuvre
+          {label ?? "Ajouter une œuvre"}
         </button>
       ) : (
         <button
@@ -52,7 +56,8 @@ export function OeuvreFormButton({
       >
         {open && (
           <OeuvreForm
-            dropId={dropId}
+            drops={drops}
+            defaultDropId={defaultDropId}
             artists={artists}
             costs={costs}
             oeuvre={oeuvre}

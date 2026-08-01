@@ -126,6 +126,18 @@ export async function getDropDetail(id: string): Promise<DropDetail | null> {
   };
 }
 
+/** Liste légère des drops pour un sélecteur (id + nom). */
+export async function getDropsForSelect(): Promise<
+  { id: string; name: string }[]
+> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("drops")
+    .select("id, name")
+    .order("start_date", { ascending: false });
+  return (data ?? []).map((d) => ({ id: d.id, name: d.name }));
+}
+
 /** Liste légère des artistes pour un sélecteur (id + nom). */
 export async function getArtistsForSelect(): Promise<
   { id: string; name: string }[]

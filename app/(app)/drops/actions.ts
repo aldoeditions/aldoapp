@@ -149,11 +149,11 @@ async function uploadVisuel(oeuvreId: string, file: File): Promise<string | null
   return admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-function oeuvreFieldsFrom(fd: FormData, dropId: string) {
+function oeuvreFieldsFrom(fd: FormData) {
   return {
     name: str(fd, "name") ?? "",
     artist_id: str(fd, "artist_id") ?? "",
-    drop_id: dropId,
+    drop_id: str(fd, "drop_id"), // null → œuvre non rattachée à un drop
     format: (str(fd, "format") ?? "A3") as OeuvreFormat,
     price: num(fd, "price") ?? 0,
     cout_impression: num(fd, "cout_impression"),
@@ -164,17 +164,25 @@ function oeuvreFieldsFrom(fd: FormData, dropId: string) {
 
 export async function saveOeuvre(
   id: string | null,
-  dropId: string,
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
+  let newDropId: string | null = null;
+  let oldDropId: string | null = null;
   try {
     await assertCanEdit();
     const supabase = createClient();
 
-    const fields = oeuvreFieldsFrom(fd, dropId);
+    const fields = oeuvreFieldsFrom(fd);
     if (!fields.name) return { error: "Le nom de l'œuvre est obligatoire." };
     if (!fields.artist_id) return { error: "Sélectionne un artiste." };
+    newDropId = fields.drop_id;
+
+    // Ancien drop (pour revalider l'ancienne fiche en cas de ré-affectation).
+    if (id) {
+      const { data: prev } = await supabase.from("oeuvres").select("drop_id").eq("id", id).maybeSingle();
+      oldDropId = prev?.drop_id ?? null;
+    }
 
     let targetId = id;
     if (targetId) {
@@ -213,7 +221,15 @@ export async function saveOeuvre(
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };
   }
 
-  revalidatePath(`/drops/${dropId}`);
+  revalidatePath("/oeuvres");
+  revalidatePath("/drops");
+  revalidatePath("/finances");
+  for (const d of [newDropId, oldDropId]) {
+    if (d) {
+      revalidatePath(`/drops/${d}`);
+      revalidatePath(`/finances/${d}`);
+    }
+  }
   return { error: null, ok: true };
 }
 

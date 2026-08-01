@@ -20,14 +20,16 @@ import type { CostByFormat } from "@/lib/data/drops";
 const initial: FormState = { error: null };
 
 export function OeuvreForm({
-  dropId,
+  drops,
+  defaultDropId = null,
   artists,
   costs,
   oeuvre,
   hdFile = null,
   onSuccess,
 }: {
-  dropId: string;
+  drops: { id: string; name: string }[];
+  defaultDropId?: string | null;
   artists: { id: string; name: string }[];
   costs: CostByFormat;
   oeuvre?: Oeuvre | null;
@@ -36,7 +38,7 @@ export function OeuvreForm({
 }) {
   const editing = Boolean(oeuvre);
   const [state, formAction] = useFormState(
-    saveOeuvre.bind(null, oeuvre?.id ?? null, dropId),
+    saveOeuvre.bind(null, oeuvre?.id ?? null),
     initial,
   );
 
@@ -98,7 +100,7 @@ export function OeuvreForm({
             <OeuvreFileReplace
               oeuvreId={oeuvre.id}
               artistId={oeuvre.artist_id}
-              dropId={dropId}
+              dropId={oeuvre.drop_id ?? ""}
               hasFile={Boolean(hdFile)}
             />
           )}
@@ -118,6 +120,14 @@ export function OeuvreForm({
         defaultValue={oeuvre?.artist_id}
         placeholder="Sélectionner…"
         options={artists.map((a) => ({ value: a.id, label: a.name }))}
+      />
+
+      <Select
+        label="Drop"
+        name="drop_id"
+        defaultValue={oeuvre?.drop_id ?? defaultDropId ?? ""}
+        placeholder="Aucun (à rattacher plus tard)"
+        options={drops.map((d) => ({ value: d.id, label: d.name }))}
       />
 
       {/* Format (auto-coûts) */}
