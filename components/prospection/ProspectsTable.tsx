@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { dateCourte } from "@/lib/format";
 import { PIPE_STATUSES } from "@/lib/constants";
 import { updatePipeStatus, signArtist } from "@/app/(app)/prospection/actions";
+import { igHandle, igUrl } from "@/lib/instagram";
 import type { PipeCard } from "@/lib/data/prospection";
 
 export function ProspectsTable({
@@ -52,6 +53,7 @@ export function ProspectsTable({
           <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
             <th className="px-5 py-2.5 font-semibold">Artiste</th>
             <th className="px-3 py-2.5 font-semibold">Style</th>
+            <th className="px-3 py-2.5 font-semibold">Instagram</th>
             <th className="px-3 py-2.5 font-semibold">Étape</th>
             <th className="px-3 py-2.5 font-semibold">1er contact</th>
             {editable && <th className="px-5 py-2.5" />}
@@ -70,6 +72,26 @@ export function ProspectsTable({
                 </Link>
               </td>
               <td className="px-3 py-2.5 text-muted">{p.style ?? "—"}</td>
+              <td className="px-3 py-2.5">
+                {p.instagram ? (
+                  <a
+                    href={igUrl(p.instagram)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-accent hover:underline"
+                    title="Ouvrir Instagram dans un nouvel onglet"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="5" />
+                      <circle cx="12" cy="12" r="4" />
+                      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+                    </svg>
+                    <span className="max-w-[160px] truncate">{igHandle(p.instagram)}</span>
+                  </a>
+                ) : (
+                  <span className="text-faint">—</span>
+                )}
+              </td>
               <td className="px-3 py-2.5">
                 {editable ? (
                   <select

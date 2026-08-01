@@ -8,12 +8,13 @@ export type PipeCard = {
   type: string | null;
   style: string | null;
   renommee: string | null;
+  instagram: string | null;
   first_contact_date: string | null;
   pipe_status: string | null;
 };
 
 const SELECT =
-  "id, name, avatar_url, type, style, renommee, first_contact_date, pipe_status";
+  "id, name, avatar_url, type, style, renommee, instagram, first_contact_date, pipe_status";
 
 export type ProspectsFilter = {
   q?: string;

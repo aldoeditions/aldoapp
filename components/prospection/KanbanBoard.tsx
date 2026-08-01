@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
 import { dateCourte } from "@/lib/format";
+import { igHandle, igUrl } from "@/lib/instagram";
 import { updatePipeStatus } from "@/app/(app)/prospection/actions";
 import type { PipeColumn, PipeCard } from "@/lib/data/prospection";
 
@@ -115,9 +116,28 @@ export function KanbanBoard({
                     </p>
                   </div>
                 </div>
-                {card.first_contact_date && (
-                  <div className="mt-2 flex items-center justify-end text-2xs text-faint">
-                    <span>{dateCourte(card.first_contact_date)}</span>
+                {(card.instagram || card.first_contact_date) && (
+                  <div className="mt-2 flex items-center justify-between text-2xs text-faint">
+                    {card.instagram ? (
+                      <a
+                        href={igUrl(card.instagram)}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-accent hover:underline"
+                        title="Ouvrir Instagram"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="5" />
+                          <circle cx="12" cy="12" r="4" />
+                          <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+                        </svg>
+                        <span className="max-w-[110px] truncate">{igHandle(card.instagram)}</span>
+                      </a>
+                    ) : (
+                      <span />
+                    )}
+                    {card.first_contact_date && <span>{dateCourte(card.first_contact_date)}</span>}
                   </div>
                 )}
               </div>
