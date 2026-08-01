@@ -72,7 +72,14 @@ export function ProspectsTable({
                 >
                   <Avatar name={p.name} src={p.avatar_url} size="sm" />
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-text">{p.name}</p>
+                    <p className="flex items-center gap-1.5 truncate font-medium text-text">
+                      {p.name}
+                      {p.dans_le_pipe && (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 text-accent" aria-label="Pour les prochains drop">
+                          <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3z" />
+                        </svg>
+                      )}
+                    </p>
                     <p className="truncate text-2xs text-faint">{p.renommee ?? ""}</p>
                   </div>
                 </button>

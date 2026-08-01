@@ -12,6 +12,7 @@ export function ProspectionFilters() {
   const view = params.get("view") === "kanban" ? "kanban" : "table";
   const q = params.get("q") ?? "";
   const pipe = params.get("pipe") ?? "";
+  const drop = params.get("drop") === "1";
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -56,6 +57,20 @@ export function ProspectionFilters() {
           ))}
         </select>
 
+        {/* Filtre « pour les prochains drop » */}
+        <button
+          onClick={() => setParam("drop", drop ? "" : "1")}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-2 text-sm font-medium transition-colors",
+            drop ? "border-accent bg-accentBg text-accent" : "border-border bg-surface text-muted hover:text-text",
+          )}
+          title="N'afficher que les prospects marqués pour les prochains drop"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={drop ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3z" />
+          </svg>
+          Prochain drop
+        </button>
       </div>
 
       {/* Bascule vue */}

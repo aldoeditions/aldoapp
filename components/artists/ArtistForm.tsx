@@ -177,6 +177,17 @@ export function ArtistForm({
         </div>
       )}
 
+      <label className="flex items-center gap-2.5 rounded-md border border-border bg-bg px-3 py-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="dans_le_pipe"
+          defaultChecked={artist?.dans_le_pipe ?? false}
+          className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+        />
+        <span className="font-medium text-text">Pour les prochains drop</span>
+        <span className="text-2xs text-faint">— à contacter en priorité</span>
+      </label>
+
       <div className="grid grid-cols-2 gap-3">
         <Select
           label="Type"

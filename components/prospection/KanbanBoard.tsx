@@ -109,8 +109,13 @@ export function KanbanBoard({
                 <div className="flex items-start gap-2.5">
                   <Avatar name={card.name} src={card.avatar_url} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-text">
+                    <p className="flex items-center gap-1.5 truncate text-sm font-medium text-text">
                       {card.name}
+                      {card.dans_le_pipe && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 text-accent" aria-label="Pour les prochains drop">
+                          <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3z" />
+                        </svg>
+                      )}
                     </p>
                     <p className="truncate text-2xs text-muted">
                       {[card.style, card.renommee].filter(Boolean).join(" · ") ||
