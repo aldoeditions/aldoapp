@@ -30,12 +30,12 @@ const config: Config = {
         neutralBg: "#ECEDF5",
       },
       fontFamily: {
-        // « serif » = police d'affichage (titres) — nom conservé pour ne pas
-        // toucher tous les composants ; « sans » = Azeret Mono (corps).
+        // « serif » = police d'affichage (titres, nom conservé pour ne pas
+        // toucher tous les composants) ; « sans » = DM Sans (corps).
         serif: ["var(--font-display)", "Archivo Black", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Archivo Black", "system-ui", "sans-serif"],
-        sans: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
-        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+        sans: ["var(--font-sans)", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       borderRadius: {
         card: "12px",

@@ -12,7 +12,7 @@
     background-color: #f4f5fb;
     color: #1c1c1f;
     @apply font-sans;
-    font-size: 0.9375rem; /* Azeret Mono un peu plus compacte */
+    font-size: 0.9375rem; /* DM Sans — base compacte */
   }
 
   /* Titres : police d'affichage (Archivo Black) */
