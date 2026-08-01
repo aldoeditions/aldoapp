@@ -155,9 +155,13 @@ export async function saveArtist(
     return { error: msg };
   }
 
+  // Redirection : /prospection à la création d'un prospect, sinon fiche artiste.
+  const rawRedirect = str(fd, "redirect_to");
+  const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : `/artistes/${targetId}`;
   revalidatePath("/artistes");
   revalidatePath(`/artistes/${targetId}`);
-  redirect(`/artistes/${targetId}`);
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
 }
 
 export async function deleteArtist(id: string) {

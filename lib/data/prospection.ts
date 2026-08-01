@@ -10,11 +10,12 @@ export type PipeCard = {
   renommee: string | null;
   instagram: string | null;
   first_contact_date: string | null;
+  created_at: string | null;
   pipe_status: string | null;
 };
 
 const SELECT =
-  "id, name, avatar_url, type, style, renommee, instagram, first_contact_date, pipe_status";
+  "id, name, avatar_url, type, style, renommee, instagram, first_contact_date, created_at, pipe_status";
 
 export type ProspectsFilter = {
   q?: string;
@@ -30,7 +31,8 @@ export async function getProspects(
     .from("artists")
     .select(SELECT)
     .eq("phase", "prospect")
-    .order("first_contact_date", { ascending: false, nullsFirst: false })
+    // Plus récemment ajoutés en premier.
+    .order("created_at", { ascending: false, nullsFirst: false })
     .order("name", { ascending: true });
 
   if (filter.pipe) query = query.eq("pipe_status", filter.pipe);

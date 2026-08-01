@@ -16,11 +16,13 @@ export function ArtistFormButton({
   iban,
   label,
   variant = "primary",
+  mode = "full",
 }: {
   artist?: Artist | null;
   iban?: string | null;
   label?: string;
   variant?: "primary" | "secondary";
+  mode?: "prospect" | "full";
 }) {
   const [open, setOpen] = useState(false);
   const editing = Boolean(artist);
@@ -48,9 +50,9 @@ export function ArtistFormButton({
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
-        title={editing ? "Modifier l'artiste" : "Nouvel artiste"}
+        title={editing ? "Modifier l'artiste" : mode === "prospect" ? "Nouveau prospect" : "Nouvel artiste"}
       >
-        <ArtistForm artist={artist} iban={iban} />
+        <ArtistForm artist={artist} iban={iban} mode={mode} />
       </Drawer>
     </>
   );

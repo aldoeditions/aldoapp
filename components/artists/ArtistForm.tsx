@@ -105,9 +105,12 @@ function SubmitButton({ editing }: { editing: boolean }) {
 export function ArtistForm({
   artist,
   iban,
+  mode = "full",
 }: {
   artist?: Artist | null;
   iban?: string | null;
+  /** "prospect" (création depuis Prospection) masque la phase et redirige vers /prospection. */
+  mode?: "prospect" | "full";
 }) {
   const editing = Boolean(artist);
   const [state, formAction] = useFormState(
@@ -115,6 +118,7 @@ export function ArtistForm({
     initial,
   );
   const [preview, setPreview] = useState<string | null>(artist?.avatar_url ?? null);
+  const [phase, setPhase] = useState<string>(artist?.phase ?? "prospect");
 
   return (
     <form action={formAction} className="space-y-5 px-5 py-5">
@@ -141,10 +145,37 @@ export function ArtistForm({
 
       <Field label="Nom *" name="name" defaultValue={artist?.name} placeholder="Nom de l'artiste" />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Select label="Phase" name="phase" defaultValue={artist?.phase ?? "prospect"} options={ARTIST_PHASES} />
-        <Select label="Statut pipeline" name="pipe_status" defaultValue={artist?.pipe_status} options={PIPE_STATUSES} />
-      </div>
+      {mode === "prospect" ? (
+        <>
+          {/* Création depuis Prospection : phase forcée à « prospect », retour à /prospection. */}
+          <input type="hidden" name="phase" value="prospect" />
+          <input type="hidden" name="redirect_to" value="/prospection" />
+          <Select label="Statut pipeline" name="pipe_status" defaultValue={artist?.pipe_status ?? "prospect"} options={PIPE_STATUSES} />
+        </>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls} htmlFor="phase">Phase</label>
+            <select
+              id="phase"
+              name="phase"
+              value={phase}
+              onChange={(e) => setPhase(e.target.value)}
+              className={inputCls}
+            >
+              {ARTIST_PHASES.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          {/* Statut pipeline : pertinent uniquement en phase prospect. */}
+          {phase === "prospect" ? (
+            <Select label="Statut pipeline" name="pipe_status" defaultValue={artist?.pipe_status} options={PIPE_STATUSES} />
+          ) : (
+            <div />
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Select

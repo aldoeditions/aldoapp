@@ -31,7 +31,7 @@ export default async function ProspectionPage({
         eyebrow="Pipeline"
         title="Prospection"
         description={`Base de prospection — ${total} artiste(s) à contacter ou en cours.`}
-        action={editable ? <ArtistFormButton label="Nouveau prospect" /> : undefined}
+        action={editable ? <ArtistFormButton label="Nouveau prospect" mode="prospect" /> : undefined}
       />
 
       <ProspectionFilters />
