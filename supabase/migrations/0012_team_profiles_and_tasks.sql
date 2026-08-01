@@ -56,7 +56,10 @@ begin
 end;
 $$;
 
-alter table public.artists drop column if exists contacted_by;
+-- ⚠️ Le drop de contacted_by est reporté en migration 0013 : la vue
+-- `artists_with_stats` (créée hors migrations) fait un `select artists.*` et
+-- dépend donc de la colonne. Il faut recréer la vue SANS la colonne avant de
+-- pouvoir la supprimer. La colonne reste en base en attendant (inutilisée).
 
 /* ------------------------------------------------------------------ */
 /* 4. tasks                                                            */
