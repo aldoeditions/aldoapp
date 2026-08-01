@@ -1,21 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { PIPE_STATUSES } from "@/lib/constants";
+import type { Artist } from "@/types/database";
 
-export type PipeCard = {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-  type: string | null;
-  style: string | null;
-  renommee: string | null;
-  instagram: string | null;
-  first_contact_date: string | null;
-  created_at: string | null;
-  pipe_status: string | null;
-};
-
-const SELECT =
-  "id, name, avatar_url, type, style, renommee, instagram, first_contact_date, created_at, pipe_status";
+// Ligne artiste complète : permet d'ouvrir/éditer le prospect dans le drawer
+// (le formulaire a besoin de tous les champs pour préremplir).
+export type PipeCard = Artist;
 
 export type ProspectsFilter = {
   q?: string;
@@ -29,7 +18,7 @@ export async function getProspects(
   const supabase = createClient();
   let query = supabase
     .from("artists")
-    .select(SELECT)
+    .select("*")
     .eq("phase", "prospect")
     // Plus récemment ajoutés en premier.
     .order("created_at", { ascending: false, nullsFirst: false })

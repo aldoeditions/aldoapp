@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
 import { dateCourte } from "@/lib/format";
 import { igHandle, igUrl } from "@/lib/instagram";
+import { ArtistEditDrawer } from "@/components/artists/ArtistEditDrawer";
 import { updatePipeStatus } from "@/app/(app)/prospection/actions";
 import type { PipeColumn, PipeCard } from "@/lib/data/prospection";
 
@@ -20,6 +21,7 @@ export function KanbanBoard({
   const [columns, setColumns] = useState(initial);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
+  const [editing, setEditing] = useState<PipeCard | null>(null);
   const [, startTransition] = useTransition();
 
   function move(id: string, toStatus: string) {
@@ -54,6 +56,7 @@ export function KanbanBoard({
   }
 
   return (
+    <>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {columns.map((col) => (
         <div
@@ -96,7 +99,7 @@ export function KanbanBoard({
                   e.dataTransfer.setData("text/plain", card.id);
                 }}
                 onDragEnd={() => setDragId(null)}
-                onClick={() => router.push(`/artistes/${card.id}`)}
+                onClick={() => setEditing(card)}
                 className={cn(
                   "card cursor-pointer p-3 transition-shadow hover:shadow-float",
                   editable && "active:cursor-grabbing",
@@ -151,5 +154,13 @@ export function KanbanBoard({
         </div>
       ))}
     </div>
+
+    <ArtistEditDrawer
+      artist={editing}
+      open={editing !== null}
+      onClose={() => setEditing(null)}
+      mode="prospect"
+    />
+    </>
   );
 }

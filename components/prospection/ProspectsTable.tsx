@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { dateCourte } from "@/lib/format";
 import { PIPE_STATUSES } from "@/lib/constants";
 import { updatePipeStatus, signArtist } from "@/app/(app)/prospection/actions";
 import { igHandle, igUrl } from "@/lib/instagram";
+import { ArtistEditDrawer } from "@/components/artists/ArtistEditDrawer";
 import type { PipeCard } from "@/lib/data/prospection";
 
 export function ProspectsTable({
@@ -21,6 +21,7 @@ export function ProspectsTable({
   const [rows, setRows] = useState(prospects);
   const [pending, start] = useTransition();
   const [signing, setSigning] = useState<string | null>(null);
+  const [editing, setEditing] = useState<PipeCard | null>(null);
 
   function changeStage(id: string, status: string) {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, pipe_status: status } : r)));
@@ -47,6 +48,7 @@ export function ProspectsTable({
   }
 
   return (
+    <>
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
@@ -63,13 +65,17 @@ export function ProspectsTable({
           {rows.map((p) => (
             <tr key={p.id} className="border-b border-border last:border-0">
               <td className="px-5 py-2.5">
-                <Link href={`/artistes/${p.id}`} className="flex items-center gap-2.5 hover:text-accent">
+                <button
+                  type="button"
+                  onClick={() => setEditing(p)}
+                  className="flex items-center gap-2.5 text-left hover:text-accent"
+                >
                   <Avatar name={p.name} src={p.avatar_url} size="sm" />
                   <div className="min-w-0">
                     <p className="truncate font-medium text-text">{p.name}</p>
                     <p className="truncate text-2xs text-faint">{p.renommee ?? ""}</p>
                   </div>
-                </Link>
+                </button>
               </td>
               <td className="px-3 py-2.5 text-muted">{p.style ?? "—"}</td>
               <td className="px-3 py-2.5">
@@ -131,5 +137,13 @@ export function ProspectsTable({
         </tbody>
       </table>
     </div>
+
+    <ArtistEditDrawer
+      artist={editing}
+      open={editing !== null}
+      onClose={() => setEditing(null)}
+      mode="prospect"
+    />
+    </>
   );
 }
