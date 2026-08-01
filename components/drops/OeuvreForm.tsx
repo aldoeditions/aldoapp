@@ -53,6 +53,7 @@ export function OeuvreForm({
   const [packaging, setPackaging] = useState<string>(
     String(oeuvre?.cout_packaging ?? costs[initialFormat].packaging),
   );
+  const [preview, setPreview] = useState<string | null>(oeuvre?.file_url ?? null);
 
   // Changement de format → réinitialise prix + coûts depuis params.
   function onFormatChange(f: FormatKey) {
@@ -74,27 +75,27 @@ export function OeuvreForm({
 
   return (
     <form action={formAction} className="space-y-4 px-5 py-5">
-      {/* Visuel — rempli automatiquement à la validation du fichier de l'artiste */}
+      {/* Visuel (aperçu) — upload manuel possible, ou rempli à la validation du fichier artiste. */}
       <div className="flex items-center gap-4">
-        <Avatar name={oeuvre?.name} src={oeuvre?.file_url ?? null} size="lg" className="rounded-md" />
+        <Avatar name={oeuvre?.name} src={preview} size="lg" className="rounded-md" />
         <div className="min-w-0">
-          <p className={labelCls}>Visuel</p>
-          {hdFile ? (
-            <>
-              <FileDownloadButton
-                bucket="artist-files"
-                path={hdFile.path}
-                label="Télécharger le fichier HD"
-              />
-              <p className="mt-0.5 text-2xs text-faint">
-                Master d&apos;impression déposé par l&apos;artiste.
-              </p>
-            </>
-          ) : (
-            <p className="text-2xs text-faint">
-              L&apos;aperçu se remplit automatiquement quand le fichier déposé par
-              l&apos;artiste est validé.
-            </p>
+          <label className={labelCls} htmlFor="visuel">Visuel (aperçu)</label>
+          <input
+            id="visuel"
+            name="visuel"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              setPreview(f ? URL.createObjectURL(f) : (oeuvre?.file_url ?? null));
+            }}
+            className="text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
+          />
+          {hdFile && (
+            <div className="mt-1.5">
+              <FileDownloadButton bucket="artist-files" path={hdFile.path} label="Télécharger le fichier HD" />
+              <p className="mt-0.5 text-2xs text-faint">Master d&apos;impression déposé par l&apos;artiste.</p>
+            </div>
           )}
           {editing && oeuvre?.id && oeuvre.artist_id && (
             <OeuvreFileReplace
@@ -103,6 +104,11 @@ export function OeuvreForm({
               dropId={oeuvre.drop_id ?? ""}
               hasFile={Boolean(hdFile)}
             />
+          )}
+          {!hdFile && !preview && (
+            <p className="mt-1 text-2xs text-faint">
+              Optionnel — sinon l&apos;aperçu se remplira à la validation du fichier de l&apos;artiste.
+            </p>
           )}
         </div>
       </div>

@@ -138,7 +138,7 @@ export async function getDropsForSelect(): Promise<
   return (data ?? []).map((d) => ({ id: d.id, name: d.name }));
 }
 
-/** Liste légère des artistes pour un sélecteur (id + nom). */
+/** Liste légère des artistes SIGNÉS (actif/suivi) pour un sélecteur (id + nom). */
 export async function getArtistsForSelect(): Promise<
   { id: string; name: string }[]
 > {
@@ -146,6 +146,7 @@ export async function getArtistsForSelect(): Promise<
   const { data } = await supabase
     .from("artists")
     .select("id, name")
+    .in("phase", ["actif", "suivi"])
     .order("name", { ascending: true });
   return (data ?? []).map((a) => ({ id: a.id, name: a.name }));
 }
