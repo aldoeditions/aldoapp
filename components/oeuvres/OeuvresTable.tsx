@@ -1,10 +1,10 @@
 "use client";
 
-import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/Badge";
 import { OEUVRE_STATUS } from "@/lib/constants";
 import { euros } from "@/lib/format";
 import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
+import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 import type { CostByFormat } from "@/lib/data/drops";
 import type { OeuvreCatalogRow } from "@/lib/data/oeuvres";
 
@@ -49,7 +49,7 @@ export function OeuvresTable({
               <tr key={o.id} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5">
                   <div className="flex items-center gap-2.5">
-                    <Avatar name={o.name} src={o.file_url} size="sm" className="rounded" />
+                    <OeuvrePreview name={o.name} src={o.file_url} />
                     <span className="font-medium text-text">{o.name}</span>
                   </div>
                 </td>

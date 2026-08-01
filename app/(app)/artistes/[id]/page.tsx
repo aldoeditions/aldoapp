@@ -13,6 +13,7 @@ import { InviteButton } from "@/components/artists/InviteButton";
 import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import { FilesReview } from "@/components/artists/FilesReview";
 import { ContractPanel } from "@/components/contracts/ContractPanel";
+import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 import { getContractContext } from "@/lib/data/contracts";
 import type { PendingFile } from "@/lib/data/artists";
 import {
@@ -172,7 +173,12 @@ export default async function ArtistDetailPage({
                   <tbody>
                     {oeuvres.map((o) => (
                       <tr key={o.id} className="border-b border-border last:border-0">
-                        <td className="px-5 py-2.5 font-medium text-text">{o.name}</td>
+                        <td className="px-5 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <OeuvrePreview name={o.name} src={o.file_url} />
+                            <span className="font-medium text-text">{o.name}</span>
+                          </div>
+                        </td>
                         <td className="px-5 py-2.5 text-muted">{o.drop_name ?? "—"}</td>
                         <td className="px-5 py-2.5 text-muted">{o.format}</td>
                         <td className="px-5 py-2.5 text-right text-text">{euros(o.price)}</td>

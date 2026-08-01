@@ -11,12 +11,14 @@ import {
 } from "@/lib/data/drops";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/Badge";
 import { DROP_STATUS, OEUVRE_STATUS, ARTIST_FILE_STATUS, COMMISSION_PCT } from "@/lib/constants";
 import { euros, euros0, nombre, dateCourte } from "@/lib/format";
 import { DropFormButton } from "@/components/drops/DropFormButton";
 import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
+import { AddOeuvreButton } from "@/components/drops/AddOeuvreButton";
+import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
+import { getAttachableOeuvres, type AttachableOeuvre } from "@/lib/data/oeuvres";
 import { DeleteDropButton, DeleteOeuvreButton } from "@/components/drops/DeleteButtons";
 import { ReapplyCostsButton } from "@/components/drops/ReapplyCostsButton";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
@@ -36,15 +38,17 @@ export default async function DropDetailPage({
   // Données nécessaires au formulaire d'œuvre (seulement si édition permise).
   let artists: { id: string; name: string }[] = [];
   let drops: { id: string; name: string }[] = [];
+  let attachable: AttachableOeuvre[] = [];
   let costs: CostByFormat = {
     A3: { prix: 40, impression: 0, packaging: 0 },
     A4: { prix: 25, impression: 0, packaging: 0 },
   };
   if (editable) {
-    [artists, drops, costs] = await Promise.all([
+    [artists, drops, costs, attachable] = await Promise.all([
       getArtistsForSelect(),
       getDropsForSelect(),
       getCostParams(),
+      getAttachableOeuvres(params.id),
     ]);
   }
 
@@ -108,7 +112,7 @@ export default async function DropDetailPage({
           subtitle={`${oeuvres.length} œuvre(s)`}
           action={
             editable ? (
-              <OeuvreFormButton drops={drops} defaultDropId={drop.id} artists={artists} costs={costs} />
+              <AddOeuvreButton dropId={drop.id} artists={artists} drops={drops} costs={costs} attachable={attachable} />
             ) : undefined
           }
         />
@@ -144,7 +148,7 @@ export default async function DropDetailPage({
                       <tr key={o.id} className="border-b border-border last:border-0">
                         <td className="px-5 py-2.5">
                           <div className="flex items-center gap-2.5">
-                            <Avatar name={o.name} src={o.file_url} size="sm" className="rounded" />
+                            <OeuvrePreview name={o.name} src={o.file_url} />
                             <span className="font-medium text-text">{o.name}</span>
                           </div>
                         </td>

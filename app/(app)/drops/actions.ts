@@ -276,6 +276,33 @@ export async function registerOeuvreFile(input: {
   }
 }
 
+/** Rattache une œuvre existante à un drop (change son drop_id). */
+export async function attachOeuvreToDrop(oeuvreId: string, dropId: string): Promise<FormState> {
+  try {
+    await assertCanEdit();
+    const supabase = createClient();
+
+    const { data: prev } = await supabase.from("oeuvres").select("drop_id").eq("id", oeuvreId).maybeSingle();
+    const oldDrop = prev?.drop_id ?? null;
+
+    const { error } = await supabase.from("oeuvres").update({ drop_id: dropId }).eq("id", oeuvreId);
+    if (error) return { error: error.message };
+
+    revalidatePath("/oeuvres");
+    revalidatePath("/drops");
+    revalidatePath("/finances");
+    for (const d of [dropId, oldDrop]) {
+      if (d) {
+        revalidatePath(`/drops/${d}`);
+        revalidatePath(`/finances/${d}`);
+      }
+    }
+    return { error: null, ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur inattendue." };
+  }
+}
+
 export async function deleteOeuvre(id: string, dropId: string) {
   await assertCanEdit();
   const supabase = createClient();

@@ -38,6 +38,32 @@ export async function getOeuvresCatalog(
   });
 }
 
+export type AttachableOeuvre = {
+  id: string;
+  name: string;
+  artist_name: string | null;
+  drop_name: string | null;
+};
+
+/** Œuvres rattachables à un drop : non rattachées, ou rattachées à un AUTRE drop. */
+export async function getAttachableOeuvres(dropId: string): Promise<AttachableOeuvre[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("oeuvres")
+    .select("id, name, artists(name), drops(name)")
+    .or(`drop_id.is.null,drop_id.neq.${dropId}`)
+    .order("created_at", { ascending: false })
+    .returns<
+      { id: string; name: string; artists: { name: string } | null; drops: { name: string } | null }[]
+    >();
+  return (data ?? []).map((o) => ({
+    id: o.id,
+    name: o.name,
+    artist_name: o.artists?.name ?? null,
+    drop_name: o.drops?.name ?? null,
+  }));
+}
+
 /** Compteurs pour l'en-tête (total + sans drop). */
 export async function getOeuvreCounts(): Promise<{ total: number; unassigned: number }> {
   const supabase = createClient();
