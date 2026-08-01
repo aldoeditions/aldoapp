@@ -1,8 +1,8 @@
 /**
  * Matrice de permissions par rôle — Aldo Éditions.
  *
- * Rôles : admin (Louison) · marketing (Tom) · creatif (Charley).
- * À AJUSTER avec l'équipe : ce sont des valeurs par défaut raisonnables.
+ * L'équipe admin (Louison, Charley) a le rôle `admin`. Les rôles marketing /
+ * creatif restent définis pour un usage futur.
  *   - admin    : accès total
  *   - marketing: pipeline + produit + lecture finances, pas les paramètres
  *   - creatif  : pipeline + produit (œuvres/fichiers), pas de finances
@@ -31,6 +31,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 /** Clés des modules (= segments de route). */
 export type ModuleKey =
   | "dashboard"
+  | "projet"
   | "prospection"
   | "artistes"
   | "drops"
@@ -44,6 +45,7 @@ export type Access = "none" | "read" | "write";
 
 const ALL_WRITE: Record<ModuleKey, Access> = {
   dashboard: "write",
+  projet: "write",
   prospection: "write",
   artistes: "write",
   drops: "write",
@@ -57,6 +59,7 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
   admin: { ...ALL_WRITE },
   marketing: {
     dashboard: "write",
+    projet: "write",
     prospection: "write",
     artistes: "write",
     drops: "write",
@@ -67,6 +70,7 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
   },
   creatif: {
     dashboard: "read",
+    projet: "write",
     prospection: "write",
     artistes: "write",
     drops: "write",
@@ -78,6 +82,7 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
   // L'artiste n'a aucun accès aux modules admin (il vit sur /portail).
   artist: {
     dashboard: "none",
+    projet: "none",
     prospection: "none",
     artistes: "none",
     drops: "none",

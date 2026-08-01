@@ -90,4 +90,4 @@ Les artistes sont invités depuis le back-office (fiche artiste → **Inviter au
 
 ---
 
-_Équipe : Louison (admin) · Tom (marketing) · Charley (créatif). Commission artiste : 30 %. Formats : A3 (40 €) · A4 (25 €)._
+_Équipe admin : Louison · Charley (rôle `admin`). Commission artiste : 30 %. Formats : A3 (40 €) · A4 (25 €)._

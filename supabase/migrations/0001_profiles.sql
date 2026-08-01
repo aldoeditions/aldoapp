@@ -94,10 +94,9 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ============================================================
--- 4. Après avoir créé les comptes (Auth > Users) pour Louison,
---    Tom et Charley, assigner les rôles :
+-- 4. Après avoir créé les comptes (Auth > Users), assigner les rôles.
+--    L'équipe admin (Louison, Charley) est liée en migration 0012.
 --
---   update public.profiles set role = 'admin'     where email = 'louison@...';
---   update public.profiles set role = 'marketing' where email = 'tom@...';
---   update public.profiles set role = 'creatif'   where email = 'charley@...';
+--   update public.profiles set role = 'admin' where email = 'dupontlouison@gmail.com';
+--   update public.profiles set role = 'admin' where email = 'chly.dpnt@gmail.com';
 -- ============================================================

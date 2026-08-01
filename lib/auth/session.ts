@@ -9,6 +9,7 @@ import {
   type ModuleKey,
   type Role,
 } from "@/lib/auth/permissions";
+import { initiales } from "@/lib/format";
 import type { Profile } from "@/types/database";
 
 export type SessionUser = {
@@ -16,6 +17,10 @@ export type SessionUser = {
   email: string;
   profile: Profile | null;
   role: Role;
+  /** Nom d'affichage (display_name, sinon name, sinon partie locale de l'email). */
+  displayName: string;
+  /** Initiales pour l'avatar (avatar_initials, sinon dérivées du displayName). */
+  initials: string;
   /** id de la ligne `artists` liée (si l'utilisateur est un artiste), sinon null. */
   artistId: string | null;
 };
@@ -54,11 +59,18 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     artistId = artist?.id ?? null;
   }
 
+  const email = user.email ?? "";
+  const displayName =
+    profile?.display_name || profile?.name || email.split("@")[0] || "Aldo";
+  const initials = profile?.avatar_initials || initiales(displayName);
+
   return {
     id: user.id,
-    email: user.email ?? "",
+    email,
     profile: profile ?? null,
     role,
+    displayName,
+    initials,
     artistId,
   };
 });

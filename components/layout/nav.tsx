@@ -1,6 +1,7 @@
 import type { ModuleKey } from "@/lib/auth/permissions";
 import {
   DashboardIcon,
+  ProjetIcon,
   ProspectionIcon,
   ArtistesIcon,
   DropsIcon,
@@ -28,6 +29,7 @@ export const NAV: NavGroup[] = [
     title: "Vue d'ensemble",
     items: [
       { key: "dashboard", label: "Dashboard", href: "/", Icon: DashboardIcon },
+      { key: "projet", label: "Projet", href: "/projet", Icon: ProjetIcon },
     ],
   },
   {

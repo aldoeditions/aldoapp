@@ -52,7 +52,6 @@ export type Database = {
           dans_le_pipe_notion: string | null;
           phase: ArtistPhase;
           pipe_status: string | null;
-          contacted_by: string | null;
           first_contact_date: string | null;
           first_contact_info: string | null;
           kit_impression: string | null;
@@ -95,7 +94,6 @@ export type Database = {
           iban?: string | null;
           bic?: string | null;
           pipe_status?: string | null;
-          contacted_by?: string | null;
           first_contact_date?: string | null;
           first_contact_info?: string | null;
           kit_impression?: string | null;
@@ -403,6 +401,8 @@ export type Database = {
           created_at: string | null;
           email: string;
           name: string | null;
+          display_name: string | null;
+          avatar_initials: string | null;
           role: string;
           avatar_url: string | null;
         };
@@ -411,10 +411,62 @@ export type Database = {
           created_at?: string | null;
           email: string;
           name?: string | null;
+          display_name?: string | null;
+          avatar_initials?: string | null;
           role?: string;
           avatar_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      tasks: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          status: string;
+          priority: string | null;
+          assignee_id: string | null;
+          created_by_id: string | null;
+          drop_id: string | null;
+          due_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          status?: string;
+          priority?: string | null;
+          assignee_id?: string | null;
+          created_by_id?: string | null;
+          drop_id?: string | null;
+          due_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
+        Relationships: [];
+      };
+      task_comments: {
+        Row: {
+          id: string;
+          task_id: string;
+          author_id: string | null;
+          author_legacy: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          author_id?: string | null;
+          author_legacy?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["task_comments"]["Insert"]>;
         Relationships: [];
       };
     };
@@ -471,7 +523,6 @@ export type Database = {
           renommee: string | null;
           phase: ArtistPhase | null;
           pipe_status: string | null;
-          contacted_by: string | null;
           first_contact_date: string | null;
           first_contact_info: string | null;
           kit_impression: string | null;
@@ -527,3 +578,5 @@ export type ArtistFile = Tables<"artist_files">;
 export type Contract = Tables<"contracts">;
 export type Payment = Tables<"payments">;
 export type Profile = Tables<"profiles">;
+export type Task = Tables<"tasks">;
+export type TaskComment = Tables<"task_comments">;

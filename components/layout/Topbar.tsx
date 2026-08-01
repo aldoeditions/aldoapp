@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { logout } from "@/lib/auth/actions";
-import { initiales } from "@/lib/format";
 import { ROLE_LABEL, type Role } from "@/lib/auth/permissions";
 import { LogoutIcon } from "./icons";
 import { MobileNav } from "./MobileNav";
@@ -21,10 +20,12 @@ function currentLabel(pathname: string): string {
 
 export function Topbar({
   name,
+  initials,
   email,
   role,
 }: {
   name: string;
+  initials: string;
   email: string;
   role: Role;
 }) {
@@ -49,7 +50,7 @@ export function Topbar({
           className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-2xs font-semibold text-white"
           title={email}
         >
-          {initiales(name)}
+          {initials}
         </div>
         <form action={logout}>
           <button

@@ -124,11 +124,6 @@ function mapRenommee(v: unknown): string | null {
   }
 }
 
-function mapContactedBy(v: unknown): string | null {
-  const s = clean(v);
-  return s === "Louison" || s === "Tom" ? s : null;
-}
-
 /* ------------------------------------------------------------------ */
 /* Transformation                                                      */
 /* ------------------------------------------------------------------ */
@@ -141,7 +136,6 @@ type ArtistRow = {
   style: string | null;
   renommee: string | null;
   instagram: string | null;
-  contacted_by: string | null;
   first_contact_date: string | null;
   first_contact_info: string | null;
   email: string | null;
@@ -165,7 +159,6 @@ function transform(rec: Record<string, string>): { row: ArtistRow; defaults: str
     style: orNull(rec["Style"]),
     renommee: mapRenommee(rec["Renommé"]),
     instagram: orNull(rec["Lien"]),
-    contacted_by: mapContactedBy(rec["Contact par qui"]),
     first_contact_date: parseNotionDate(rec["1er Contact Date"]),
     first_contact_info: orNull(rec["1er Contact Info"]),
     email: orNull(rec["Email"]),

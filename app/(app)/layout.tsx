@@ -8,13 +8,12 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireTeam();
-  const displayName = user.profile?.name ?? user.email.split("@")[0];
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar role={user.role} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar name={displayName} email={user.email} role={user.role} />
+        <Topbar name={user.displayName} initials={user.initials} email={user.email} role={user.role} />
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-8">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>

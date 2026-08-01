@@ -196,11 +196,21 @@ export const CHARGE_CATEGORIES: StatusOption[] = [
 export const CHARGE_CATEGORY = dict(CHARGE_CATEGORIES);
 
 /* ------------------------------------------------------------------ */
-/* Équipe                                                              */
+/* Tâches (module Projet)                                              */
 /* ------------------------------------------------------------------ */
+export const TASK_STATUSES: StatusOption[] = [
+  { value: "à faire", label: "À faire", variant: "orange" },
+  { value: "en cours", label: "En cours", variant: "blue" },
+  { value: "terminé", label: "Terminé", variant: "green" },
+];
+export const TASK_STATUS = dict(TASK_STATUSES);
 
-export const TEAM = ["Louison", "Tom", "Charley"] as const;
-export type TeamMember = (typeof TEAM)[number];
+export const TASK_PRIORITIES: StatusOption[] = [
+  { value: "basse", label: "Basse", variant: "gray" },
+  { value: "normale", label: "Normale", variant: "blue" },
+  { value: "haute", label: "Haute", variant: "red" },
+];
+export const TASK_PRIORITY = dict(TASK_PRIORITIES);
 
 /**
  * Type d'entité artiste — CHECK constraint réelle en base.

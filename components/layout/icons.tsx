@@ -24,6 +24,15 @@ export function DashboardIcon(p: IconProps) {
   );
 }
 
+export function ProjetIcon(p: IconProps) {
+  return (
+    <svg {...base} className={p.className} aria-hidden>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="M4 6l1 1 1.5-1.5M4 12l1 1 1.5-1.5M4 18l1 1 1.5-1.5" />
+    </svg>
+  );
+}
+
 export function ProspectionIcon(p: IconProps) {
   return (
     <svg {...base} className={p.className} aria-hidden>

@@ -1,18 +1,22 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPendingFiles } from "@/lib/data/artists";
+import { getMyOpenTasks } from "@/lib/data/tasks";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ButtonLink } from "@/components/ui/Button";
+import { StatusBadge } from "@/components/ui/Badge";
 import { FilesReview } from "@/components/artists/FilesReview";
-import { euros0, nombre } from "@/lib/format";
+import { TASK_STATUS } from "@/lib/constants";
+import { euros0, nombre, dateCourte } from "@/lib/format";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   const supabase = createClient();
-  const prenom = (user.profile?.name ?? user.email.split("@")[0]).split(" ")[0];
+  const prenom = user.displayName.split(" ")[0];
 
   // Agrégats légers — la base peut être vide en Phase 0.
   const [{ count: nbArtistes }, { count: nbDrops }, { data: pnl }] =
@@ -32,7 +36,10 @@ export default async function DashboardPage() {
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
-  const pendingFiles = await getPendingFiles();
+  const [pendingFiles, myTasks] = await Promise.all([
+    getPendingFiles(),
+    getMyOpenTasks(user.id),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -52,6 +59,40 @@ export default async function DashboardPage() {
           hint={`${nombre(nbDrops ?? 0)} drop(s)`}
         />
       </div>
+
+      {/* Actions requises — mes tâches ouvertes */}
+      <Card>
+        <CardHeader
+          title="Actions requises"
+          subtitle="Les tâches qui te sont assignées."
+          action={
+            <Link href="/projet" className="text-2xs font-medium text-accent hover:underline">
+              Tout le projet →
+            </Link>
+          }
+        />
+        <CardBody className={myTasks.length > 0 ? "p-0" : undefined}>
+          {myTasks.length === 0 ? (
+            <p className="py-4 text-center text-sm text-faint">Aucune tâche assignée. 🎉</p>
+          ) : (
+            <ul>
+              {myTasks.map((t) => (
+                <li key={t.id}>
+                  <Link href="/projet" className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm transition-colors last:border-0 hover:bg-bg">
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-text">{t.title}</span>
+                      <span className="text-2xs text-faint">
+                        {t.drop_name ?? "—"}{t.due_date ? ` · échéance ${dateCourte(t.due_date)}` : ""}
+                      </span>
+                    </span>
+                    <StatusBadge value={t.status} dict={TASK_STATUS} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
 
       {/* Fichiers en attente de validation */}
       <Card>
