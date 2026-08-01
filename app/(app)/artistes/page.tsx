@@ -9,16 +9,18 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { ARTIST_PHASE } from "@/lib/constants";
 import { euros0, nombre } from "@/lib/format";
 import { ArtistsFilters } from "@/components/artists/ArtistsFilters";
+import { ArtistsTable } from "@/components/artists/ArtistsTable";
 import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 
 export default async function ArtistesPage({
   searchParams,
 }: {
-  searchParams: { archived?: string; q?: string };
+  searchParams: { archived?: string; q?: string; view?: string };
 }) {
   const user = await requireModule("artistes");
   const editable = canEdit(user.role, "artistes");
   const archived = searchParams.archived === "1";
+  const cards = searchParams.view === "cards";
 
   const [artists, counts] = await Promise.all([
     getArtists({ archived, q: searchParams.q }),
@@ -52,7 +54,7 @@ export default async function ArtistesPage({
           }
           action={editable ? <ArtistFormButton /> : undefined}
         />
-      ) : (
+      ) : cards ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {artists.map((a) => (
             <Link
@@ -96,6 +98,8 @@ export default async function ArtistesPage({
             </Link>
           ))}
         </div>
+      ) : (
+        <ArtistsTable artists={artists} />
       )}
     </div>
   );

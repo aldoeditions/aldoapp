@@ -17,6 +17,7 @@ export function ArtistsFilters({
   const params = useSearchParams();
   const isArchived = params.get("archived") === "1";
   const q = params.get("q") ?? "";
+  const view = params.get("view") === "cards" ? "cards" : "liste";
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -60,22 +61,42 @@ export function ArtistsFilters({
         ))}
       </div>
 
-      <div className="relative sm:w-64">
-        <svg
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
-          width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input
-          type="search"
-          defaultValue={q}
-          placeholder="Rechercher un artiste…"
-          onChange={(e) => setParam("q", e.target.value)}
-          className="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 sm:w-64">
+          <svg
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="search"
+            defaultValue={q}
+            placeholder="Rechercher un artiste…"
+            onChange={(e) => setParam("q", e.target.value)}
+            className="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+          />
+        </div>
+
+        <div className="inline-flex shrink-0 rounded-md border border-border bg-surface p-0.5">
+          {([
+            { key: "liste", label: "Liste" },
+            { key: "cards", label: "Cartes" },
+          ] as const).map((v) => (
+            <button
+              key={v.key}
+              onClick={() => setParam("view", v.key === "liste" ? "" : v.key)}
+              className={cn(
+                "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                view === v.key ? "bg-text text-white" : "text-muted hover:text-text",
+              )}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
