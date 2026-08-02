@@ -29,6 +29,18 @@ export async function signArtist(id: string) {
   revalidatePath(`/artistes/${id}`);
 }
 
+/** Bascule le flag « pour les prochains drop » (dans_le_pipe) directement. */
+export async function setDansLePipe(id: string, value: boolean) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artists")
+    .update({ dans_le_pipe: value })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/prospection");
+}
+
 /** Déplace un prospect vers une autre étape de pipeline (drag & drop). */
 export async function updatePipeStatus(id: string, status: string) {
   await assertCanEdit();

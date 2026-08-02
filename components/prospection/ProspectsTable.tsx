@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { dateCourte } from "@/lib/format";
 import { PIPE_STATUSES } from "@/lib/constants";
-import { updatePipeStatus, signArtist } from "@/app/(app)/prospection/actions";
+import { updatePipeStatus, signArtist, setDansLePipe } from "@/app/(app)/prospection/actions";
 import { igHandle, igUrl } from "@/lib/instagram";
 import { ArtistEditDrawer } from "@/components/artists/ArtistEditDrawer";
 import type { PipeCard } from "@/lib/data/prospection";
@@ -26,6 +26,11 @@ export function ProspectsTable({
   function changeStage(id: string, status: string) {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, pipe_status: status } : r)));
     start(() => updatePipeStatus(id, status));
+  }
+
+  function toggleDrop(id: string, value: boolean) {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, dans_le_pipe: value } : r)));
+    start(() => setDansLePipe(id, value));
   }
 
   function sign(id: string, name: string) {
@@ -53,6 +58,7 @@ export function ProspectsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
+            <th className="w-8 px-3 py-2.5 font-semibold" title="Pour les prochains drop">★</th>
             <th className="px-5 py-2.5 font-semibold">Artiste</th>
             <th className="px-3 py-2.5 font-semibold">Style</th>
             <th className="px-3 py-2.5 font-semibold">Instagram</th>
@@ -64,6 +70,25 @@ export function ProspectsTable({
         <tbody>
           {rows.map((p) => (
             <tr key={p.id} className="border-b border-border last:border-0">
+              <td className="px-3 py-2.5">
+                <button
+                  type="button"
+                  disabled={pending || !editable}
+                  onClick={() => toggleDrop(p.id, !p.dans_le_pipe)}
+                  title={p.dans_le_pipe ? "Retirer des prochains drop" : "Ajouter aux prochains drop"}
+                  className="flex items-center justify-center rounded p-1 transition-colors hover:bg-accentBg disabled:opacity-60"
+                >
+                  <svg
+                    width="16" height="16" viewBox="0 0 24 24"
+                    fill={p.dans_le_pipe ? "currentColor" : "none"}
+                    stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
+                    className={p.dans_le_pipe ? "text-accent" : "text-faint hover:text-accent"}
+                    aria-label="Pour les prochains drop"
+                  >
+                    <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3z" />
+                  </svg>
+                </button>
+              </td>
               <td className="px-5 py-2.5">
                 <button
                   type="button"
@@ -72,14 +97,7 @@ export function ProspectsTable({
                 >
                   <Avatar name={p.name} src={p.avatar_url} size="sm" />
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 truncate font-medium text-text">
-                      {p.name}
-                      {p.dans_le_pipe && (
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 text-accent" aria-label="Pour les prochains drop">
-                          <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3z" />
-                        </svg>
-                      )}
-                    </p>
+                    <p className="truncate font-medium text-text">{p.name}</p>
                     <p className="truncate text-2xs text-faint">{p.renommee ?? ""}</p>
                   </div>
                 </button>
