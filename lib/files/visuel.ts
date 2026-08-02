@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { downscalePreview } from "@/lib/files/image";
 
 const PUBLIC_BUCKET = "artist-assets";
 const PRIVATE_BUCKET = "artist-files";
@@ -22,11 +23,12 @@ export async function syncOeuvreVisuel(
     const { data: blob } = await admin.storage.from(PRIVATE_BUCKET).download(filePath);
     if (!blob) return;
 
-    const ext = (filename?.split(".").pop() || "jpg").toLowerCase();
-    const dest = `oeuvres/${oeuvreId}/visuel-${Date.now()}.${ext}`;
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const up = await admin.storage.from(PUBLIC_BUCKET).upload(dest, bytes, {
-      contentType: mime ?? undefined,
+    // Downscale → aperçu web léger (JPEG). On ne stocke jamais le HD brut en public.
+    const original = Buffer.from(await blob.arrayBuffer());
+    const preview = await downscalePreview(original);
+    const dest = `oeuvres/${oeuvreId}/visuel-${Date.now()}.jpg`;
+    const up = await admin.storage.from(PUBLIC_BUCKET).upload(dest, preview, {
+      contentType: "image/jpeg",
       upsert: true,
     });
     if (up.error) return;

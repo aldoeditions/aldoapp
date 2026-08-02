@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { syncOeuvreVisuel } from "@/lib/files/visuel";
+import { downscalePreview } from "@/lib/files/image";
 import type {
   TablesInsert,
   TablesUpdate,
@@ -139,12 +140,12 @@ export async function reapplyDropCosts(dropId: string) {
 async function uploadVisuel(oeuvreId: string, file: File): Promise<string | null> {
   if (!file || file.size === 0) return null;
   const admin = createAdminClient();
-  const ext = (file.name.split(".").pop() || "png").toLowerCase();
-  const path = `oeuvres/${oeuvreId}/visuel-${Date.now()}.${ext}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  // Downscale → aperçu web léger (JPEG), jamais l'image pleine résolution.
+  const preview = await downscalePreview(Buffer.from(await file.arrayBuffer()));
+  const path = `oeuvres/${oeuvreId}/visuel-${Date.now()}.jpg`;
   const { error } = await admin.storage
     .from(BUCKET)
-    .upload(path, bytes, { contentType: file.type, upsert: true });
+    .upload(path, preview, { contentType: "image/jpeg", upsert: true });
   if (error) throw error;
   return admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
