@@ -29,6 +29,15 @@ export async function signArtist(id: string) {
   revalidatePath(`/artistes/${id}`);
 }
 
+/** Supprime un prospect directement depuis la vue Prospection. */
+export async function deleteProspect(id: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase.from("artists").delete().eq("id", id);
+  if (error) throw error;
+  revalidatePath("/prospection");
+}
+
 /** Bascule le flag « pour les prochains drop » (dans_le_pipe) directement. */
 export async function setDansLePipe(id: string, value: boolean) {
   await assertCanEdit();

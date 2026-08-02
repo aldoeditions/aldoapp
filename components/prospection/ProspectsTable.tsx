@@ -3,9 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
-import { dateCourte } from "@/lib/format";
 import { PIPE_STATUSES } from "@/lib/constants";
-import { updatePipeStatus, signArtist, setDansLePipe } from "@/app/(app)/prospection/actions";
+import { updatePipeStatus, signArtist, setDansLePipe, deleteProspect } from "@/app/(app)/prospection/actions";
 import { igHandle, igUrl } from "@/lib/instagram";
 import { ArtistEditDrawer } from "@/components/artists/ArtistEditDrawer";
 import type { PipeCard } from "@/lib/data/prospection";
@@ -31,6 +30,15 @@ export function ProspectsTable({
   function toggleDrop(id: string, value: boolean) {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, dans_le_pipe: value } : r)));
     start(() => setDansLePipe(id, value));
+  }
+
+  function remove(id: string, name: string) {
+    if (!confirm(`Supprimer le prospect « ${name} » ? Cette action est définitive.`)) return;
+    start(async () => {
+      await deleteProspect(id);
+      setRows((rs) => rs.filter((r) => r.id !== id));
+      router.refresh();
+    });
   }
 
   function sign(id: string, name: string) {
@@ -60,10 +68,8 @@ export function ProspectsTable({
           <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
             <th className="w-8 px-3 py-2.5 font-semibold" title="Pour les prochains drop">★</th>
             <th className="px-5 py-2.5 font-semibold">Artiste</th>
-            <th className="px-3 py-2.5 font-semibold">Style</th>
             <th className="px-3 py-2.5 font-semibold">Instagram</th>
             <th className="px-3 py-2.5 font-semibold">Étape</th>
-            <th className="px-3 py-2.5 font-semibold">1er contact</th>
             {editable && <th className="px-5 py-2.5" />}
           </tr>
         </thead>
@@ -102,7 +108,6 @@ export function ProspectsTable({
                   </div>
                 </button>
               </td>
-              <td className="px-3 py-2.5 text-muted">{p.style ?? "—"}</td>
               <td className="px-3 py-2.5">
                 {p.instagram ? (
                   <a
@@ -141,20 +146,33 @@ export function ProspectsTable({
                   <span className="text-muted">{p.pipe_status ?? "—"}</span>
                 )}
               </td>
-              <td className="px-3 py-2.5 text-muted">{dateCourte(p.first_contact_date)}</td>
               {editable && (
-                <td className="px-5 py-2.5 text-right">
-                  <button
-                    type="button"
-                    disabled={pending && signing === p.id}
-                    onClick={() => sign(p.id, p.name)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-accent/30 bg-accentBg px-2.5 py-1.5 text-2xs font-semibold text-accent transition-colors hover:bg-accent hover:text-white disabled:opacity-60"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                    {signing === p.id ? "…" : "Signer"}
-                  </button>
+                <td className="px-5 py-2.5">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={pending && signing === p.id}
+                      onClick={() => sign(p.id, p.name)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-accent/30 bg-accentBg px-2.5 py-1.5 text-2xs font-semibold text-accent transition-colors hover:bg-accent hover:text-white disabled:opacity-60"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      {signing === p.id ? "…" : "Signer"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => remove(p.id, p.name)}
+                      title="Supprimer le prospect"
+                      aria-label="Supprimer le prospect"
+                      className="inline-flex items-center justify-center rounded-md border border-border p-1.5 text-muted transition-colors hover:border-danger hover:bg-dangerBg hover:text-danger disabled:opacity-60"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               )}
             </tr>
