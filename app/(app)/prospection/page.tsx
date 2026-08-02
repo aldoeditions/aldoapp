@@ -11,13 +11,18 @@ import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 export default async function ProspectionPage({
   searchParams,
 }: {
-  searchParams: { view?: string; q?: string; pipe?: string; drop?: string };
+  searchParams: { view?: string; q?: string; pipe?: string; drop?: string; sort?: string };
 }) {
   const user = await requireModule("prospection");
   const editable = canEdit(user.role, "prospection");
   const isKanban = searchParams.view === "kanban";
 
-  const filter = { q: searchParams.q, pipe: searchParams.pipe, drop: searchParams.drop === "1" };
+  const filter = {
+    q: searchParams.q,
+    pipe: searchParams.pipe,
+    drop: searchParams.drop === "1",
+    sort: searchParams.sort,
+  };
 
   const [total, prospects, columns] = await Promise.all([
     getProspectCount(),

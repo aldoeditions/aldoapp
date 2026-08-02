@@ -13,6 +13,7 @@ export function ProspectionFilters() {
   const q = params.get("q") ?? "";
   const pipe = params.get("pipe") ?? "";
   const drop = params.get("drop") === "1";
+  const sort = params.get("sort") ?? "recent";
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -56,6 +57,17 @@ export function ProspectionFilters() {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+
+        {/* Tri (vue tableau) */}
+        {view === "table" && (
+          <select value={sort} onChange={(e) => setParam("sort", e.target.value === "recent" ? "" : e.target.value)} className={selectCls}>
+            <option value="recent">Trier : plus récents</option>
+            <option value="ancien">Trier : plus anciens</option>
+            <option value="drop">Trier : prochain drop</option>
+            <option value="etape">Trier : étape</option>
+            <option value="nom">Trier : nom (A→Z)</option>
+          </select>
+        )}
 
         {/* Filtre « pour les prochains drop » */}
         <button
