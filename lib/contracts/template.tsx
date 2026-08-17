@@ -21,20 +21,31 @@ import type { ContractData } from "./types";
 const FONT_DIR = path.join(process.cwd(), "public", "fonts");
 const LOGO_PATH = path.join(process.cwd(), "public", "logo-aldo.png");
 
+/** Chemin local de la police si présent (dev / tracing OK), sinon URL publique
+ *  du site (Vercel n'embarque pas /public dans la fonction serverless). */
+function fontSrc(file: string): string {
+  const local = path.join(FONT_DIR, file);
+  if (fs.existsSync(local)) return local;
+  const base =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  return base ? `${base}/fonts/${file}` : local;
+}
+
 let fontsReady = false;
 function ensureFonts() {
   if (fontsReady) return;
   Font.register({
     family: "DM Sans",
     fonts: [
-      { src: path.join(FONT_DIR, "DMSans-Regular.ttf") },
-      { src: path.join(FONT_DIR, "DMSans-Medium.ttf"), fontWeight: 500 },
-      { src: path.join(FONT_DIR, "DMSans-Bold.ttf"), fontWeight: 700 },
+      { src: fontSrc("DMSans-Regular.ttf") },
+      { src: fontSrc("DMSans-Medium.ttf"), fontWeight: 500 },
+      { src: fontSrc("DMSans-Bold.ttf"), fontWeight: 700 },
     ],
   });
   Font.register({
     family: "Instrument Serif",
-    src: path.join(FONT_DIR, "InstrumentSerif-Regular.ttf"),
+    src: fontSrc("InstrumentSerif-Regular.ttf"),
   });
   // Pas de césure automatique (contrat juridique).
   Font.registerHyphenationCallback((word) => [word]);
