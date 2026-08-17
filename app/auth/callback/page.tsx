@@ -48,7 +48,9 @@ export default function AuthCallbackPage() {
         // Rechargement complet : garantit l'envoi des cookies de session.
         window.location.assign(next);
       } catch {
-        window.location.assign("/portail/login?error=link");
+        // Retour au bon login selon la cible (admin vs portail artiste).
+        const loginPath = next.startsWith("/portail") ? "/portail/login" : "/login";
+        window.location.assign(`${loginPath}?error=link`);
       }
     };
     run();

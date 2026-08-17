@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { ForgotPassword } from "./forgot-password";
 import { Logo } from "@/components/brand/Logo";
 
 export const metadata: Metadata = {
@@ -9,8 +10,13 @@ export const metadata: Metadata = {
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { redirect?: string };
+  searchParams: { redirect?: string; error?: string };
 }) {
+  const notice =
+    searchParams.error === "link"
+      ? "Ce lien est invalide ou expiré. Redemande un lien de réinitialisation ci-dessous."
+      : undefined;
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
@@ -23,7 +29,11 @@ export default function LoginPage({
         </div>
 
         <div className="card p-6">
+          {notice && (
+            <p className="mb-4 rounded-lg bg-warningBg px-3 py-2 text-sm text-warning">{notice}</p>
+          )}
           <LoginForm redirectTo={searchParams.redirect ?? "/"} />
+          <ForgotPassword />
         </div>
 
         <p className="mt-6 text-center text-2xs text-faint">

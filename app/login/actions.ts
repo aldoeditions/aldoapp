@@ -1,9 +1,41 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
+export type ForgotState = { error: string | null; sent?: boolean };
+
+/** Base URL publique (prod) ou origine de la requête (local/preview). */
+function siteOrigin(): string {
+  const env = process.env.NEXT_PUBLIC_SITE_URL;
+  if (env) return env.replace(/\/$/, "");
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
+}
+
+/** Envoie un lien de réinitialisation (admin). Flux implicit → /auth/callback. */
+export async function requestPasswordReset(
+  _prev: ForgotState,
+  formData: FormData,
+): Promise<ForgotState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Renseigne ton adresse e-mail." };
+
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false } },
+  );
+  const redirectTo = `${siteOrigin()}/auth/callback?next=/reset-password`;
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+  return { error: null, sent: true };
+}
 
 export async function login(
   _prev: LoginState,
