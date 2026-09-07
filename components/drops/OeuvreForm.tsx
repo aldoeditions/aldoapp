@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { saveOeuvre, type FormState } from "@/app/(app)/drops/actions";
 import { Select, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
 import { Avatar } from "@/components/ui/Avatar";
+import { downscaleImageFile } from "@/lib/files/downscale-client";
 import {
   OEUVRE_STATUSES,
   FORMATS,
@@ -54,6 +55,7 @@ export function OeuvreForm({
     String(oeuvre?.cout_packaging ?? costs[initialFormat].packaging),
   );
   const [preview, setPreview] = useState<string | null>(oeuvre?.file_url ?? null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Changement de format → réinitialise prix + coûts depuis params.
   function onFormatChange(f: FormatKey) {
@@ -64,7 +66,7 @@ export function OeuvreForm({
   }
 
   useEffect(() => {
-    if (state.ok) onSuccess();
+    if (state?.ok) onSuccess();
   }, [state, onSuccess]);
 
   const p = Number(price.replace(",", ".")) || 0;
@@ -83,11 +85,20 @@ export function OeuvreForm({
           <input
             id="visuel"
             name="visuel"
+            ref={fileRef}
             type="file"
             accept="image/*"
-            onChange={(e) => {
+            onChange={async (e) => {
               const f = e.target.files?.[0];
-              setPreview(f ? URL.createObjectURL(f) : (oeuvre?.file_url ?? null));
+              if (!f) { setPreview(oeuvre?.file_url ?? null); return; }
+              // Réduit l'image dans le navigateur → évite le 413 (limite Server Action).
+              const small = await downscaleImageFile(f);
+              if (fileRef.current) {
+                const dt = new DataTransfer();
+                dt.items.add(small);
+                fileRef.current.files = dt.files;
+              }
+              setPreview(URL.createObjectURL(small));
             }}
             className="text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
           />
@@ -187,7 +198,7 @@ export function OeuvreForm({
 
       <Select label="Statut" name="status" defaultValue={oeuvre?.status ?? "brouillon"} options={OEUVRE_STATUSES} />
 
-      <FormError error={state.error} />
+      <FormError error={state?.error ?? null} />
       <SubmitButton label={editing ? "Enregistrer" : "Ajouter l'œuvre"} />
     </form>
   );
