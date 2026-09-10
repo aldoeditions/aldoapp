@@ -183,7 +183,9 @@ export default async function ArtistDetailPage({
                           (t.status === "terminé" ? "text-faint line-through" : "text-text")
                         }
                       >
-                        {t.title}
+                        {t.title.endsWith(` — ${artist.name}`)
+                          ? t.title.slice(0, -(` — ${artist.name}`).length)
+                          : t.title}
                       </span>
                       {t.assignee?.display_name && (
                         <span className="text-2xs text-faint">{t.assignee.display_name}</span>

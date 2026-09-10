@@ -132,22 +132,27 @@ export async function createOnboardingTasks(
     const user = await assertCanEdit();
     const supabase = createClient();
 
+    const { data: artist } = await supabase
+      .from("artists")
+      .select("name")
+      .eq("id", artistId)
+      .maybeSingle();
+    const artistName = artist?.name ?? "artiste";
+
     const { data: existing } = await supabase
       .from("tasks")
       .select("title")
       .eq("artist_id", artistId);
     const seen = new Set((existing ?? []).map((t) => t.title));
 
-    const rows: TablesInsert<"tasks">[] = ONBOARDING_TASKS.filter(
-      (t) => !seen.has(t.title),
-    ).map((t) => ({
-      title: t.title,
+    const rows: TablesInsert<"tasks">[] = ONBOARDING_TASKS.map((t) => ({
+      title: `${t.title} — ${artistName}`,
       priority: t.priority,
       artist_id: artistId,
       status: "à faire",
       assignee_id: user.id,
       created_by_id: user.id,
-    }));
+    })).filter((r) => !seen.has(r.title));
     if (rows.length === 0) return { created: 0 };
 
     const { error } = await supabase.from("tasks").insert(rows);
