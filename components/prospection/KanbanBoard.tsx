@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
@@ -19,6 +19,8 @@ export function KanbanBoard({
 }) {
   const router = useRouter();
   const [columns, setColumns] = useState(initial);
+  // Resynchronise avec les données du serveur (recherche, filtres).
+  useEffect(() => setColumns(initial), [initial]);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const [editing, setEditing] = useState<PipeCard | null>(null);

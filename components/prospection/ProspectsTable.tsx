@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { PIPE_STATUSES } from "@/lib/constants";
@@ -18,6 +18,8 @@ export function ProspectsTable({
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(prospects);
+  // Resynchronise avec les données du serveur (recherche, filtres, tri).
+  useEffect(() => setRows(prospects), [prospects]);
   const [pending, start] = useTransition();
   const [signing, setSigning] = useState<string | null>(null);
   const [editing, setEditing] = useState<PipeCard | null>(null);
