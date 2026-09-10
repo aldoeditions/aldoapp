@@ -65,7 +65,10 @@ function ListView({ tasks, onOpen }: { tasks: TaskWithRefs[]; onOpen: (t: TaskWi
           <tbody>
             {tasks.map((t) => (
               <tr key={t.id} onClick={() => onOpen(t)} className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-bg">
-                <td className="px-5 py-3 font-medium text-text">{t.title}</td>
+                <td className="px-5 py-3">
+                  <span className="font-medium text-text">{t.title}</span>
+                  {t.artist_name && <span className="ml-2 text-2xs text-faint">· {t.artist_name}</span>}
+                </td>
                 <td className="px-3 py-3">
                   <AssigneeAvatar initials={t.assignee?.avatar_initials} name={t.assignee?.display_name} />
                 </td>
@@ -126,6 +129,7 @@ function BoardView({ tasks, onOpen }: { tasks: TaskWithRefs[]; onOpen: (t: TaskW
                   className="cursor-pointer rounded-lg border border-border bg-surface p-3 shadow-card transition-shadow hover:shadow-float"
                 >
                   <p className="text-sm font-medium text-text">{t.title}</p>
+                  {t.artist_name && <p className="text-2xs text-faint">{t.artist_name}</p>}
                   <div className="mt-2 flex items-center justify-between">
                     <AssigneeAvatar initials={t.assignee?.avatar_initials} name={t.assignee?.display_name} />
                     <div className="flex items-center gap-2">

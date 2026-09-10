@@ -15,6 +15,8 @@ import { FilesReview } from "@/components/artists/FilesReview";
 import { ContractPanel } from "@/components/contracts/ContractPanel";
 import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 import { PhotoDownloadButton } from "@/components/artists/PhotoDownloadButton";
+import { OnboardingButton } from "@/components/tasks/OnboardingButton";
+import { getTasks } from "@/lib/data/tasks";
 import { getContractContext } from "@/lib/data/contracts";
 import type { PendingFile } from "@/lib/data/artists";
 import {
@@ -22,6 +24,7 @@ import {
   OEUVRE_STATUS,
   FILE_STATUS,
   PAYMENT_STATUS,
+  TASK_STATUS,
 } from "@/lib/constants";
 import { euros, euros0, nombre, dateCourte, pourcent } from "@/lib/format";
 
@@ -69,10 +72,11 @@ export default async function ArtistDetailPage({
   const user = await requireModule("artistes");
   const editable = canEdit(user.role, "artistes");
 
-  const [detail, row, contractCtx] = await Promise.all([
+  const [detail, row, contractCtx, artistTasks] = await Promise.all([
     getArtistDetail(params.id),
     getArtistRow(params.id),
     getContractContext(params.id),
+    getTasks({ artist: params.id }),
   ]);
   if (!detail || !row) notFound();
 
@@ -151,6 +155,47 @@ export default async function ArtistDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Colonne principale */}
         <div className="space-y-6 lg:col-span-2">
+          {/* Tâches (checklist d'accueil & suivi) */}
+          <Card>
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div>
+                <h3 className="font-serif text-base text-text">Tâches</h3>
+                <p className="text-2xs text-faint">{artistTasks.length} tâche(s)</p>
+              </div>
+              {editable && <OnboardingButton artistId={artist.id ?? ""} />}
+            </div>
+            {artistTasks.length === 0 ? (
+              <p className="px-5 py-6 text-center text-sm text-faint">
+                Aucune tâche. Utilise « Checklist d&apos;accueil » pour générer le suivi
+                (contrat, bio/photo, visuels, signature…).
+              </p>
+            ) : (
+              <ul>
+                {artistTasks.map((t) => (
+                  <li
+                    key={t.id}
+                    className="flex items-center justify-between gap-3 border-b border-border px-5 py-2.5 last:border-0"
+                  >
+                    <span className="min-w-0">
+                      <span
+                        className={
+                          "block truncate text-sm " +
+                          (t.status === "terminé" ? "text-faint line-through" : "text-text")
+                        }
+                      >
+                        {t.title}
+                      </span>
+                      {t.assignee?.display_name && (
+                        <span className="text-2xs text-faint">{t.assignee.display_name}</span>
+                      )}
+                    </span>
+                    <StatusBadge value={t.status} dict={TASK_STATUS} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
           {/* Œuvres */}
           <Card>
             <CardHeader title="Œuvres" subtitle={`${oeuvres.length} œuvre(s)`} />

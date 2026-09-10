@@ -110,6 +110,58 @@ export async function addComment(taskId: string, fd: FormData): Promise<TaskStat
   }
 }
 
+/** Checklist d'accueil créée quand un artiste passe « signé » (ou à la main). */
+const ONBOARDING_TASKS: { title: string; priority: string }[] = [
+  { title: "Générer le contrat", priority: "haute" },
+  { title: "Demander la bio et la photo à l'artiste", priority: "normale" },
+  { title: "Demander les visuels HD à l'artiste", priority: "haute" },
+  { title: "Envoyer le contrat à signer", priority: "normale" },
+  { title: "Contre-signer le contrat (Aldo)", priority: "normale" },
+  { title: "Classer le contrat signé (Drive + app)", priority: "basse" },
+];
+
+/**
+ * Crée la checklist d'accueil d'un artiste (tâches liées à l'artist_id,
+ * assignées à l'utilisateur courant). Idempotent : ne recrée pas une tâche
+ * (même titre) déjà présente pour cet artiste.
+ */
+export async function createOnboardingTasks(
+  artistId: string,
+): Promise<{ created: number; error?: string }> {
+  try {
+    const user = await assertCanEdit();
+    const supabase = createClient();
+
+    const { data: existing } = await supabase
+      .from("tasks")
+      .select("title")
+      .eq("artist_id", artistId);
+    const seen = new Set((existing ?? []).map((t) => t.title));
+
+    const rows: TablesInsert<"tasks">[] = ONBOARDING_TASKS.filter(
+      (t) => !seen.has(t.title),
+    ).map((t) => ({
+      title: t.title,
+      priority: t.priority,
+      artist_id: artistId,
+      status: "à faire",
+      assignee_id: user.id,
+      created_by_id: user.id,
+    }));
+    if (rows.length === 0) return { created: 0 };
+
+    const { error } = await supabase.from("tasks").insert(rows);
+    if (error) return { created: 0, error: error.message };
+
+    revalidatePath("/projet");
+    revalidatePath("/");
+    revalidatePath(`/artistes/${artistId}`);
+    return { created: rows.length };
+  } catch (e) {
+    return { created: 0, error: e instanceof Error ? e.message : "Erreur." };
+  }
+}
+
 const LAUNCH_TASKS = [
   "Valider les fichiers HD des artistes",
   "Générer et envoyer les contrats",

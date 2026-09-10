@@ -10,29 +10,32 @@ export type ProfileLite = {
 export type TaskWithRefs = Task & {
   assignee: { display_name: string | null; avatar_initials: string | null } | null;
   drop_name: string | null;
+  artist_name: string | null;
 };
 
-export type TaskFilter = { assignee?: string; status?: string; mine?: string };
+export type TaskFilter = { assignee?: string; status?: string; artist?: string; mine?: string };
 
 const SELECT =
-  "*, assignee:profiles!assignee_id(display_name, avatar_initials), drops(name)";
+  "*, assignee:profiles!assignee_id(display_name, avatar_initials), drops(name), artists(name)";
 
 function flatten(rows: unknown[]): TaskWithRefs[] {
   return (rows ?? []).map((r) => {
-    const { drops, ...rest } = r as Task & {
+    const { drops, artists, ...rest } = r as Task & {
       assignee: { display_name: string | null; avatar_initials: string | null } | null;
       drops: { name: string } | null;
+      artists: { name: string } | null;
     };
-    return { ...rest, drop_name: drops?.name ?? null };
+    return { ...rest, drop_name: drops?.name ?? null, artist_name: artists?.name ?? null };
   });
 }
 
-/** Toutes les tâches (filtrables par assigné / statut). */
+/** Toutes les tâches (filtrables par assigné / statut / artiste). */
 export async function getTasks(filter: TaskFilter = {}): Promise<TaskWithRefs[]> {
   const supabase = createClient();
   let q = supabase.from("tasks").select(SELECT);
   if (filter.assignee) q = q.eq("assignee_id", filter.assignee);
   if (filter.status) q = q.eq("status", filter.status);
+  if (filter.artist) q = q.eq("artist_id", filter.artist);
   q = q.order("created_at", { ascending: false });
   const { data } = await q;
   return flatten((data ?? []) as unknown[]);

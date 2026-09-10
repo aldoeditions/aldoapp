@@ -429,6 +429,7 @@ export type Database = {
           assignee_id: string | null;
           created_by_id: string | null;
           drop_id: string | null;
+          artist_id: string | null;
           due_date: string | null;
           created_at: string;
           updated_at: string;
@@ -442,6 +443,7 @@ export type Database = {
           assignee_id?: string | null;
           created_by_id?: string | null;
           drop_id?: string | null;
+          artist_id?: string | null;
           due_date?: string | null;
           created_at?: string;
           updated_at?: string;

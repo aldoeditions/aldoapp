@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { PIPE_STATUS } from "@/lib/constants";
+import { createOnboardingTasks } from "@/app/(app)/projet/actions";
 import type { TablesUpdate } from "@/types/database";
 
 async function assertCanEdit() {
@@ -23,6 +24,13 @@ export async function signArtist(id: string) {
     .update({ phase: "actif" })
     .eq("id", id);
   if (error) throw error;
+
+  // Automatisation : checklist d'accueil (non bloquante).
+  try {
+    await createOnboardingTasks(id);
+  } catch {
+    /* la signature reste valide même si la checklist échoue */
+  }
 
   revalidatePath("/prospection");
   revalidatePath("/artistes");
