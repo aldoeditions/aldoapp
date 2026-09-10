@@ -14,6 +14,7 @@ import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import { FilesReview } from "@/components/artists/FilesReview";
 import { ContractPanel } from "@/components/contracts/ContractPanel";
 import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
+import { PhotoDownloadButton } from "@/components/artists/PhotoDownloadButton";
 import { getContractContext } from "@/lib/data/contracts";
 import type { PendingFile } from "@/lib/data/artists";
 import {
@@ -253,6 +254,36 @@ export default async function ArtistDetailPage({
                     Aucune coordonnée renseignée.
                   </p>
                 )}
+            </CardBody>
+          </Card>
+
+          {/* Photo & bio */}
+          <Card>
+            <CardHeader title="Photo & bio" subtitle="Fournies par l'artiste" />
+            <CardBody className="space-y-4">
+              <div className="flex items-center gap-4">
+                <OeuvrePreview name={artist.name} src={artist.avatar_url} size="lg" />
+                <div className="min-w-0">
+                  {artist.avatar_url ? (
+                    <PhotoDownloadButton
+                      url={artist.avatar_url}
+                      filename={`photo-${(artist.name ?? "artiste").replace(/[^a-zA-Z0-9._-]/g, "_")}.jpg`}
+                    />
+                  ) : (
+                    <p className="text-2xs text-faint">
+                      Aucune photo — ajoute-la via « Modifier ».
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="border-t border-border pt-3">
+                <p className="eyebrow mb-1.5">Biographie</p>
+                {artist.bio ? (
+                  <p className="whitespace-pre-wrap text-sm text-muted">{artist.bio}</p>
+                ) : (
+                  <p className="text-2xs text-faint">Aucune biographie renseignée.</p>
+                )}
+              </div>
             </CardBody>
           </Card>
 
