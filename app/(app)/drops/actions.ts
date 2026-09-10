@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { syncOeuvreVisuel } from "@/lib/files/visuel";
+import { createDropCompletionTasks } from "@/app/(app)/projet/actions";
 import { downscalePreview } from "@/lib/files/image";
 import type {
   TablesInsert,
@@ -77,6 +78,15 @@ export async function saveDrop(
         .single();
       if (error) throw error;
       targetId = data.id;
+    }
+
+    // Automatisation : drop terminé → tâches relevé + commission par artiste (non bloquant).
+    if (fields.status === "terminé" && targetId) {
+      try {
+        await createDropCompletionTasks(targetId);
+      } catch {
+        /* l'enregistrement du drop reste valide même si les tâches échouent */
+      }
     }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };

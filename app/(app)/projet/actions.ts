@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import type { TablesInsert } from "@/types/database";
@@ -165,6 +166,167 @@ export async function createOnboardingTasks(
   } catch (e) {
     return { created: 0, error: e instanceof Error ? e.message : "Erreur." };
   }
+}
+
+/* ------- Automatisation : drop terminé → relevé + commission par artiste ------- */
+
+const DROP_COMPLETION_TASKS: { title: string; priority: string }[] = [
+  { title: "Établir le relevé des ventes", priority: "haute" },
+  { title: "Verser la commission", priority: "normale" },
+];
+
+/**
+ * Quand un drop passe « terminé » : pour chaque artiste ayant une œuvre dans ce
+ * drop, crée « Établir le relevé des ventes — X (Drop) » et « Verser la
+ * commission — X (Drop) ». Idempotent (dedup titre + artiste + drop).
+ */
+export async function createDropCompletionTasks(
+  dropId: string,
+): Promise<{ created: number; error?: string }> {
+  try {
+    const user = await assertCanEdit();
+    const supabase = createClient();
+
+    const { data: drop } = await supabase
+      .from("drops")
+      .select("name")
+      .eq("id", dropId)
+      .maybeSingle();
+    const dropName = drop?.name ?? "drop";
+
+    const { data: oeuvres } = await supabase
+      .from("oeuvres")
+      .select("artist_id, artists(name)")
+      .eq("drop_id", dropId);
+
+    const artistsMap = new Map<string, string>();
+    for (const o of oeuvres ?? []) {
+      const row = o as { artist_id: string | null; artists: { name: string } | null };
+      if (row.artist_id) artistsMap.set(row.artist_id, row.artists?.name ?? "artiste");
+    }
+    if (artistsMap.size === 0) return { created: 0 };
+
+    const artistIds = Array.from(artistsMap.keys());
+    const { data: existing } = await supabase
+      .from("tasks")
+      .select("title, artist_id")
+      .in("artist_id", artistIds)
+      .eq("drop_id", dropId);
+    const seen = new Set((existing ?? []).map((t) => `${t.artist_id}|${t.title}`));
+
+    const rows: TablesInsert<"tasks">[] = [];
+    for (const [artistId, artistName] of Array.from(artistsMap.entries())) {
+      for (const t of DROP_COMPLETION_TASKS) {
+        const title = `${t.title} — ${artistName} (${dropName})`;
+        if (seen.has(`${artistId}|${title}`)) continue;
+        rows.push({
+          title,
+          priority: t.priority,
+          artist_id: artistId,
+          drop_id: dropId,
+          status: "à faire",
+          assignee_id: user.id,
+          created_by_id: user.id,
+        });
+      }
+    }
+    if (rows.length === 0) return { created: 0 };
+
+    const { error } = await supabase.from("tasks").insert(rows);
+    if (error) return { created: 0, error: error.message };
+
+    revalidatePath("/projet");
+    revalidatePath("/");
+    return { created: rows.length };
+  } catch (e) {
+    return { created: 0, error: e instanceof Error ? e.message : "Erreur." };
+  }
+}
+
+/* ------- Automatisation : fiches artistes incomplètes → « Compléter la fiche » ------- */
+
+/**
+ * Pour chaque artiste actif dont il manque la bio ou la photo, crée
+ * « Compléter la fiche de X ». Idempotent (dedup titre + artiste).
+ * Déclenché à la main depuis le tableau de bord.
+ */
+export async function createMissingDataTasks(): Promise<{ created: number; error?: string }> {
+  try {
+    const user = await assertCanEdit();
+    const supabase = createClient();
+
+    const { data: artists } = await supabase
+      .from("artists")
+      .select("id, name, bio, avatar_url")
+      .eq("phase", "actif");
+    const incomplete = (artists ?? []).filter((a) => !a.bio || !a.avatar_url);
+    if (incomplete.length === 0) return { created: 0 };
+
+    const ids = incomplete.map((a) => a.id);
+    const { data: existing } = await supabase
+      .from("tasks")
+      .select("title, artist_id")
+      .in("artist_id", ids);
+    const seen = new Set((existing ?? []).map((t) => `${t.artist_id}|${t.title}`));
+
+    const rows = incomplete
+      .map((a) => ({
+        title: `Compléter la fiche de ${a.name}`,
+        priority: "normale",
+        artist_id: a.id,
+        status: "à faire",
+        assignee_id: user.id,
+        created_by_id: user.id,
+      }))
+      .filter((r) => !seen.has(`${r.artist_id}|${r.title}`)) as TablesInsert<"tasks">[];
+    if (rows.length === 0) return { created: 0 };
+
+    const { error } = await supabase.from("tasks").insert(rows);
+    if (error) return { created: 0, error: error.message };
+
+    revalidatePath("/projet");
+    revalidatePath("/");
+    return { created: rows.length };
+  } catch (e) {
+    return { created: 0, error: e instanceof Error ? e.message : "Erreur." };
+  }
+}
+
+/* ------- Automatisation : fichier déposé au portail → « Valider le fichier de X » ------- */
+
+/**
+ * Crée « Valider le fichier de X — fichier.ext » quand un artiste dépose un
+ * fichier. Appelée depuis le portail (contexte artiste) → client admin pour
+ * franchir la RLS ; tâche non assignée (l'équipe se la répartit). Idempotent.
+ */
+export async function createFileReviewTask(input: {
+  artistId: string;
+  filename: string;
+}): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: artist } = await admin
+    .from("artists")
+    .select("name")
+    .eq("id", input.artistId)
+    .maybeSingle();
+  const artistName = artist?.name ?? "artiste";
+  const title = `Valider le fichier de ${artistName} — ${input.filename}`;
+
+  const { data: existing } = await admin
+    .from("tasks")
+    .select("id")
+    .eq("artist_id", input.artistId)
+    .eq("title", title)
+    .maybeSingle();
+  if (existing) return;
+
+  await admin
+    .from("tasks")
+    .insert({ title, priority: "haute", artist_id: input.artistId, status: "à faire" } as TablesInsert<"tasks">);
+
+  revalidatePath("/projet");
+  revalidatePath("/");
 }
 
 const LAUNCH_TASKS = [

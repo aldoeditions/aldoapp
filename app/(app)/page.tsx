@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ButtonLink } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
 import { FilesReview } from "@/components/artists/FilesReview";
+import { MissingDataButton } from "@/components/tasks/MissingDataButton";
 import { TASK_STATUS } from "@/lib/constants";
 import { euros0, nombre, dateCourte } from "@/lib/format";
 
@@ -41,6 +42,10 @@ export default async function DashboardPage() {
     getMyOpenTasks(user.id),
   ]);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isOverdue = (due: string | null) => !!due && due < today;
+  const nbOverdue = myTasks.filter((t) => isOverdue(t.due_date)).length;
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -64,11 +69,18 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader
           title="Actions requises"
-          subtitle="Les tâches qui te sont assignées."
+          subtitle={
+            nbOverdue > 0
+              ? `${nombre(nbOverdue)} tâche(s) en retard.`
+              : "Les tâches qui te sont assignées."
+          }
           action={
-            <Link href="/projet" className="text-2xs font-medium text-accent hover:underline">
-              Tout le projet →
-            </Link>
+            <span className="flex items-center gap-3">
+              <MissingDataButton />
+              <Link href="/projet" className="text-2xs font-medium text-accent hover:underline">
+                Tout le projet →
+              </Link>
+            </span>
           }
         />
         <CardBody className={myTasks.length > 0 ? "p-0" : undefined}>
@@ -76,19 +88,29 @@ export default async function DashboardPage() {
             <p className="py-4 text-center text-sm text-faint">Aucune tâche assignée. 🎉</p>
           ) : (
             <ul>
-              {myTasks.map((t) => (
-                <li key={t.id}>
-                  <Link href="/projet" className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm transition-colors last:border-0 hover:bg-bg">
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-text">{t.title}</span>
-                      <span className="text-2xs text-faint">
-                        {t.drop_name ?? "—"}{t.due_date ? ` · échéance ${dateCourte(t.due_date)}` : ""}
+              {myTasks.map((t) => {
+                const overdue = isOverdue(t.due_date);
+                return (
+                  <li key={t.id}>
+                    <Link
+                      href="/projet"
+                      className={
+                        "flex items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm transition-colors last:border-0 hover:bg-bg" +
+                        (overdue ? " bg-dangerBg/40" : "")
+                      }
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-text">{t.title}</span>
+                        <span className={"text-2xs " + (overdue ? "font-semibold text-danger" : "text-faint")}>
+                          {t.drop_name ?? "—"}
+                          {t.due_date ? `${overdue ? " · en retard depuis le " : " · échéance "}${dateCourte(t.due_date)}` : ""}
+                        </span>
                       </span>
-                    </span>
-                    <StatusBadge value={t.status} dict={TASK_STATUS} />
-                  </Link>
-                </li>
-              ))}
+                      <StatusBadge value={t.status} dict={TASK_STATUS} />
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardBody>

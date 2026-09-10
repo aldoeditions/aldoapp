@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireArtist } from "@/lib/auth/session";
+import { createFileReviewTask } from "@/app/(app)/projet/actions";
 import type { TablesInsert, TablesUpdate } from "@/types/database";
 
 /** Enregistre en base un fichier déjà uploadé sur le Storage (statut en attente). */
@@ -28,6 +29,13 @@ export async function registerFile(input: {
   };
   const { error } = await supabase.from("artist_files").insert(row);
   if (error) return { error: error.message };
+
+  // Automatisation : tâche « Valider le fichier de X » côté équipe (non bloquant).
+  try {
+    await createFileReviewTask({ artistId: user.artistId, filename: input.filename });
+  } catch {
+    /* le dépôt reste valide même si la tâche de validation échoue */
+  }
 
   revalidatePath("/portail/fichiers");
   return {};
