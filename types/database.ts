@@ -37,6 +37,7 @@ export type Database = {
           portfolio_url: string | null;
           address: string | null;
           city: string | null;
+          postal_code: string | null;
           country: string | null;
           avatar_url: string | null;
           bio: string | null;
@@ -80,6 +81,7 @@ export type Database = {
           portfolio_url?: string | null;
           address?: string | null;
           city?: string | null;
+          postal_code?: string | null;
           country?: string | null;
           avatar_url?: string | null;
           bio?: string | null;
@@ -525,6 +527,7 @@ export type Database = {
           portfolio_url: string | null;
           address: string | null;
           city: string | null;
+          postal_code: string | null;
           country: string | null;
           avatar_url: string | null;
           bio: string | null;

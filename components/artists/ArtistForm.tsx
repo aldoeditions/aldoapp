@@ -144,10 +144,7 @@ export function ArtistForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Nom *" name="name" defaultValue={artist?.name} placeholder="Nom de l'artiste" />
-        <Field label="Pseudo" name="pseudo" defaultValue={artist?.pseudo} placeholder="Affiché dans l'app" />
-      </div>
+      <Field label="Nom / pseudo *" name="name" defaultValue={artist?.name} placeholder="Affiché dans l'app" />
 
       {mode === "prospect" ? (
         <>
@@ -281,7 +278,8 @@ export function ArtistForm({
         <p className="eyebrow mb-3">Localisation & liens</p>
         <div className="space-y-3">
           <Field label="Adresse" name="address" defaultValue={artist?.address} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Code postal" name="postal_code" defaultValue={artist?.postal_code} placeholder="33000" />
             <Field label="Ville" name="city" defaultValue={artist?.city} />
             <Field label="Pays" name="country" defaultValue={artist?.country ?? "France"} />
           </div>

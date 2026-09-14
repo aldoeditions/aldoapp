@@ -45,6 +45,7 @@ function artistFieldsFrom(fd: FormData) {
     portfolio_url: str(fd, "portfolio_url"),
     address: str(fd, "address"),
     city: str(fd, "city"),
+    postal_code: str(fd, "postal_code"),
     country: str(fd, "country"),
     bio: str(fd, "bio"),
     type: str(fd, "type"),
@@ -55,7 +56,6 @@ function artistFieldsFrom(fd: FormData) {
     last_name: str(fd, "last_name"),
     birth_date: str(fd, "birth_date"),
     birth_place: str(fd, "birth_place"),
-    pseudo: str(fd, "pseudo"),
     siret: str(fd, "siret"),
     is_maison_des_artistes: fd.get("is_maison_des_artistes") === "on",
     // Inscrit à la MDA décoché → on efface le n° pour rester cohérent.

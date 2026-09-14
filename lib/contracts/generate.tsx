@@ -23,6 +23,7 @@ export type GenArtist = {
   is_artiste_auteur: boolean | null;
   address: string | null;
   city: string | null;
+  postal_code?: string | null;
   email: string | null;
 };
 
@@ -37,8 +38,10 @@ export type GenInput = {
   generationDate?: Date;
 };
 
-const fullAddress = (a: GenArtist): string =>
-  [a.address, a.city].map((x) => (x ?? "").trim()).filter(Boolean).join(" ") || "—";
+const fullAddress = (a: GenArtist): string => {
+  const cityLine = [a.postal_code, a.city].map((x) => (x ?? "").trim()).filter(Boolean).join(" ");
+  return [(a.address ?? "").trim(), cityLine].filter(Boolean).join(", ") || "—";
+};
 
 function pctLabel(pct: number): string {
   return Number.isInteger(pct) ? String(pct) : String(pct).replace(".", ",");
@@ -48,9 +51,11 @@ function pctLabel(pct: number): string {
 export function buildContractData(input: GenInput): ContractData {
   const { artist, iban, drop, oeuvres, commissionPct } = input;
 
-  const firstName = (artist.first_name ?? artist.name.split(" ")[0] ?? "").trim();
-  const lastName = (artist.last_name ?? artist.name.split(" ").slice(1).join(" ") ?? "").trim();
-  // Contrat : on utilise le nom légal (nom + prénom), jamais le pseudo.
+  // Contrat : on utilise le nom + prénom du bloc identité, JAMAIS le pseudo
+  // (champ « Nom » = nom d'affichage dans l'app). Repli sur le pseudo seulement
+  // si l'identité légale n'a pas été saisie (missingContractFields la réclame).
+  const firstName = (artist.first_name ?? "").trim();
+  const lastName = (artist.last_name ?? "").trim();
   const legalName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const fullName = legalName || artist.name.trim();
   const notifName = lastName ? `${lastName.toUpperCase()} ${firstName}`.trim() : fullName;
@@ -186,6 +191,8 @@ export async function renderContractPdf(data: ContractData): Promise<Buffer> {
 /** Champs obligatoires manquants pour générer un contrat conforme. */
 export function missingContractFields(artist: GenArtist, iban: string | null): string[] {
   const missing: string[] = [];
+  if (!(artist.first_name ?? "").trim()) missing.push("Prénom");
+  if (!(artist.last_name ?? "").trim()) missing.push("Nom (bloc identité)");
   if (!artist.birth_date) missing.push("Date de naissance");
   if (!artist.birth_place) missing.push("Lieu de naissance");
   if (!(artist.address ?? "").trim()) missing.push("Adresse postale");
