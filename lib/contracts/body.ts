@@ -172,10 +172,8 @@ moyen convenu entre les Parties).
 5.2. Préserver la confidentialité de toutes informations techniques, commerciales ou financières
 relatives à Aldo obtenues dans le cadre du présent contrat, et ne les divulguer à aucun tiers sans
 l'accord écrit préalable d'Aldo, sauf obligation légale, réglementaire ou judiciaire.
-5.3. Accomplir l'ensemble des formalités administratives, sociales et fiscales liées à sa qualité
-d'artiste-auteur et à la perception de revenus de droits d'auteur, notamment :
-● Maintenir son inscription à la Maison des Artistes ou à l'Agessa (ou tout organisme lui
-succédant) ;
+5.3. Accomplir l'ensemble des formalités administratives, sociales et fiscales liées à {{QUALITE}} et à la perception de revenus de droits d'auteur, notamment :
+● {{STATUT_SOCIAL_BULLET}}
 ● Déclarer les revenus perçus au titre du présent contrat auprès des autorités fiscales et
 sociales compétentes ;
 ● S'acquitter des cotisations sociales et fiscales afférentes ;
@@ -536,6 +534,8 @@ description, format et caractéristiques du fichier numérique fourni, date de c
 /** Injecte les variables dans le texte brut. */
 export function buildContractBody(data: ContractData): string {
   return RAW.replace(/\{\{IDENTITY\}\}/g, data.identityLine)
+    .replace(/\{\{QUALITE\}\}/g, data.qualite)
+    .replace(/\{\{STATUT_SOCIAL_BULLET\}\}/g, data.statutSocialBullet)
     .replace(/\{\{COMMISSION_WORDS\}\}/g, data.commissionWords)
     .replace(/\{\{COMMISSION_PCT\}\}/g, data.commissionPct)
     .replace(/\{\{IBAN\}\}/g, data.iban)

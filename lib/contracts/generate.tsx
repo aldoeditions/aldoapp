@@ -18,6 +18,9 @@ export type GenArtist = {
   birth_date: string | null;
   birth_place: string | null;
   mda_number: string | null;
+  siret: string | null;
+  is_maison_des_artistes: boolean | null;
+  is_artiste_auteur: boolean | null;
   address: string | null;
   city: string | null;
   email: string | null;
@@ -47,7 +50,9 @@ export function buildContractData(input: GenInput): ContractData {
 
   const firstName = (artist.first_name ?? artist.name.split(" ")[0] ?? "").trim();
   const lastName = (artist.last_name ?? artist.name.split(" ").slice(1).join(" ") ?? "").trim();
-  const fullName = artist.name.trim();
+  // Contrat : on utilise le nom légal (nom + prénom), jamais le pseudo.
+  const legalName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  const fullName = legalName || artist.name.trim();
   const notifName = lastName ? `${lastName.toUpperCase()} ${firstName}`.trim() : fullName;
 
   const civility = (artist.civility === "Madame" || artist.civility === "Monsieur")
@@ -56,14 +61,39 @@ export function buildContractData(input: GenInput): ContractData {
   const masc = civility === "Monsieur";
   const neLe = civility ? (masc ? "né le" : "née le") : "né(e) le";
   const inscrit = civility ? (masc ? "inscrit" : "inscrite") : "inscrit(e)";
+  const immatricule = civility ? (masc ? "immatriculé" : "immatriculée") : "immatriculé(e)";
   const civPrefix = civility ? `${civility} ` : "";
 
   const address = fullAddress(artist);
-  const mda = (artist.mda_number ?? "").trim() || "en cours d'inscription";
 
+  // Statut administratif : MDA (si inscrit) sinon SIRET (autoentrepreneur).
+  const isAuteur = artist.is_artiste_auteur !== false; // défaut : oui
+  const isMDA = artist.is_maison_des_artistes === true;
+  const mdaNum = (artist.mda_number ?? "").trim();
+  const siret = (artist.siret ?? "").trim();
+
+  let statutClause: string;
+  if (isMDA && mdaNum) {
+    statutClause = `${inscrit} à la Maison des Artistes sous le numéro ${mdaNum}`;
+  } else if (siret) {
+    statutClause = `${immatricule} sous le numéro SIRET ${siret}`;
+  } else if (mdaNum) {
+    statutClause = `${inscrit} à la Maison des Artistes sous le numéro ${mdaNum}`;
+  } else {
+    statutClause = "dont l'immatriculation est en cours";
+  }
+
+  const auteurApposition = isAuteur ? ", artiste-auteur," : ",";
   const identityLine =
-    `${civPrefix}${notifName}, artiste-auteur, ${neLe} ${dateJjMmAaaa(artist.birth_date)} ` +
-    `à ${artist.birth_place ?? "—"}, demeurant ${address}, ${inscrit} à la MDA sous le numéro ${mda}.`;
+    `${civPrefix}${notifName}${auteurApposition} ${neLe} ${dateJjMmAaaa(artist.birth_date)} ` +
+    `à ${artist.birth_place ?? "—"}, demeurant ${address}, ${statutClause}.`;
+
+  // Clauses de l'article 5.3 adaptées au statut (voir body.ts).
+  const qualite = isAuteur ? "sa qualité d'artiste-auteur" : "son activité de création";
+  const statutSocialBullet =
+    isMDA
+      ? "Maintenir son inscription à la Maison des Artistes ou à l'Agessa (ou tout organisme lui succédant) ;"
+      : "Maintenir son immatriculation et son affiliation au régime social dont il relève (micro-entrepreneur / travailleur indépendant, ou Sécurité sociale des artistes-auteurs selon sa situation) auprès de l'organisme compétent ;";
 
   return {
     civility,
@@ -71,6 +101,8 @@ export function buildContractData(input: GenInput): ContractData {
     lastName,
     fullName,
     identityLine,
+    qualite,
+    statutSocialBullet,
     address,
     email: (artist.email ?? "").trim() || "—",
     iban: ibanGroupe(iban),

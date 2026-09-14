@@ -49,6 +49,10 @@ export type Database = {
           birth_date: string | null;
           birth_place: string | null;
           mda_number: string | null;
+          pseudo: string | null;
+          siret: string | null;
+          is_maison_des_artistes: boolean | null;
+          is_artiste_auteur: boolean | null;
           dans_le_pipe_notion: string | null;
           phase: ArtistPhase;
           pipe_status: string | null;
@@ -88,6 +92,10 @@ export type Database = {
           birth_date?: string | null;
           birth_place?: string | null;
           mda_number?: string | null;
+          pseudo?: string | null;
+          siret?: string | null;
+          is_maison_des_artistes?: boolean | null;
+          is_artiste_auteur?: boolean | null;
           dans_le_pipe_notion?: string | null;
           phase: ArtistPhase;
           user_id?: string | null;

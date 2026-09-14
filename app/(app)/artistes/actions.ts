@@ -55,7 +55,12 @@ function artistFieldsFrom(fd: FormData) {
     last_name: str(fd, "last_name"),
     birth_date: str(fd, "birth_date"),
     birth_place: str(fd, "birth_place"),
-    mda_number: str(fd, "mda_number"),
+    pseudo: str(fd, "pseudo"),
+    siret: str(fd, "siret"),
+    is_maison_des_artistes: fd.get("is_maison_des_artistes") === "on",
+    // Inscrit à la MDA décoché → on efface le n° pour rester cohérent.
+    mda_number: fd.get("is_maison_des_artistes") === "on" ? str(fd, "mda_number") : null,
+    is_artiste_auteur: fd.get("is_artiste_auteur") === "on",
     bic: str(fd, "bic"),
     phase: (str(fd, "phase") ?? "prospect") as ArtistPhase,
     pipe_status: str(fd, "pipe_status"),

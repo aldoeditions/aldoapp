@@ -12,6 +12,8 @@ export type ContractData = {
   lastName: string;
   fullName: string;
   identityLine: string; // phrase d'identification complète (art. parties)
+  qualite: string; // « sa qualité d'artiste-auteur » ou « son activité de création » (art. 5.3)
+  statutSocialBullet: string; // puce d'inscription sociale adaptée au statut (art. 5.3)
   address: string;
   email: string;
   iban: string; // groupé par 4

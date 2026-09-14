@@ -119,6 +119,7 @@ export function ArtistForm({
   );
   const [preview, setPreview] = useState<string | null>(artist?.avatar_url ?? null);
   const [phase, setPhase] = useState<string>(artist?.phase ?? "prospect");
+  const [isMDA, setIsMDA] = useState<boolean>(artist?.is_maison_des_artistes ?? false);
 
   return (
     <form action={formAction} className="space-y-5 px-5 py-5">
@@ -143,7 +144,10 @@ export function ArtistForm({
         </div>
       </div>
 
-      <Field label="Nom *" name="name" defaultValue={artist?.name} placeholder="Nom de l'artiste" />
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Nom *" name="name" defaultValue={artist?.name} placeholder="Nom de l'artiste" />
+        <Field label="Pseudo" name="pseudo" defaultValue={artist?.pseudo} placeholder="Affiché dans l'app" />
+      </div>
 
       {mode === "prospect" ? (
         <>
@@ -205,17 +209,53 @@ export function ArtistForm({
 
       <div className="border-t border-border pt-4">
         <p className="eyebrow mb-3">Identité (contrat)</p>
+        <p className="mb-3 text-2xs text-faint">
+          Ces informations servent au contrat : on y utilise le nom et le prénom (jamais le pseudo).
+        </p>
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <Select label="Civilité" name="civility" defaultValue={artist?.civility} options={CIVILITIES} />
             <Field label="Prénom" name="first_name" defaultValue={artist?.first_name} />
             <Field label="Nom" name="last_name" defaultValue={artist?.last_name} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Date de naissance" name="birth_date" type="date" defaultValue={artist?.birth_date} />
             <Field label="Lieu de naissance" name="birth_place" defaultValue={artist?.birth_place} placeholder="Ville" />
-            <Field label="N° MDA" name="mda_number" defaultValue={artist?.mda_number} placeholder="ou vide" />
           </div>
+
+          {/* Statut administratif : SIRET (autoentrepreneur) et/ou Maison des Artistes. */}
+          <label className="flex items-center gap-2.5 rounded-md border border-border bg-bg px-3 py-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="is_artiste_auteur"
+              defaultChecked={artist?.is_artiste_auteur ?? true}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+            />
+            <span className="font-medium text-text">Artiste-auteur</span>
+            <span className="text-2xs text-faint">— statut artiste-auteur (droits d’auteur)</span>
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="N° SIRET" name="siret" defaultValue={artist?.siret} placeholder="autoentrepreneur" />
+            {isMDA ? (
+              <Field label="N° MDA" name="mda_number" defaultValue={artist?.mda_number} placeholder="n° Maison des Artistes" />
+            ) : (
+              <div />
+            )}
+          </div>
+
+          <label className="flex items-center gap-2.5 rounded-md border border-border bg-bg px-3 py-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="is_maison_des_artistes"
+              checked={isMDA}
+              onChange={(e) => setIsMDA(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+            />
+            <span className="font-medium text-text">Inscrit à la Maison des Artistes</span>
+            <span className="text-2xs text-faint">— révèle le champ N° MDA</span>
+          </label>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="IBAN" name="iban" defaultValue={iban} placeholder="FR76 …" />
             <Field label="BIC" name="bic" defaultValue={artist?.bic} placeholder="optionnel" />
