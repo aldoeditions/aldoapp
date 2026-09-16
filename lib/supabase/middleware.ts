@@ -65,7 +65,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Déjà connecté sur une page de login → sortie (rôle résolu par les layouts).
-  if (user && (pathname === "/login" || pathname === "/portail/login")) {
+  // EXCEPTION : si un layout a renvoyé ici avec ?error=… (ex. compte non relié
+  // à une fiche artiste), on laisse la page s'afficher — sinon boucle infinie
+  // login → portail → requireArtist → login (ERR_TOO_MANY_REDIRECTS).
+  const hasError = request.nextUrl.searchParams.has("error");
+  if (user && !hasError && (pathname === "/login" || pathname === "/portail/login")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = pathname.startsWith("/portail") ? "/portail" : "/";
     redirectUrl.search = "";
