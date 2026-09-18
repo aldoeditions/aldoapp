@@ -73,19 +73,26 @@ export async function getDropFinance(id: string): Promise<DropFinance | null> {
     .maybeSingle<DropPnl>();
   if (!pnl) return null;
 
-  const [chargesRes, oeuvresRes] = await Promise.all([
+  const [chargesRes, oeuvresRes, statsRes] = await Promise.all([
     supabase.from("charges").select("*").eq("drop_id", id).order("montant", { ascending: false }),
     supabase
       .from("oeuvres")
       .select("id, name, format, nb_ventes, ca_brut, cout_impression, cout_packaging, price")
       .eq("drop_id", id),
+    // Ventes RÉELLES par œuvre pour cette campagne (commandes payées).
+    supabase.from("oeuvre_stats").select("oeuvre_id, nb_ventes, ca_brut").eq("drop_id", id),
   ]);
+
+  const realStats = new Map<string, { nb: number; ca: number }>();
+  for (const s of statsRes.data ?? []) {
+    if (s.oeuvre_id) realStats.set(s.oeuvre_id, { nb: s.nb_ventes ?? 0, ca: s.ca_brut ?? 0 });
+  }
 
   const COMMISSION = 0.3;
   const oeuvres: OeuvreContribution[] = (oeuvresRes.data ?? [])
     .map((o: Pick<Oeuvre, "id" | "name" | "format" | "nb_ventes" | "ca_brut" | "cout_impression" | "cout_packaging" | "price">) => {
-      const nb = o.nb_ventes ?? 0;
-      const ca = o.ca_brut ?? 0;
+      const nb = realStats.get(o.id)?.nb ?? 0;
+      const ca = realStats.get(o.id)?.ca ?? 0;
       const marge =
         ca - ca * COMMISSION - nb * (o.cout_impression ?? 0) - nb * (o.cout_packaging ?? 0);
       return {
