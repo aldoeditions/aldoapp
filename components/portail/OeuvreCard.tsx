@@ -45,8 +45,8 @@ export function OeuvreCard({
           <div className="text-right">
             <p className="text-2xs text-faint">Ventes · commission</p>
             <p className="font-medium text-text">
-              {nombre(oeuvre.nb_ventes)} ·{" "}
-              <span className="text-accent">{euros((oeuvre.ca_brut ?? 0) * commissionPct)}</span>
+              {nombre(oeuvre.ventes_total)} ·{" "}
+              <span className="text-accent">{euros((oeuvre.ca_total ?? 0) * commissionPct)}</span>
             </p>
           </div>
         </div>

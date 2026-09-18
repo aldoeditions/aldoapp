@@ -42,29 +42,6 @@ function parseItems(fd: FormData): ItemInput[] {
   }
 }
 
-type DbClient = ReturnType<typeof createClient>;
-
-/**
- * Recalcule nb_ventes et ca_brut de chaque œuvre depuis TOUTES ses lignes de
- * commande. La vue drop_pnl (basée sur oeuvres.nb_ventes/ca_brut) reste ainsi
- * synchrone avec les commandes réelles.
- */
-async function syncOeuvresSales(supabase: DbClient, oeuvreIds: string[]) {
-  const unique = Array.from(new Set(oeuvreIds.filter(Boolean)));
-  for (const oeuvreId of unique) {
-    const { data } = await supabase
-      .from("order_items")
-      .select("quantity, total_price")
-      .eq("oeuvre_id", oeuvreId);
-    const nb = (data ?? []).reduce((s, r) => s + (r.quantity ?? 0), 0);
-    const ca = (data ?? []).reduce((s, r) => s + (r.total_price ?? 0), 0);
-    await supabase
-      .from("oeuvres")
-      .update({ nb_ventes: nb, ca_brut: Math.round(ca * 100) / 100 })
-      .eq("id", oeuvreId);
-  }
-}
-
 export async function saveOrder(
   id: string | null,
   _prev: FormState,
@@ -93,9 +70,10 @@ export async function saveOrder(
       status: str(fd, "status") ?? "en attente",
       tracking_number: str(fd, "tracking_number"),
       total_amount: total,
+      // Commande saisie à la main = vente encaissée → comptée dans les stats
+      // (oeuvre_stats ne retient que financial_status = 'paid').
+      financial_status: "paid",
     };
-
-    const affected = new Set(items.map((i) => i.oeuvre_id));
 
     let orderId = id;
     if (orderId) {
@@ -104,12 +82,6 @@ export async function saveOrder(
         .update(fields as TablesUpdate<"orders">)
         .eq("id", orderId);
       if (error) throw error;
-      // Les anciennes œuvres sont aussi à resynchroniser
-      const { data: old } = await supabase
-        .from("order_items")
-        .select("oeuvre_id")
-        .eq("order_id", orderId);
-      for (const o of old ?? []) if (o.oeuvre_id) affected.add(o.oeuvre_id);
       await supabase.from("order_items").delete().eq("order_id", orderId);
     } else {
       const { data, error } = await supabase
@@ -132,8 +104,6 @@ export async function saveOrder(
       const { error } = await supabase.from("order_items").insert(rows);
       if (error) throw error;
     }
-
-    await syncOeuvresSales(supabase, Array.from(affected));
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };
   }
@@ -147,17 +117,9 @@ export async function saveOrder(
 export async function deleteOrder(id: string) {
   await assertCanEdit();
   const supabase = createClient();
-  const { data: old } = await supabase
-    .from("order_items")
-    .select("oeuvre_id")
-    .eq("order_id", id);
   await supabase.from("order_items").delete().eq("order_id", id);
   const { error } = await supabase.from("orders").delete().eq("id", id);
   if (error) throw error;
-  await syncOeuvresSales(
-    supabase,
-    (old ?? []).map((o) => o.oeuvre_id).filter((x): x is string => Boolean(x)),
-  );
   revalidatePath("/commandes");
   revalidatePath("/drops");
 }

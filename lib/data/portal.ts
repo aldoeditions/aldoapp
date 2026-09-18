@@ -141,9 +141,9 @@ export async function getMyActions(iban: string | null): Promise<TodoAction[]> {
 
 /* --------------------- Œuvres --------------------- */
 
-export type MyOeuvre = Oeuvre & { drop_name: string | null };
+export type MyOeuvre = Oeuvre & { drop_name: string | null; ventes_total: number; ca_total: number };
 
-/** Œuvres de l'artiste (+ nom du drop), filtrables par drop. */
+/** Œuvres de l'artiste (+ nom du drop + ventes réelles), filtrables par drop. */
 export async function getMyOeuvres(dropId?: string): Promise<MyOeuvre[]> {
   const supabase = createClient();
   let q = supabase
@@ -152,10 +152,25 @@ export async function getMyOeuvres(dropId?: string): Promise<MyOeuvre[]> {
     .order("created_at", { ascending: false });
   if (dropId) q = q.eq("drop_id", dropId);
 
-  const { data } = await q.returns<(Oeuvre & { drops: { name: string } | null })[]>();
-  return (data ?? []).map((o) => {
+  const [oeuvresRes, salesRes] = await Promise.all([
+    q.returns<(Oeuvre & { drops: { name: string } | null })[]>(),
+    supabase.from("artist_sales").select("oeuvre_name, format, quantity, total_price"),
+  ]);
+
+  // Ventes réelles agrégées par (nom + format) — artist_sales n'expose pas l'id.
+  const agg = new Map<string, { nb: number; ca: number }>();
+  for (const s of salesRes.data ?? []) {
+    const k = `${s.oeuvre_name ?? ""}|${s.format ?? ""}`;
+    const cur = agg.get(k) ?? { nb: 0, ca: 0 };
+    cur.nb += s.quantity ?? 0;
+    cur.ca += s.total_price ?? 0;
+    agg.set(k, cur);
+  }
+
+  return (oeuvresRes.data ?? []).map((o) => {
     const { drops, ...rest } = o;
-    return { ...rest, drop_name: drops?.name ?? null };
+    const s = agg.get(`${o.name}|${o.format}`);
+    return { ...rest, drop_name: drops?.name ?? null, ventes_total: s?.nb ?? 0, ca_total: s?.ca ?? 0 };
   });
 }
 

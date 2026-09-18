@@ -179,8 +179,6 @@ export type Database = {
           price: number;
           cout_impression: number | null;
           cout_packaging: number | null;
-          nb_ventes: number | null;
-          ca_brut: number | null;
           file_url: string | null;
           file_status: string | null;
           status: string;
@@ -200,8 +198,6 @@ export type Database = {
           price: number;
           cout_impression?: number | null;
           cout_packaging?: number | null;
-          nb_ventes?: number | null;
-          ca_brut?: number | null;
           file_url?: string | null;
           file_status?: string | null;
           status: string;
