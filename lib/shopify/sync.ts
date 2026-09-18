@@ -24,6 +24,7 @@ export type ShopifyOrder = {
   contact_email?: string | null;
   created_at?: string | null;
   processed_at?: string | null;
+  cancelled_at?: string | null;
   financial_status?: string | null;
   fulfillment_status?: string | null;
   subtotal_price?: string | number | null;
@@ -104,7 +105,9 @@ export function mapShopifyOrder(payload: ShopifyOrder): MappedOrder {
     order_number: payload.name?.trim() || (payload.id != null ? `#${payload.id}` : "—"),
     client_name: clientName,
     client_email: payload.email || payload.contact_email || null,
-    financial_status: payload.financial_status ?? null,
+    // Une commande annulée ne doit jamais compter dans les ventes (les stats ne
+    // retiennent que 'paid'), même si Shopify garde financial_status = 'paid'.
+    financial_status: payload.cancelled_at ? "cancelled" : (payload.financial_status ?? null),
     fulfillment_status: payload.fulfillment_status ?? null,
     subtotal_amount: subtotal,
     shipping_amount: shipping,
@@ -179,6 +182,9 @@ export async function upsertOrderFromShopify(supabase: SB, payload: ShopifyOrder
       .maybeSingle();
     orderId = existing?.id ?? null;
   }
+
+  // Commande annulée jamais importée → on ne la crée pas (évite le bruit).
+  if (payload.cancelled_at && !orderId) return { orderId: "", unresolved: 0 };
 
   const orderRow: TablesInsert<"orders"> = {
     shopify_order_id: m.shopify_order_id,
