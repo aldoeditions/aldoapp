@@ -4,6 +4,9 @@ import type { Oeuvre } from "@/types/database";
 export type OeuvreCatalogRow = Oeuvre & {
   artist_name: string | null;
   drop_name: string | null;
+  ventes_total: number;
+  ca_total: number;
+  nb_campagnes: number;
 };
 
 export type OeuvreCatalogFilter = {
@@ -11,6 +14,8 @@ export type OeuvreCatalogFilter = {
   /** id de drop, ou "none" pour les œuvres sans drop. */
   drop?: string;
   q?: string;
+  /** "ventes" pour trier par ventes totales décroissantes. */
+  sort?: string;
 };
 
 /** Catalogue global des œuvres (indépendant des drops), filtrable. */
@@ -32,10 +37,37 @@ export async function getOeuvresCatalog(
     (Oeuvre & { artists: { name: string } | null; drops: { name: string } | null })[]
   >();
 
-  return (data ?? []).map((o) => {
+  const rows = data ?? [];
+
+  // Statistiques de ventes (toutes campagnes) depuis la vue calculée.
+  const ids = rows.map((o) => o.id);
+  const stats = new Map<string, { ventes: number; ca: number; camps: number }>();
+  if (ids.length) {
+    const { data: st } = await supabase
+      .from("oeuvre_stats_total")
+      .select("oeuvre_id, nb_ventes, ca_brut, nb_campagnes")
+      .in("oeuvre_id", ids);
+    for (const s of st ?? []) {
+      if (s.oeuvre_id) stats.set(s.oeuvre_id, { ventes: s.nb_ventes ?? 0, ca: s.ca_brut ?? 0, camps: s.nb_campagnes ?? 0 });
+    }
+  }
+
+  const mapped = rows.map((o) => {
     const { artists, drops, ...rest } = o;
-    return { ...rest, artist_name: artists?.name ?? null, drop_name: drops?.name ?? null };
+    const s = stats.get(o.id);
+    return {
+      ...rest,
+      artist_name: artists?.name ?? null,
+      drop_name: drops?.name ?? null,
+      ventes_total: s?.ventes ?? 0,
+      ca_total: s?.ca ?? 0,
+      nb_campagnes: s?.camps ?? 0,
+    };
   });
+
+  // Tri par ventes décroissantes si demandé (outil de réédition).
+  if (filter.sort === "ventes") mapped.sort((a, b) => b.ventes_total - a.ventes_total);
+  return mapped;
 }
 
 export type AttachableOeuvre = {

@@ -39,7 +39,9 @@ export function OeuvresTable({
               <th className="px-3 py-2.5 font-semibold">Artiste</th>
               <th className="px-3 py-2.5 font-semibold">Drop</th>
               <th className="px-3 py-2.5 font-semibold">Format</th>
+              <th className="px-3 py-2.5 font-semibold">SKU</th>
               <th className="px-3 py-2.5 text-right font-semibold">Prix</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Ventes</th>
               <th className="px-3 py-2.5 font-semibold">Statut</th>
               {editable && <th className="px-5 py-2.5" />}
             </tr>
@@ -62,7 +64,24 @@ export function OeuvresTable({
                   )}
                 </td>
                 <td className="px-3 py-2.5 text-muted">{o.format}</td>
+                <td className="px-3 py-2.5">
+                  {o.sku ? (
+                    <span className="font-mono text-2xs text-muted">{o.sku}</span>
+                  ) : (
+                    <span className="rounded-full bg-warningBg px-2 py-0.5 text-2xs font-medium text-warning">Sans SKU</span>
+                  )}
+                </td>
                 <td className="px-3 py-2.5 text-right text-text">{euros(o.price)}</td>
+                <td className="px-3 py-2.5 text-right">
+                  {o.ventes_total > 0 ? (
+                    <span className="text-text">
+                      {o.ventes_total}
+                      <span className="block text-2xs text-faint">{euros(o.ca_total)}{o.nb_campagnes > 1 ? ` · ${o.nb_campagnes} camp.` : ""}</span>
+                    </span>
+                  ) : (
+                    <span className="text-faint">—</span>
+                  )}
+                </td>
                 <td className="px-3 py-2.5">
                   <StatusBadge value={o.status} dict={OEUVRE_STATUS} />
                 </td>

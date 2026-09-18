@@ -2,6 +2,7 @@ import { requireModule } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { getOeuvresCatalog, getOeuvreCounts } from "@/lib/data/oeuvres";
 import { getArtistsForSelect, getDropsForSelect, getCostParams } from "@/lib/data/drops";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { OeuvresFilters } from "@/components/oeuvres/OeuvresFilters";
 import { OeuvresTable } from "@/components/oeuvres/OeuvresTable";
@@ -10,13 +11,13 @@ import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
 export default async function OeuvresPage({
   searchParams,
 }: {
-  searchParams: { artist?: string; drop?: string; q?: string };
+  searchParams: { artist?: string; drop?: string; q?: string; sort?: string };
 }) {
   const user = await requireModule("drops");
   const editable = canEdit(user.role, "drops");
 
   const [oeuvres, counts, artists, drops, costs] = await Promise.all([
-    getOeuvresCatalog({ artist: searchParams.artist, drop: searchParams.drop, q: searchParams.q }),
+    getOeuvresCatalog({ artist: searchParams.artist, drop: searchParams.drop, q: searchParams.q, sort: searchParams.sort }),
     getOeuvreCounts(),
     getArtistsForSelect(),
     getDropsForSelect(),
@@ -42,7 +43,20 @@ export default async function OeuvresPage({
         }
       />
 
-      <OeuvresFilters artists={artists} drops={drops} />
+      <div className="flex items-center justify-between gap-3">
+        <OeuvresFilters artists={artists} drops={drops} />
+        <Link
+          href={{ pathname: "/oeuvres", query: { ...searchParams, sort: searchParams.sort === "ventes" ? undefined : "ventes" } }}
+          className={
+            "shrink-0 rounded-md border px-3 py-1.5 text-2xs font-semibold transition-colors " +
+            (searchParams.sort === "ventes"
+              ? "border-accent bg-accentBg/60 text-accent"
+              : "border-border bg-surface text-muted hover:bg-bg")
+          }
+        >
+          Trier par ventes
+        </Link>
+      </div>
 
       <OeuvresTable
         oeuvres={oeuvres}

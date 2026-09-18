@@ -84,6 +84,12 @@ export const NAV: NavGroup[] = [
         href: "/parametres",
         Icon: ParametresIcon,
       },
+      {
+        key: "parametres",
+        label: "Sync Shopify",
+        href: "/parametres/shopify",
+        Icon: CommandesIcon,
+      },
     ],
   },
 ];
