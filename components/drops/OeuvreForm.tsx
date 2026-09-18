@@ -198,6 +198,24 @@ export function OeuvreForm({
 
       <Select label="Statut" name="status" defaultValue={oeuvre?.status ?? "brouillon"} options={OEUVRE_STATUSES} />
 
+      <div>
+        <label className={labelCls} htmlFor="sku">SKU {editing ? "" : "— laisser vide pour générer"}</label>
+        <input id="sku" name="sku" defaultValue={oeuvre?.sku ?? ""} className={inputCls} placeholder="ALDO-XX-001-A4 (auto)" />
+        {!editing && (
+          <p className="mt-1 text-2xs text-faint">
+            Généré depuis le code SKU de l&apos;artiste + le prochain numéro dispo. À renseigner sur la fiche artiste sinon.
+          </p>
+        )}
+      </div>
+
+      {!editing && (
+        <label className="flex items-center gap-2.5 rounded-md border border-border bg-bg px-3 py-2.5 text-sm">
+          <input type="checkbox" name="also_other" defaultChecked className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30" />
+          <span className="font-medium text-text">Créer aussi le format {format === "A4" ? "A3" : "A4"}</span>
+          <span className="text-2xs text-faint">— même visuel, même numéro</span>
+        </label>
+      )}
+
       <FormError error={state?.error ?? null} />
       <SubmitButton label={editing ? "Enregistrer" : "Ajouter l'œuvre"} />
     </form>

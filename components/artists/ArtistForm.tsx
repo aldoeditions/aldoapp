@@ -204,6 +204,13 @@ export function ArtistForm({
         <Field label="Commission %" name="commission_pct" type="number" defaultValue={artist?.commission_pct ?? 30} />
       </div>
 
+      <div>
+        <Field label="Code SKU (catalogue)" name="sku_code" defaultValue={artist?.sku_code} placeholder="ex. DC — 2 à 4 lettres/chiffres" />
+        <p className="mt-1 text-2xs text-faint">
+          Sert à générer les SKU de ses œuvres : <span className="font-mono">ALDO-{artist?.sku_code || "XX"}-001-A4</span>. Unique par artiste.
+        </p>
+      </div>
+
       <div className="border-t border-border pt-4">
         <p className="eyebrow mb-3">Identité (contrat)</p>
         <p className="mb-3 text-2xs text-faint">

@@ -8,6 +8,8 @@ import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { syncOeuvreVisuel } from "@/lib/files/visuel";
 import { createDropCompletionTasks } from "@/app/(app)/projet/actions";
+import { getCostParams } from "@/lib/data/drops";
+import { buildSku, type SkuFormat } from "@/lib/shopify/sku";
 import { downscalePreview } from "@/lib/files/image";
 import type {
   TablesInsert,
@@ -197,7 +199,7 @@ export async function saveOeuvre(
 
     let targetId = id;
     if (targetId) {
-      const update: TablesUpdate<"oeuvres"> = { ...fields };
+      const update: TablesUpdate<"oeuvres"> = { ...fields, sku: str(fd, "sku") };
       const visuel = fd.get("visuel");
       if (visuel instanceof File && visuel.size > 0) {
         const url = await uploadVisuel(targetId, visuel);
@@ -209,26 +211,65 @@ export async function saveOeuvre(
         .eq("id", targetId);
       if (error) throw error;
     } else {
+      // Génération auto du SKU/numéro si l'artiste a un code SKU.
+      const { data: artist } = await supabase
+        .from("artists")
+        .select("sku_code")
+        .eq("id", fields.artist_id)
+        .maybeSingle();
+      const skuCode = artist?.sku_code ?? null;
+      let numero: number | null = null;
+      let sku: string | null = str(fd, "sku");
+      if (skuCode) {
+        const { data: last } = await supabase
+          .from("oeuvres")
+          .select("numero")
+          .eq("artist_id", fields.artist_id)
+          .not("numero", "is", null)
+          .order("numero", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        numero = (last?.numero ?? 0) + 1;
+        if (!sku) sku = buildSku(skuCode, numero, fields.format as SkuFormat);
+      }
+
       const { data, error } = await supabase
         .from("oeuvres")
-        .insert(fields as TablesInsert<"oeuvres">)
+        .insert({ ...fields, numero, sku } as TablesInsert<"oeuvres">)
         .select("id")
         .single();
       if (error) throw error;
       targetId = data.id;
 
+      let fileUrl: string | null = null;
       const visuel = fd.get("visuel");
       if (visuel instanceof File && visuel.size > 0) {
-        const url = await uploadVisuel(targetId, visuel);
-        if (url) {
-          await supabase
-            .from("oeuvres")
-            .update({ file_url: url })
-            .eq("id", targetId);
-        }
+        fileUrl = await uploadVisuel(targetId, visuel);
+        if (fileUrl) await supabase.from("oeuvres").update({ file_url: fileUrl }).eq("id", targetId);
+      }
+
+      // Créer aussi l'autre format (même visuel + même numéro) — cas standard A4/A3.
+      if (fd.get("also_other") === "on" && skuCode && numero) {
+        const other = (fields.format === "A4" ? "A3" : "A4") as SkuFormat;
+        const c = await getCostParams();
+        await supabase.from("oeuvres").insert({
+          name: fields.name,
+          artist_id: fields.artist_id,
+          drop_id: fields.drop_id,
+          format: other,
+          price: c[other].prix,
+          cout_impression: c[other].impression,
+          cout_packaging: c[other].packaging,
+          status: fields.status,
+          numero,
+          sku: buildSku(skuCode, numero, other),
+          file_url: fileUrl,
+        } as TablesInsert<"oeuvres">);
       }
     }
   } catch (e) {
+    if ((e as { code?: string })?.code === "23505")
+      return { error: "Ce SKU est déjà utilisé par une autre œuvre." };
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };
   }
 

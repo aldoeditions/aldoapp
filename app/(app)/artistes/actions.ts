@@ -56,6 +56,7 @@ function artistFieldsFrom(fd: FormData) {
     last_name: str(fd, "last_name"),
     birth_date: str(fd, "birth_date"),
     birth_place: str(fd, "birth_place"),
+    sku_code: str(fd, "sku_code")?.toUpperCase() ?? null,
     siret: str(fd, "siret"),
     is_maison_des_artistes: fd.get("is_maison_des_artistes") === "on",
     // Inscrit à la MDA décoché → on efface le n° pour rester cohérent.
@@ -157,6 +158,9 @@ export async function saveArtist(
 
     await saveBanking(supabase, targetId, fd);
   } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === "23505") return { error: "Ce code SKU est déjà attribué à un autre artiste." };
+    if (code === "23514") return { error: "Code SKU invalide : 2 à 4 lettres majuscules ou chiffres." };
     const msg = e instanceof Error ? e.message : "Erreur inattendue.";
     return { error: msg };
   }
