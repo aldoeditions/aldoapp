@@ -175,6 +175,22 @@ function oeuvreFieldsFrom(fd: FormData) {
   };
 }
 
+/** Programme (ou met à jour) une œuvre sur un drop. Idempotent. */
+async function programOnDrop(
+  supabase: ReturnType<typeof createClient>,
+  dropId: string,
+  oeuvreId: string,
+  price: number,
+  commissionPct: number,
+) {
+  await supabase
+    .from("drop_oeuvres")
+    .upsert(
+      { drop_id: dropId, oeuvre_id: oeuvreId, price, commission_pct: commissionPct },
+      { onConflict: "drop_id,oeuvre_id" },
+    );
+}
+
 export async function saveOeuvre(
   id: string | null,
   _prev: FormState,
@@ -214,10 +230,11 @@ export async function saveOeuvre(
       // Génération auto du SKU/numéro si l'artiste a un code SKU.
       const { data: artist } = await supabase
         .from("artists")
-        .select("sku_code")
+        .select("sku_code, commission_pct")
         .eq("id", fields.artist_id)
         .maybeSingle();
       const skuCode = artist?.sku_code ?? null;
+      const commissionPct = artist?.commission_pct ?? 30;
       let numero: number | null = null;
       let sku: string | null = str(fd, "sku");
       if (skuCode) {
@@ -252,7 +269,7 @@ export async function saveOeuvre(
       if (fd.get("also_other") === "on" && skuCode && numero) {
         const other = (fields.format === "A4" ? "A3" : "A4") as SkuFormat;
         const c = await getCostParams();
-        await supabase.from("oeuvres").insert({
+        const { data: pair } = await supabase.from("oeuvres").insert({
           name: fields.name,
           artist_id: fields.artist_id,
           drop_id: fields.drop_id,
@@ -264,7 +281,19 @@ export async function saveOeuvre(
           numero,
           sku: buildSku(skuCode, numero, other),
           file_url: fileUrl,
-        } as TablesInsert<"oeuvres">);
+        } as TablesInsert<"oeuvres">).select("id").single();
+        if (pair && fields.drop_id) await programOnDrop(supabase, fields.drop_id, pair.id, c[other].prix, commissionPct);
+      }
+    }
+
+    // Synchronise la programmation du drop pour l'œuvre principale (édition incluse).
+    if (targetId) {
+      if (newDropId) {
+        const { data: a } = await supabase.from("artists").select("commission_pct").eq("id", fields.artist_id).maybeSingle();
+        await programOnDrop(supabase, newDropId, targetId, fields.price, a?.commission_pct ?? 30);
+      }
+      if (oldDropId && oldDropId !== newDropId) {
+        await supabase.from("drop_oeuvres").delete().eq("drop_id", oldDropId).eq("oeuvre_id", targetId);
       }
     }
   } catch (e) {
@@ -328,27 +357,68 @@ export async function registerOeuvreFile(input: {
   }
 }
 
-/** Rattache une œuvre existante à un drop (change son drop_id). */
+/**
+ * Programme une œuvre du catalogue sur un drop (via drop_oeuvres → une œuvre
+ * peut être dans plusieurs campagnes = réédition). Ne déplace pas l'œuvre :
+ * si elle n'a pas encore de drop principal, on le renseigne au passage.
+ */
 export async function attachOeuvreToDrop(oeuvreId: string, dropId: string): Promise<FormState> {
   try {
     await assertCanEdit();
     const supabase = createClient();
 
-    const { data: prev } = await supabase.from("oeuvres").select("drop_id").eq("id", oeuvreId).maybeSingle();
-    const oldDrop = prev?.drop_id ?? null;
+    const { data: o } = await supabase
+      .from("oeuvres")
+      .select("price, drop_id, artist_id")
+      .eq("id", oeuvreId)
+      .maybeSingle();
+    if (!o) return { error: "Œuvre introuvable." };
 
-    const { error } = await supabase.from("oeuvres").update({ drop_id: dropId }).eq("id", oeuvreId);
-    if (error) return { error: error.message };
+    const { data: art } = await supabase.from("artists").select("commission_pct").eq("id", o.artist_id).maybeSingle();
+    await programOnDrop(supabase, dropId, oeuvreId, o.price, art?.commission_pct ?? 30);
+
+    // Premier rattachement → devient le drop « principal » (compat drop_id).
+    if (!o.drop_id) await supabase.from("oeuvres").update({ drop_id: dropId }).eq("id", oeuvreId);
 
     revalidatePath("/oeuvres");
     revalidatePath("/drops");
     revalidatePath("/finances");
-    for (const d of [dropId, oldDrop]) {
-      if (d) {
-        revalidatePath(`/drops/${d}`);
-        revalidatePath(`/finances/${d}`);
-      }
+    revalidatePath(`/drops/${dropId}`);
+    revalidatePath(`/finances/${dropId}`);
+    return { error: null, ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur inattendue." };
+  }
+}
+
+/**
+ * Retire une œuvre d'une campagne (supprime la programmation drop_oeuvres, sans
+ * supprimer l'œuvre). Si c'était son drop principal, on le réaffecte à une autre
+ * programmation restante, sinon null.
+ */
+export async function unprogramOeuvre(oeuvreId: string, dropId: string): Promise<FormState> {
+  try {
+    await assertCanEdit();
+    const supabase = createClient();
+
+    await supabase.from("drop_oeuvres").delete().eq("drop_id", dropId).eq("oeuvre_id", oeuvreId);
+
+    const { data: o } = await supabase.from("oeuvres").select("drop_id").eq("id", oeuvreId).maybeSingle();
+    if (o?.drop_id === dropId) {
+      const { data: other } = await supabase
+        .from("drop_oeuvres")
+        .select("drop_id")
+        .eq("oeuvre_id", oeuvreId)
+        .limit(1)
+        .maybeSingle();
+      await supabase.from("oeuvres").update({ drop_id: other?.drop_id ?? null }).eq("id", oeuvreId);
     }
+
+    revalidatePath("/oeuvres");
+    revalidatePath("/drops");
+    revalidatePath("/finances");
+    revalidatePath(`/drops/${dropId}`);
+    revalidatePath(`/finances/${dropId}`);
     return { error: null, ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };

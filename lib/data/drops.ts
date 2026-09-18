@@ -13,7 +13,7 @@ export async function getDrops(): Promise<DropWithStats[]> {
   const [dropsRes, pnlRes, oeuvresRes] = await Promise.all([
     supabase.from("drops").select("*").order("start_date", { ascending: false }),
     supabase.from("drop_pnl").select("*"),
-    supabase.from("oeuvres").select("drop_id"),
+    supabase.from("drop_oeuvres").select("drop_id"),
   ]);
 
   const pnlById = new Map((pnlRes.data ?? []).map((p) => [p.id, p]));
@@ -42,6 +42,10 @@ export type OeuvreWithArtist = Oeuvre & {
   file_state: "validé" | "en attente" | "refusé" | null;
   /** Master HD à télécharger pour l'impression (bucket privé artist-files). */
   hd_file: { path: string; filename: string | null } | null;
+  /** Ventes sur CETTE campagne (via oeuvre_stats). */
+  ventes_camp: number;
+  /** Ventes totales toutes campagnes (réédition). */
+  ventes_total: number;
 };
 
 /** Priorité d'affichage de l'état fichier d'une œuvre à partir de ses dépôts. */
@@ -82,33 +86,42 @@ export async function getDropDetail(id: string): Promise<DropDetail | null> {
     .maybeSingle();
   if (!drop) return null;
 
-  const [pnlRes, oeuvresRes] = await Promise.all([
+  // Œuvres PROGRAMMÉES sur ce drop (via drop_oeuvres, M:N → rééditions possibles).
+  const [pnlRes, progRes] = await Promise.all([
     supabase.from("drop_pnl").select("*").eq("id", id).maybeSingle(),
-    supabase
-      .from("oeuvres")
-      .select("*, artists(name)")
-      .eq("drop_id", id)
-      .order("created_at", { ascending: false })
-      .returns<(Oeuvre & { artists: { name: string } | null })[]>(),
+    supabase.from("drop_oeuvres").select("oeuvres(*, artists(name))").eq("drop_id", id),
   ]);
 
-  const oeuvreIds = (oeuvresRes.data ?? []).map((o) => o.id);
-  const { data: filesData } = oeuvreIds.length
-    ? await supabase
-        .from("artist_files")
-        .select("oeuvre_id, status, file_path, filename, created_at")
-        .in("oeuvre_id", oeuvreIds)
-    : { data: [] as (DepositedFile & { oeuvre_id: string | null })[] };
+  const oeuvreRows = ((progRes.data ?? []) as unknown as {
+    oeuvres: (Oeuvre & { artists: { name: string } | null }) | null;
+  }[])
+    .map((r) => r.oeuvres)
+    .filter((o): o is Oeuvre & { artists: { name: string } | null } => Boolean(o))
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+
+  const oeuvreIds = oeuvreRows.map((o) => o.id);
+  const [filesRes, campRes, totalRes] = oeuvreIds.length
+    ? await Promise.all([
+        supabase
+          .from("artist_files")
+          .select("oeuvre_id, status, file_path, filename, created_at")
+          .in("oeuvre_id", oeuvreIds),
+        supabase.from("oeuvre_stats").select("oeuvre_id, nb_ventes").eq("drop_id", id).in("oeuvre_id", oeuvreIds),
+        supabase.from("oeuvre_stats_total").select("oeuvre_id, nb_ventes").in("oeuvre_id", oeuvreIds),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
 
   const filesByOeuvre = new Map<string, DepositedFile[]>();
-  for (const f of filesData ?? []) {
+  for (const f of (filesRes.data ?? []) as (DepositedFile & { oeuvre_id: string | null })[]) {
     if (!f.oeuvre_id) continue;
     const arr = filesByOeuvre.get(f.oeuvre_id) ?? [];
     arr.push(f);
     filesByOeuvre.set(f.oeuvre_id, arr);
   }
+  const campById = new Map((campRes.data ?? []).map((s) => [s.oeuvre_id, s.nb_ventes ?? 0]));
+  const totalById = new Map((totalRes.data ?? []).map((s) => [s.oeuvre_id, s.nb_ventes ?? 0]));
 
-  const oeuvres = (oeuvresRes.data ?? []).map((o) => {
+  const oeuvres = oeuvreRows.map((o) => {
     const { artists, ...rest } = o;
     const files = filesByOeuvre.get(o.id) ?? [];
     return {
@@ -116,6 +129,8 @@ export async function getDropDetail(id: string): Promise<DropDetail | null> {
       artist_name: artists?.name ?? null,
       file_state: deriveFileState(files.map((f) => f.status)),
       hd_file: pickHdFile(files),
+      ventes_camp: campById.get(o.id) ?? 0,
+      ventes_total: totalById.get(o.id) ?? 0,
     };
   });
 

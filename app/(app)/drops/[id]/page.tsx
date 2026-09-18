@@ -16,6 +16,7 @@ import { DROP_STATUS, OEUVRE_STATUS, ARTIST_FILE_STATUS, COMMISSION_PCT } from "
 import { euros, euros0, nombre, dateCourte } from "@/lib/format";
 import { DropFormButton } from "@/components/drops/DropFormButton";
 import { OeuvreFormButton } from "@/components/drops/OeuvreFormButton";
+import { UnprogramButton } from "@/components/drops/UnprogramButton";
 import { AddOeuvreButton } from "@/components/drops/AddOeuvreButton";
 import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 import { getAttachableOeuvres, type AttachableOeuvre } from "@/lib/data/oeuvres";
@@ -132,6 +133,7 @@ export default async function DropDetailPage({
                     <th className="px-5 py-2.5 font-semibold">Format</th>
                     <th className="px-5 py-2.5 text-right font-semibold">Prix</th>
                     <th className="px-5 py-2.5 text-right font-semibold">Marge</th>
+                    <th className="px-5 py-2.5 text-right font-semibold">Ventes</th>
                     <th className="px-5 py-2.5 font-semibold">Statut</th>
                     <th className="px-5 py-2.5 font-semibold">Fichier</th>
                     {editable && <th className="px-5 py-2.5" />}
@@ -158,6 +160,16 @@ export default async function DropDetailPage({
                         <td className={"px-5 py-2.5 text-right font-medium " + (marge >= 0 ? "text-success" : "text-danger")}>
                           {euros(marge)}
                         </td>
+                        <td className="px-5 py-2.5 text-right">
+                          {o.ventes_camp > 0 ? (
+                            <span className="text-text">{o.ventes_camp}</span>
+                          ) : (
+                            <span className="text-faint">—</span>
+                          )}
+                          {o.ventes_total > o.ventes_camp && (
+                            <span className="block text-2xs text-faint">{o.ventes_total} au total</span>
+                          )}
+                        </td>
                         <td className="px-5 py-2.5">
                           <StatusBadge value={o.status} dict={OEUVRE_STATUS} />
                         </td>
@@ -173,6 +185,7 @@ export default async function DropDetailPage({
                           <td className="px-5 py-2.5">
                             <div className="flex items-center justify-end gap-3">
                               <OeuvreFormButton drops={drops} defaultDropId={drop.id} artists={artists} costs={costs} oeuvre={o} hdFile={o.hd_file} variant="row" />
+                              <UnprogramButton oeuvreId={o.id} dropId={drop.id} name={o.name} />
                               <DeleteOeuvreButton id={o.id} dropId={drop.id} name={o.name} />
                             </div>
                           </td>

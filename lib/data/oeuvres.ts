@@ -77,23 +77,31 @@ export type AttachableOeuvre = {
   drop_name: string | null;
 };
 
-/** Œuvres rattachables à un drop : non rattachées, ou rattachées à un AUTRE drop. */
+/**
+ * Œuvres programmables sur ce drop : tout le catalogue SAUF celles déjà
+ * programmées sur ce drop (via drop_oeuvres). Une œuvre déjà dans une autre
+ * campagne reste proposée (réédition).
+ */
 export async function getAttachableOeuvres(dropId: string): Promise<AttachableOeuvre[]> {
   const supabase = createClient();
+  const { data: prog } = await supabase.from("drop_oeuvres").select("oeuvre_id").eq("drop_id", dropId);
+  const already = new Set((prog ?? []).map((p) => p.oeuvre_id));
+
   const { data } = await supabase
     .from("oeuvres")
     .select("id, name, artists(name), drops(name)")
-    .or(`drop_id.is.null,drop_id.neq.${dropId}`)
     .order("created_at", { ascending: false })
     .returns<
       { id: string; name: string; artists: { name: string } | null; drops: { name: string } | null }[]
     >();
-  return (data ?? []).map((o) => ({
-    id: o.id,
-    name: o.name,
-    artist_name: o.artists?.name ?? null,
-    drop_name: o.drops?.name ?? null,
-  }));
+  return (data ?? [])
+    .filter((o) => !already.has(o.id))
+    .map((o) => ({
+      id: o.id,
+      name: o.name,
+      artist_name: o.artists?.name ?? null,
+      drop_name: o.drops?.name ?? null,
+    }));
 }
 
 /** Compteurs pour l'en-tête (total + sans drop). */
