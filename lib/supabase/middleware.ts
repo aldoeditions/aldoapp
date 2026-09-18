@@ -53,6 +53,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  // Endpoints appelés par des tiers SANS session (Shopify) : jamais de redirection
+  // d'auth, sinon la requête est renvoyée vers /login et n'atteint pas le handler.
+  if (pathname.startsWith("/api/webhooks") || pathname.startsWith("/api/shopify")) {
+    return supabaseResponse;
+  }
+
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isPortal = pathname.startsWith("/portail");
 
