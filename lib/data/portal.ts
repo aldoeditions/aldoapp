@@ -25,15 +25,16 @@ export async function getMyStats(commissionPct: number | null): Promise<MyStats>
   const supabase = createClient();
   const pct = (commissionPct ?? COMMISSION_PCT * 100) / 100;
 
-  const [oeuvresRes, paymentsRes] = await Promise.all([
-    supabase.from("oeuvres").select("nb_ventes, ca_brut"),
+  const [oeuvresRes, salesRes, paymentsRes] = await Promise.all([
+    supabase.from("oeuvres").select("id"),
+    supabase.from("artist_sales").select("quantity, total_price"),
     supabase.from("payments").select("amount, status"),
   ]);
 
-  const oeuvres = oeuvresRes.data ?? [];
-  const nb_oeuvres = oeuvres.length;
-  const nb_ventes = oeuvres.reduce((s, o) => s + (o.nb_ventes ?? 0), 0);
-  const ca_brut = oeuvres.reduce((s, o) => s + (o.ca_brut ?? 0), 0);
+  const nb_oeuvres = (oeuvresRes.data ?? []).length;
+  const sales = salesRes.data ?? [];
+  const nb_ventes = sales.reduce((s, x) => s + (x.quantity ?? 0), 0);
+  const ca_brut = sales.reduce((s, x) => s + (x.total_price ?? 0), 0);
   const commission_estimee = Math.round(ca_brut * pct * 100) / 100;
 
   const commission_payee = (paymentsRes.data ?? [])
@@ -65,12 +66,25 @@ export async function getMyCampaigns(): Promise<{
   next: Drop | null;
 }> {
   const supabase = createClient();
-  const [dropsRes, oeuvresRes] = await Promise.all([
+  const [dropsRes, oeuvresRes, salesRes] = await Promise.all([
     supabase.from("drops").select("*").order("start_date", { ascending: true }),
-    supabase.from("oeuvres").select("id, name, format, nb_ventes, ca_brut, drop_id"),
+    supabase.from("oeuvres").select("id, name, format, drop_id"),
+    supabase.from("artist_sales").select("oeuvre_name, format, drop_id, quantity, total_price"),
   ]);
   const drops = (dropsRes.data ?? []) as Drop[];
   const oeuvres = oeuvresRes.data ?? [];
+
+  // Ventes réelles agrégées par (nom d'œuvre + format + drop).
+  const salesKey = (name: string | null, format: string | null, dropId: string | null) =>
+    `${name ?? ""}|${format ?? ""}|${dropId ?? ""}`;
+  const salesByKey = new Map<string, { nb: number; ca: number }>();
+  for (const s of salesRes.data ?? []) {
+    const k = salesKey(s.oeuvre_name, s.format, s.drop_id);
+    const cur = salesByKey.get(k) ?? { nb: 0, ca: 0 };
+    cur.nb += s.quantity ?? 0;
+    cur.ca += s.total_price ?? 0;
+    salesByKey.set(k, cur);
+  }
 
   const current = drops.find((d) => d.status === "en cours") ?? null;
   const next = drops.find((d) => d.status === "à venir") ?? null;
@@ -78,13 +92,16 @@ export async function getMyCampaigns(): Promise<{
   const oeuvresOf = (dropId: string): CampaignOeuvre[] =>
     oeuvres
       .filter((o) => o.drop_id === dropId)
-      .map((o) => ({
-        id: o.id,
-        name: o.name,
-        format: o.format,
-        nb_ventes: o.nb_ventes ?? 0,
-        ca_brut: o.ca_brut ?? 0,
-      }));
+      .map((o) => {
+        const s = salesByKey.get(salesKey(o.name, o.format, dropId));
+        return {
+          id: o.id,
+          name: o.name,
+          format: o.format,
+          nb_ventes: s?.nb ?? 0,
+          ca_brut: s?.ca ?? 0,
+        };
+      });
 
   return {
     current: current ? { drop: current, oeuvres: oeuvresOf(current.id) } : null,
@@ -225,18 +242,18 @@ export async function getVentesParCampagne(): Promise<
   { name: string; ca: number; ventes: number }[]
 > {
   const supabase = createClient();
-  const [oeuvresRes, dropsRes] = await Promise.all([
-    supabase.from("oeuvres").select("drop_id, nb_ventes, ca_brut"),
+  const [salesRes, dropsRes] = await Promise.all([
+    supabase.from("artist_sales").select("drop_id, quantity, total_price"),
     supabase.from("drops").select("id, name"),
   ]);
   const dropName = new Map((dropsRes.data ?? []).map((d) => [d.id, d.name]));
   const agg = new Map<string, { name: string; ca: number; ventes: number }>();
-  for (const o of oeuvresRes.data ?? []) {
-    const key = o.drop_id ?? "none";
-    const name = o.drop_id ? dropName.get(o.drop_id) ?? "—" : "Hors campagne";
+  for (const s of salesRes.data ?? []) {
+    const key = s.drop_id ?? "none";
+    const name = s.drop_id ? dropName.get(s.drop_id) ?? "—" : "Hors campagne";
     const cur = agg.get(key) ?? { name, ca: 0, ventes: 0 };
-    cur.ca += o.ca_brut ?? 0;
-    cur.ventes += o.nb_ventes ?? 0;
+    cur.ca += s.total_price ?? 0;
+    cur.ventes += s.quantity ?? 0;
     agg.set(key, cur);
   }
   return Array.from(agg.values());
