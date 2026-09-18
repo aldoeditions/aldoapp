@@ -85,7 +85,7 @@ export default async function OrderDetailPage({
                 drops={drops}
                 waveNames={waveNames}
                 order={order}
-                items={items.map((i) => ({ oeuvre_id: i.oeuvre_id, quantity: i.quantity, unit_price: i.unit_price }))}
+                items={items.map((i) => ({ oeuvre_id: i.oeuvre_id ?? "", quantity: i.quantity, unit_price: i.unit_price }))}
                 variant="secondary"
                 label="Modifier"
               />

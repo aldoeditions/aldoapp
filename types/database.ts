@@ -51,6 +51,7 @@ export type Database = {
           birth_place: string | null;
           mda_number: string | null;
           pseudo: string | null;
+          sku_code: string | null;
           siret: string | null;
           is_maison_des_artistes: boolean | null;
           is_artiste_auteur: boolean | null;
@@ -95,6 +96,7 @@ export type Database = {
           birth_place?: string | null;
           mda_number?: string | null;
           pseudo?: string | null;
+          sku_code?: string | null;
           siret?: string | null;
           is_maison_des_artistes?: boolean | null;
           is_artiste_auteur?: boolean | null;
@@ -184,6 +186,8 @@ export type Database = {
           status: string;
           shopify_product_id: string | null;
           shopify_variant_id: string | null;
+          numero: number | null;
+          sku: string | null;
         };
         Insert: {
           id?: string;
@@ -203,6 +207,8 @@ export type Database = {
           status: string;
           shopify_product_id?: string | null;
           shopify_variant_id?: string | null;
+          numero?: number | null;
+          sku?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["oeuvres"]["Insert"]>;
         Relationships: [];
@@ -223,6 +229,12 @@ export type Database = {
           tracking_number: string | null;
           shipped_at: string | null;
           drop_id: string | null;
+          financial_status: string | null;
+          fulfillment_status: string | null;
+          subtotal_amount: number | null;
+          shipping_amount: number | null;
+          raw_payload: Json | null;
+          synced_at: string | null;
         };
         Insert: {
           id?: string;
@@ -239,6 +251,12 @@ export type Database = {
           tracking_number?: string | null;
           shipped_at?: string | null;
           drop_id?: string | null;
+          financial_status?: string | null;
+          fulfillment_status?: string | null;
+          subtotal_amount?: number | null;
+          shipping_amount?: number | null;
+          raw_payload?: Json | null;
+          synced_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
         Relationships: [];
@@ -247,20 +265,90 @@ export type Database = {
         Row: {
           id: string;
           order_id: string;
-          oeuvre_id: string;
+          oeuvre_id: string | null;
           quantity: number;
           unit_price: number;
           total_price: number;
+          shopify_line_item_id: string | null;
+          sku: string | null;
+          title_snapshot: string | null;
         };
         Insert: {
           id?: string;
           order_id: string;
-          oeuvre_id: string;
+          oeuvre_id?: string | null;
           quantity: number;
           unit_price: number;
           total_price: number;
+          shopify_line_item_id?: string | null;
+          sku?: string | null;
+          title_snapshot?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
+        Relationships: [];
+      };
+      drop_oeuvres: {
+        Row: {
+          id: string;
+          drop_id: string;
+          oeuvre_id: string;
+          price: number;
+          commission_pct: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          drop_id: string;
+          oeuvre_id: string;
+          price: number;
+          commission_pct: number;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["drop_oeuvres"]["Insert"]>;
+        Relationships: [];
+      };
+      webhook_events: {
+        Row: {
+          id: string;
+          shopify_webhook_id: string | null;
+          topic: string | null;
+          payload: Json | null;
+          processed: boolean | null;
+          error: string | null;
+          received_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          shopify_webhook_id?: string | null;
+          topic?: string | null;
+          payload?: Json | null;
+          processed?: boolean | null;
+          error?: string | null;
+          received_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["webhook_events"]["Insert"]>;
+        Relationships: [];
+      };
+      sync_log: {
+        Row: {
+          id: string;
+          type: string | null;
+          started_at: string | null;
+          finished_at: string | null;
+          orders_imported: number | null;
+          errors: number | null;
+          status: string | null;
+        };
+        Insert: {
+          id?: string;
+          type?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
+          orders_imported?: number | null;
+          errors?: number | null;
+          status?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["sync_log"]["Insert"]>;
         Relationships: [];
       };
       params: {
@@ -483,6 +571,26 @@ export type Database = {
       };
     };
     Views: {
+      oeuvre_stats: {
+        Row: {
+          oeuvre_id: string | null;
+          drop_id: string | null;
+          nb_ventes: number | null;
+          ca_brut: number | null;
+          commission_due: number | null;
+        };
+        Relationships: [];
+      };
+      oeuvre_stats_total: {
+        Row: {
+          oeuvre_id: string | null;
+          nb_ventes: number | null;
+          ca_brut: number | null;
+          commission_due: number | null;
+          nb_campagnes: number | null;
+        };
+        Relationships: [];
+      };
       drop_pnl: {
         Row: {
           id: string | null;

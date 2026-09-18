@@ -109,7 +109,7 @@ export async function saveOrder(
         .from("order_items")
         .select("oeuvre_id")
         .eq("order_id", orderId);
-      for (const o of old ?? []) affected.add(o.oeuvre_id);
+      for (const o of old ?? []) if (o.oeuvre_id) affected.add(o.oeuvre_id);
       await supabase.from("order_items").delete().eq("order_id", orderId);
     } else {
       const { data, error } = await supabase
@@ -154,7 +154,10 @@ export async function deleteOrder(id: string) {
   await supabase.from("order_items").delete().eq("order_id", id);
   const { error } = await supabase.from("orders").delete().eq("id", id);
   if (error) throw error;
-  await syncOeuvresSales(supabase, (old ?? []).map((o) => o.oeuvre_id));
+  await syncOeuvresSales(
+    supabase,
+    (old ?? []).map((o) => o.oeuvre_id).filter((x): x is string => Boolean(x)),
+  );
   revalidatePath("/commandes");
   revalidatePath("/drops");
 }
