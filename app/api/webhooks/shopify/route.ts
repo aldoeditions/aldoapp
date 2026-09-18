@@ -72,7 +72,12 @@ export async function POST(req: NextRequest) {
     await processShopifyTopic(admin, topic, payload);
     await admin.from("webhook_events").update({ processed: true }).eq("id", event.id);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Erreur de traitement";
+    const msg =
+      e instanceof Error
+        ? e.message
+        : e && typeof e === "object"
+          ? JSON.stringify(e).slice(0, 500)
+          : String(e);
     await admin.from("webhook_events").update({ processed: false, error: msg }).eq("id", event.id);
     console.error(`[shopify webhook] ${topic}:`, msg);
     // On répond quand même 200 : l'événement est archivé, rejouable depuis l'UI.

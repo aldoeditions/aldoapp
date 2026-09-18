@@ -190,7 +190,7 @@ export async function upsertOrderFromShopify(supabase: SB, payload: ShopifyOrder
     shipping_amount: m.shipping_amount,
     financial_status: m.financial_status,
     fulfillment_status: m.fulfillment_status,
-    status: "à traiter",
+    status: "en attente",
     wave,
     drop_id: dropId,
     raw_payload: payload as unknown as Database["public"]["Tables"]["orders"]["Insert"]["raw_payload"],
@@ -247,11 +247,16 @@ export async function updateFinancialStatus(
     .eq("shopify_order_id", shopifyOrderId);
 }
 
-/** Passe une commande en annulé (orders/cancelled). */
+/**
+ * Marque une commande annulée (orders/cancelled). `orders.status` n'a pas de
+ * valeur « annulé » (statut logistique : en attente/imprimé/expédié), donc on
+ * porte l'annulation sur financial_status — les stats l'excluent déjà (elles ne
+ * comptent que financial_status = 'paid').
+ */
 export async function markOrderCancelled(supabase: SB, shopifyOrderId: string): Promise<void> {
   await supabase
     .from("orders")
-    .update({ status: "annulé", financial_status: "cancelled", synced_at: new Date().toISOString() })
+    .update({ financial_status: "cancelled", synced_at: new Date().toISOString() })
     .eq("shopify_order_id", shopifyOrderId);
 }
 
