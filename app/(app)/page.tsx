@@ -3,6 +3,9 @@ import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPendingFiles } from "@/lib/data/artists";
 import { getMyOpenTasks } from "@/lib/data/tasks";
+import { getUpcomingSocialPosts } from "@/lib/data/social";
+import { socialUrgency } from "@/lib/social";
+import { SOCIAL_STATUS } from "@/lib/constants";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
@@ -37,9 +40,10 @@ export default async function DashboardPage() {
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
-  const [pendingFiles, myTasks] = await Promise.all([
+  const [pendingFiles, myTasks, upcomingPosts] = await Promise.all([
     getPendingFiles(),
     getMyOpenTasks(user.id),
+    getUpcomingSocialPosts(5),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -107,6 +111,50 @@ export default async function DashboardPage() {
                         </span>
                       </span>
                       <StatusBadge value={t.status} dict={TASK_STATUS} />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Posts à venir (réseaux sociaux) */}
+      <Card>
+        <CardHeader
+          title="Posts à venir"
+          subtitle="Les prochains posts Instagram planifiés."
+          action={
+            <Link href="/social" className="text-2xs font-medium text-accent hover:underline">
+              Le calendrier →
+            </Link>
+          }
+        />
+        <CardBody className={upcomingPosts.length > 0 ? "p-0" : undefined}>
+          {upcomingPosts.length === 0 ? (
+            <p className="py-4 text-center text-sm text-faint">Aucun post planifié à venir.</p>
+          ) : (
+            <ul>
+              {upcomingPosts.map((p) => {
+                const u = socialUrgency(p.post_date, p.status);
+                return (
+                  <li key={p.id}>
+                    <Link href="/social" className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm transition-colors last:border-0 hover:bg-bg">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-text">{p.title}</span>
+                        <span className="text-2xs text-faint">
+                          {dateCourte(p.post_date)}{p.drop_name ? ` · ${p.drop_name}` : ""}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {u.label && (
+                          <span className={"rounded-full px-2 py-0.5 text-2xs font-semibold " + (u.variant === "red" ? "bg-dangerBg text-danger" : u.variant === "orange" ? "bg-warningBg text-warning" : "text-faint")}>
+                            {u.label}
+                          </span>
+                        )}
+                        <StatusBadge value={p.status} dict={SOCIAL_STATUS} />
+                      </span>
                     </Link>
                   </li>
                 );

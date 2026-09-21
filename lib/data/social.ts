@@ -20,6 +20,24 @@ export async function getSocialPosts(filter: SocialFilter = {}): Promise<SocialP
   });
 }
 
+/** Prochains posts à venir (non postés), pour le dashboard. */
+export async function getUpcomingSocialPosts(limit = 5): Promise<SocialPostWithRefs[]> {
+  const supabase = createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("social_posts")
+    .select("*, drops(name)")
+    .neq("status", "posté")
+    .gte("post_date", today)
+    .order("post_date", { ascending: true })
+    .limit(limit)
+    .returns<(SocialPost & { drops: { name: string } | null })[]>();
+  return (data ?? []).map((p) => {
+    const { drops, ...rest } = p;
+    return { ...rest, drop_name: drops?.name ?? null };
+  });
+}
+
 /** Compteurs pour l'en-tête. */
 export async function getSocialCounts(): Promise<{ total: number; toPrepare: number }> {
   const supabase = createClient();
