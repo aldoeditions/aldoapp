@@ -274,6 +274,77 @@ export async function getVentesParCampagne(): Promise<
   return Array.from(agg.values());
 }
 
+/* --------------------- Calendrier --------------------- */
+
+export type ArtistCalendarEvent = {
+  date: string;
+  type: "vente" | "deadline" | "impression" | "fin" | "paiement";
+  label: string;
+  note: string | null;
+};
+
+export type ArtistCampaignAgenda = {
+  id: string;
+  name: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  events: ArtistCalendarEvent[];
+};
+
+/** Délai estimé (jours) entre la fin de campagne et le versement de la commission. */
+const PAIEMENT_LEAD_DAYS = 40;
+
+const addDays = (iso: string, n: number) => {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * Agenda des dates clés des campagnes de l'artiste : mise en vente, date limite
+ * fichiers (= 1re impression), 2e impression, fin, paiement estimé. Les
+ * campagnes entièrement terminées (paiement déjà passé) sont masquées.
+ */
+export async function getMyCalendar(): Promise<ArtistCampaignAgenda[]> {
+  const supabase = createClient();
+  const { data: oeuvres } = await supabase.from("oeuvres").select("drop_id");
+  const dropIds = Array.from(
+    new Set((oeuvres ?? []).map((o) => o.drop_id).filter((x): x is string => Boolean(x))),
+  );
+  if (!dropIds.length) return [];
+
+  const { data: drops } = await supabase
+    .from("drops")
+    .select("id, name, status, start_date, end_date, date_impression_1, date_impression_2")
+    .in("id", dropIds)
+    .order("start_date", { ascending: true });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const result: ArtistCampaignAgenda[] = [];
+  for (const d of drops ?? []) {
+    const events: ArtistCalendarEvent[] = [];
+    if (d.start_date) events.push({ date: d.start_date, type: "vente", label: "Mise en vente", note: null });
+    if (d.date_impression_1)
+      events.push({ date: d.date_impression_1, type: "deadline", label: "Date limite d'envoi des fichiers", note: "Pour la 1re impression" });
+    if (d.date_impression_2)
+      events.push({ date: d.date_impression_2, type: "impression", label: "2e impression", note: null });
+    if (d.end_date) events.push({ date: d.end_date, type: "fin", label: "Fin de campagne", note: null });
+    const paiement = d.end_date ? addDays(d.end_date, PAIEMENT_LEAD_DAYS) : null;
+    if (paiement)
+      events.push({ date: paiement, type: "paiement", label: "Paiement estimé de ta commission", note: "Sous réserve du relevé des ventes" });
+
+    events.sort((a, b) => a.date.localeCompare(b.date));
+
+    // Masquer les campagnes entièrement passées (dernière date < aujourd'hui).
+    const lastDate = paiement ?? d.end_date ?? d.start_date;
+    if (lastDate && lastDate < today) continue;
+
+    result.push({ id: d.id, name: d.name, status: d.status, start_date: d.start_date, end_date: d.end_date, events });
+  }
+  return result;
+}
+
 /* --------------------- Paiements --------------------- */
 
 export type MyPayment = {
