@@ -524,6 +524,7 @@ export type Database = {
           created_by_id: string | null;
           drop_id: string | null;
           artist_id: string | null;
+          social_post_id: string | null;
           due_date: string | null;
           created_at: string;
           updated_at: string;
@@ -538,11 +539,42 @@ export type Database = {
           created_by_id?: string | null;
           drop_id?: string | null;
           artist_id?: string | null;
+          social_post_id?: string | null;
           due_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
+        Relationships: [];
+      };
+      social_posts: {
+        Row: {
+          id: string;
+          title: string;
+          caption: string | null;
+          post_date: string;
+          status: string;
+          format: string | null;
+          drive_link: string | null;
+          drop_id: string | null;
+          created_by_id: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          caption?: string | null;
+          post_date: string;
+          status?: string;
+          format?: string | null;
+          drive_link?: string | null;
+          drop_id?: string | null;
+          created_by_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["social_posts"]["Insert"]>;
         Relationships: [];
       };
       task_comments: {

@@ -32,6 +32,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 export type ModuleKey =
   | "dashboard"
   | "projet"
+  | "social"
   | "prospection"
   | "artistes"
   | "drops"
@@ -46,6 +47,7 @@ export type Access = "none" | "read" | "write";
 const ALL_WRITE: Record<ModuleKey, Access> = {
   dashboard: "write",
   projet: "write",
+  social: "write",
   prospection: "write",
   artistes: "write",
   drops: "write",
@@ -60,6 +62,7 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
   marketing: {
     dashboard: "write",
     projet: "write",
+    social: "write",
     prospection: "write",
     artistes: "write",
     drops: "write",
@@ -71,6 +74,7 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
   creatif: {
     dashboard: "read",
     projet: "write",
+    social: "write",
     prospection: "write",
     artistes: "write",
     drops: "write",
@@ -83,6 +87,7 @@ export const ROLE_ACCESS: Record<Role, Record<ModuleKey, Access>> = {
   artist: {
     dashboard: "none",
     projet: "none",
+    social: "none",
     prospection: "none",
     artistes: "none",
     drops: "none",

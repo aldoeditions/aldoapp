@@ -24,6 +24,16 @@ export function DashboardIcon(p: IconProps) {
   );
 }
 
+export function SocialIcon(p: IconProps) {
+  return (
+    <svg {...base} className={p.className} aria-hidden>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 8h18M8 4v4" />
+      <path d="M8 13h4M8 16h6" />
+    </svg>
+  );
+}
+
 export function ProjetIcon(p: IconProps) {
   return (
     <svg {...base} className={p.className} aria-hidden>

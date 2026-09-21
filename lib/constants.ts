@@ -212,6 +212,27 @@ export const TASK_PRIORITIES: StatusOption[] = [
 ];
 export const TASK_PRIORITY = dict(TASK_PRIORITIES);
 
+/* ------------------------------------------------------------------ */
+/* Réseaux sociaux (calendrier des posts)                             */
+/* ------------------------------------------------------------------ */
+export const SOCIAL_STATUSES: StatusOption[] = [
+  { value: "en préparation", label: "En préparation", variant: "orange" },
+  { value: "prêt à poster", label: "Prêt à poster", variant: "green" },
+  { value: "posté", label: "Posté", variant: "gray" },
+];
+export const SOCIAL_STATUS = dict(SOCIAL_STATUSES);
+
+export const SOCIAL_FORMATS: StatusOption[] = [
+  { value: "post", label: "Post", variant: "blue" },
+  { value: "carrousel", label: "Carrousel", variant: "blue" },
+  { value: "reel", label: "Reel", variant: "blue" },
+  { value: "story", label: "Story", variant: "blue" },
+];
+export const SOCIAL_FORMAT = dict(SOCIAL_FORMATS);
+
+/** Nombre de jours avant la date de post pour l'échéance « Créer le visuel ». */
+export const SOCIAL_VISUAL_LEAD_DAYS = 7;
+
 /**
  * Type d'entité artiste — CHECK constraint réelle en base.
  * (Le médium artistique est saisi librement dans le champ « style ».)
