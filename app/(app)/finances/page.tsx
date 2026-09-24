@@ -32,13 +32,13 @@ export default async function FinancesPage() {
         <>
           {/* KPIs globaux */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="CA brut cumulé" value={euros0(g.ca_brut)} accent />
+            <StatCard label="CA encaissé (TTC)" value={euros0(g.ca_brut)} hint={`${euros0(g.ca_ht)} HT`} accent />
             <StatCard
-              label="Résultat net"
+              label="Résultat net (HT)"
               value={euros0(g.resultat_net)}
               hint={g.resultat_net < 0 ? "Déficitaire" : undefined}
             />
-            <StatCard label="Marge nette" value={pourcent(g.marge)} />
+            <StatCard label="Marge nette" value={pourcent(g.marge)} hint="sur le HT" />
             <StatCard
               label="Ventes"
               value={nombre(g.nb_ventes)}
@@ -50,12 +50,12 @@ export default async function FinancesPage() {
           <Card>
             <CardHeader
               title="Décomposition globale"
-              subtitle={`Du CA (${euros0(g.ca_brut)}) au résultat net (${euros0(g.resultat_net)})`}
+              subtitle={`Du CA HT (${euros0(g.ca_ht)}) au résultat net (${euros0(g.resultat_net)}) — hors TVA`}
             />
             <CardBody>
               <CostBar
                 data={{
-                  ca: g.ca_brut,
+                  ca: g.ca_ht,
                   commissions: g.total_commissions,
                   impression: g.total_impression,
                   packaging: g.total_packaging,
@@ -72,8 +72,9 @@ export default async function FinancesPage() {
             <div className="grid gap-4 lg:grid-cols-2">
               {rows.map((r) => {
                 const ca = r.ca_brut ?? 0;
+                const caHt = r.ca_ht ?? 0;
                 const net = r.resultat_net ?? 0;
-                const marge = ca > 0 ? net / ca : 0;
+                const marge = caHt > 0 ? net / caHt : 0;
                 return (
                   <Link
                     key={r.id ?? ""}
@@ -93,7 +94,7 @@ export default async function FinancesPage() {
                     <div className="mb-4 mt-4 grid grid-cols-3 gap-2 text-center">
                       <div>
                         <p className="font-serif text-lg text-text">{euros0(ca)}</p>
-                        <p className="text-2xs text-faint">CA brut</p>
+                        <p className="text-2xs text-faint">CA TTC · {euros0(caHt)} HT</p>
                       </div>
                       <div>
                         <p className={"font-serif text-lg " + (net >= 0 ? "text-success" : "text-danger")}>
@@ -110,7 +111,7 @@ export default async function FinancesPage() {
                     <CostBar
                       showLegend={false}
                       data={{
-                        ca,
+                        ca: caHt,
                         commissions: r.total_commissions ?? 0,
                         impression: r.total_impression ?? 0,
                         packaging: r.total_packaging ?? 0,

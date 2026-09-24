@@ -1,5 +1,5 @@
 import { StatusBadge } from "@/components/ui/Badge";
-import { OEUVRE_STATUS } from "@/lib/constants";
+import { OEUVRE_STATUS, montantHT } from "@/lib/constants";
 import { euros, nombre } from "@/lib/format";
 import type { MyOeuvre } from "@/lib/data/portal";
 
@@ -46,7 +46,7 @@ export function OeuvreCard({
             <p className="text-2xs text-faint">Ventes · commission</p>
             <p className="font-medium text-text">
               {nombre(oeuvre.ventes_total)} ·{" "}
-              <span className="text-accent">{euros((oeuvre.ca_total ?? 0) * commissionPct)}</span>
+              <span className="text-accent">{euros(montantHT(oeuvre.ca_total ?? 0) * commissionPct)}</span>
             </p>
           </div>
         </div>

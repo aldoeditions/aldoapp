@@ -605,6 +605,7 @@ export type Database = {
           drop_id: string | null;
           nb_ventes: number | null;
           ca_brut: number | null;
+          ca_ht: number | null;
           commission_due: number | null;
         };
         Relationships: [];
@@ -614,6 +615,7 @@ export type Database = {
           oeuvre_id: string | null;
           nb_ventes: number | null;
           ca_brut: number | null;
+          ca_ht: number | null;
           commission_due: number | null;
           nb_campagnes: number | null;
         };
@@ -628,6 +630,7 @@ export type Database = {
           end_date: string | null;
           objectif_ca: number | null;
           ca_brut: number | null;
+          ca_ht: number | null;
           nb_ventes: number | null;
           total_commissions: number | null;
           total_impression: number | null;

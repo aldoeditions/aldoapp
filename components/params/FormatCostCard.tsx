@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { saveFormatCosts, type ParamState } from "@/app/(app)/parametres/actions";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { euros } from "@/lib/format";
-import { COMMISSION_PCT } from "@/lib/constants";
+import { COMMISSION_PCT, TVA_PCT, montantHT } from "@/lib/constants";
 import type { FormatCosts } from "@/lib/data/params";
 
 const inputCls =
@@ -22,8 +22,9 @@ export function FormatCostCard({ init }: { init: FormatCosts }) {
   const packTotal = packaging.reduce((s, p) => s + num(p.valeur), 0);
   const imp = num(impression);
   const revient = imp + packTotal;
-  const commission = init.prix * COMMISSION_PCT;
-  const marge = init.prix - commission - revient;
+  const prixHT = montantHT(init.prix);
+  const commission = prixHT * COMMISSION_PCT;
+  const marge = prixHT - commission - revient;
 
   function setItem(i: number, valeur: string) {
     setPackaging((ps) => ps.map((p, idx) => (idx === i ? { ...p, valeur } : p)));
@@ -95,13 +96,23 @@ export function FormatCostCard({ init }: { init: FormatCosts }) {
         {/* Synthèse */}
         <div className="rounded-lg bg-bg px-4 py-3 text-sm">
           <div className="flex items-center justify-between">
+            <span className="text-muted">Prix de vente TTC</span>
+            <span className="font-medium text-text">{euros(init.prix)}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-muted">Prix HT <span className="text-faint">(TVA {Math.round(TVA_PCT * 100)} %)</span></span>
+            <span className="font-medium text-text">{euros(round2(prixHT))}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-muted">Rétribution artiste <span className="text-faint">({Math.round(COMMISSION_PCT * 100)} % du HT)</span></span>
+            <span className="font-medium text-accent">{euros(round2(commission))}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between border-t border-border pt-2">
             <span className="text-muted">Coût de revient</span>
             <span className="font-medium text-text">{euros(round2(revient))}</span>
           </div>
           <div className="mt-1 flex items-center justify-between">
-            <span className="text-muted">
-              Marge nette <span className="text-faint">(après commission {Math.round(COMMISSION_PCT * 100)} %)</span>
-            </span>
+            <span className="text-muted">Marge nette HT</span>
             <span className={"font-semibold " + (marge >= 0 ? "text-success" : "text-danger")}>
               {euros(round2(marge))}
             </span>

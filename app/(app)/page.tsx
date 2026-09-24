@@ -29,14 +29,15 @@ export default async function DashboardPage() {
       supabase.from("drops").select("*", { count: "exact", head: true }),
       supabase
         .from("drop_pnl")
-        .select("ca_brut, resultat_net, nb_ventes")
+        .select("ca_brut, ca_ht, resultat_net, nb_ventes")
         .order("start_date", { ascending: false })
         .returns<
-          { ca_brut: number | null; resultat_net: number | null; nb_ventes: number | null }[]
+          { ca_brut: number | null; ca_ht: number | null; resultat_net: number | null; nb_ventes: number | null }[]
         >(),
     ]);
 
   const caTotal = (pnl ?? []).reduce((s, d) => s + (d.ca_brut ?? 0), 0);
+  const caHtTotal = (pnl ?? []).reduce((s, d) => s + (d.ca_ht ?? 0), 0);
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
@@ -59,8 +60,8 @@ export default async function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="CA brut cumulé" value={euros0(caTotal)} accent />
-        <StatCard label="Résultat net" value={euros0(netTotal)} />
+        <StatCard label="CA encaissé (TTC)" value={euros0(caTotal)} hint={`${euros0(caHtTotal)} HT`} accent />
+        <StatCard label="Résultat net (HT)" value={euros0(netTotal)} />
         <StatCard label="Ventes" value={nombre(ventesTotal)} />
         <StatCard
           label="Artistes"

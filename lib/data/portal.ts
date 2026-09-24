@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { COMMISSION_PCT } from "@/lib/constants";
+import { COMMISSION_PCT, montantHT } from "@/lib/constants";
 import type { Artist, Drop, Oeuvre, ArtistFile, Contract } from "@/types/database";
 
 const round = (n: number) => Math.round(n * 100) / 100;
@@ -35,7 +35,8 @@ export async function getMyStats(commissionPct: number | null): Promise<MyStats>
   const sales = salesRes.data ?? [];
   const nb_ventes = sales.reduce((s, x) => s + (x.quantity ?? 0), 0);
   const ca_brut = sales.reduce((s, x) => s + (x.total_price ?? 0), 0);
-  const commission_estimee = Math.round(ca_brut * pct * 100) / 100;
+  // Commission = 30 % du HT (le prix affiché est TTC).
+  const commission_estimee = Math.round(montantHT(ca_brut) * pct * 100) / 100;
 
   const commission_payee = (paymentsRes.data ?? [])
     .filter((p) => p.status === "payé" || p.status === "paye")
@@ -245,10 +246,10 @@ export function computeSalesKpis(sales: Sale[], commissionPct: number | null): S
   return {
     ventesMois,
     caMois: round(caMois),
-    commissionMois: round(caMois * pct),
+    commissionMois: round(montantHT(caMois) * pct), // commission = 30 % du HT
     ventesTotal,
     caTotal: round(caTotal),
-    commissionTotal: round(caTotal * pct),
+    commissionTotal: round(montantHT(caTotal) * pct),
   };
 }
 

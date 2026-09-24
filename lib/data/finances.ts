@@ -12,20 +12,22 @@ export async function getAllPnl(): Promise<DropPnl[]> {
 }
 
 export type GlobalPnl = {
-  ca_brut: number;
+  ca_brut: number; // TTC (encaissé)
+  ca_ht: number; // HT
   nb_ventes: number;
   total_commissions: number;
   total_impression: number;
   total_packaging: number;
   total_charges: number;
   resultat_net: number;
-  marge: number; // ratio net / CA
+  marge: number; // ratio net / CA HT
 };
 
 /** Agrège toutes les lignes P&L en un total global. */
 export function computeGlobal(rows: DropPnl[]): GlobalPnl {
   const g: GlobalPnl = {
     ca_brut: 0,
+    ca_ht: 0,
     nb_ventes: 0,
     total_commissions: 0,
     total_impression: 0,
@@ -36,6 +38,7 @@ export function computeGlobal(rows: DropPnl[]): GlobalPnl {
   };
   for (const r of rows) {
     g.ca_brut += r.ca_brut ?? 0;
+    g.ca_ht += r.ca_ht ?? 0;
     g.nb_ventes += r.nb_ventes ?? 0;
     g.total_commissions += r.total_commissions ?? 0;
     g.total_impression += r.total_impression ?? 0;
@@ -43,7 +46,7 @@ export function computeGlobal(rows: DropPnl[]): GlobalPnl {
     g.total_charges += r.total_charges ?? 0;
     g.resultat_net += r.resultat_net ?? 0;
   }
-  g.marge = g.ca_brut > 0 ? g.resultat_net / g.ca_brut : 0;
+  g.marge = g.ca_ht > 0 ? g.resultat_net / g.ca_ht : 0;
   return g;
 }
 
@@ -52,8 +55,8 @@ export type OeuvreContribution = {
   name: string;
   format: string;
   nb_ventes: number;
-  ca_brut: number;
-  marge: number;
+  ca_brut: number; // TTC
+  marge: number; // HT
 };
 
 export type DropFinance = {
@@ -80,21 +83,23 @@ export async function getDropFinance(id: string): Promise<DropFinance | null> {
       .select("id, name, format, cout_impression, cout_packaging, price")
       .eq("drop_id", id),
     // Ventes RÉELLES par œuvre pour cette campagne (commandes payées).
-    supabase.from("oeuvre_stats").select("oeuvre_id, nb_ventes, ca_brut").eq("drop_id", id),
+    supabase.from("oeuvre_stats").select("oeuvre_id, nb_ventes, ca_brut, ca_ht").eq("drop_id", id),
   ]);
 
-  const realStats = new Map<string, { nb: number; ca: number }>();
+  const realStats = new Map<string, { nb: number; ca: number; caHt: number }>();
   for (const s of statsRes.data ?? []) {
-    if (s.oeuvre_id) realStats.set(s.oeuvre_id, { nb: s.nb_ventes ?? 0, ca: s.ca_brut ?? 0 });
+    if (s.oeuvre_id) realStats.set(s.oeuvre_id, { nb: s.nb_ventes ?? 0, ca: s.ca_brut ?? 0, caHt: s.ca_ht ?? 0 });
   }
 
   const COMMISSION = 0.3;
   const oeuvres: OeuvreContribution[] = (oeuvresRes.data ?? [])
     .map((o: Pick<Oeuvre, "id" | "name" | "format" | "cout_impression" | "cout_packaging" | "price">) => {
-      const nb = realStats.get(o.id)?.nb ?? 0;
-      const ca = realStats.get(o.id)?.ca ?? 0;
+      const st = realStats.get(o.id);
+      const nb = st?.nb ?? 0;
+      const ca = st?.ca ?? 0; // TTC (affichage)
+      const caHt = st?.caHt ?? 0; // HT (marge + commission)
       const marge =
-        ca - ca * COMMISSION - nb * (o.cout_impression ?? 0) - nb * (o.cout_packaging ?? 0);
+        caHt - caHt * COMMISSION - nb * (o.cout_impression ?? 0) - nb * (o.cout_packaging ?? 0);
       return {
         id: o.id,
         name: o.name,

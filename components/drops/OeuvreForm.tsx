@@ -10,6 +10,7 @@ import {
   OEUVRE_STATUSES,
   FORMATS,
   COMMISSION_PCT,
+  montantHT,
   type FormatKey,
 } from "@/lib/constants";
 import { euros } from "@/lib/format";
@@ -72,8 +73,9 @@ export function OeuvreForm({
   const p = Number(price.replace(",", ".")) || 0;
   const ci = Number(impression.replace(",", ".")) || 0;
   const cp = Number(packaging.replace(",", ".")) || 0;
-  const commission = p * COMMISSION_PCT;
-  const marge = p - ci - cp - commission;
+  const ht = montantHT(p);
+  const commission = ht * COMMISSION_PCT;
+  const marge = ht - ci - cp - commission;
 
   return (
     <form action={formAction} className="space-y-4 px-5 py-5">
@@ -189,7 +191,7 @@ export function OeuvreForm({
       {/* Marge estimée */}
       <div className="flex items-center justify-between rounded-md bg-bg px-3 py-2 text-sm">
         <span className="text-muted">
-          Marge nette <span className="text-faint">(après commission {Math.round(COMMISSION_PCT * 100)}%)</span>
+          Marge nette HT <span className="text-faint">(commission {Math.round(COMMISSION_PCT * 100)}% sur le HT)</span>
         </span>
         <span className={"font-semibold " + (marge >= 0 ? "text-success" : "text-danger")}>
           {euros(marge)}

@@ -46,8 +46,9 @@ export default async function DropFinancePage({ params }: { params: { id: string
   const { pnl, charges, oeuvres } = fin;
 
   const ca = pnl.ca_brut ?? 0;
+  const caHt = pnl.ca_ht ?? 0;
   const net = pnl.resultat_net ?? 0;
-  const marge = ca > 0 ? net / ca : 0;
+  const marge = caHt > 0 ? net / caHt : 0;
 
   return (
     <div className="space-y-6">
@@ -70,9 +71,9 @@ export default async function DropFinancePage({ params }: { params: { id: string
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="CA brut" value={euros0(ca)} accent />
-        <StatCard label="Résultat net" value={euros0(net)} />
-        <StatCard label="Marge nette" value={pourcent(marge)} />
+        <StatCard label="CA encaissé (TTC)" value={euros0(ca)} hint={`${euros0(caHt)} HT`} accent />
+        <StatCard label="Résultat net (HT)" value={euros0(net)} />
+        <StatCard label="Marge nette" value={pourcent(marge)} hint="sur le HT" />
         <StatCard label="Ventes" value={nombre(pnl.nb_ventes)} />
       </div>
 
@@ -83,8 +84,8 @@ export default async function DropFinancePage({ params }: { params: { id: string
             <CardHeader title="Compte de résultat" />
             <CardBody className="p-0">
               <div className="divide-y divide-border">
-                <StatementRow label="Chiffre d'affaires brut" value={ca} kind="revenue" />
-                <StatementRow label="Commissions artistes (30 %)" value={pnl.total_commissions ?? 0} />
+                <StatementRow label="Chiffre d'affaires HT" value={caHt} kind="revenue" />
+                <StatementRow label="Commissions artistes (30 % du HT)" value={pnl.total_commissions ?? 0} />
                 <StatementRow label="Coût d'impression" value={pnl.total_impression ?? 0} />
                 <StatementRow label="Coût de packaging" value={pnl.total_packaging ?? 0} />
                 <StatementRow label="Charges (fixes & variables)" value={pnl.total_charges ?? 0} />
@@ -98,7 +99,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
             <CardBody>
               <CostBar
                 data={{
-                  ca,
+                  ca: caHt,
                   commissions: pnl.total_commissions ?? 0,
                   impression: pnl.total_impression ?? 0,
                   packaging: pnl.total_packaging ?? 0,
@@ -141,7 +142,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
                   </tbody>
                 </table></div>
               )}
-              <p className="px-5 py-2 text-2xs text-faint">* Marge hors charges du drop (commission + production).</p>
+              <p className="px-5 py-2 text-2xs text-faint">* Marge HT hors charges du drop (CA HT − commission 30 % − production). CA affiché en TTC.</p>
             </CardBody>
           </Card>
         </div>

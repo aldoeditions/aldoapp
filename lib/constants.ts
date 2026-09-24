@@ -7,8 +7,16 @@
 /* Règles commerciales                                                 */
 /* ------------------------------------------------------------------ */
 
-/** Commission artiste par défaut : 30 % du prix de vente TTC. */
+/** Commission artiste par défaut : 30 % du prix de vente HORS TAXES. */
 export const COMMISSION_PCT = 0.3;
+
+/** Taux de TVA appliqué aux prix de vente (prix affichés = TTC). */
+export const TVA_PCT = 0.2;
+
+/** Convertit un montant TTC en HT (base de calcul de la commission artiste). */
+export function montantHT(ttc: number | null | undefined): number {
+  return Math.round(((ttc ?? 0) / (1 + TVA_PCT)) * 100) / 100;
+}
 
 export type FormatKey = "A3" | "A4";
 
