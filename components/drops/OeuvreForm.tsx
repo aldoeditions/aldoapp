@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { saveOeuvre, type FormState } from "@/app/(app)/drops/actions";
 import { Select, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
+import { StatusBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { downscaleImageFile } from "@/lib/files/downscale-client";
 import {
   OEUVRE_STATUSES,
   FORMATS,
   COMMISSION_PCT,
+  DESCRIPTION_STATUS,
   montantHT,
   type FormatKey,
 } from "@/lib/constants";
@@ -216,6 +218,21 @@ export function OeuvreForm({
           <span className="font-medium text-text">Créer aussi le format {format === "A4" ? "A3" : "A4"}</span>
           <span className="text-2xs text-faint">— même visuel, même numéro</span>
         </label>
+      )}
+
+      {/* Description rédigée par l'artiste (lecture seule ; validation sur le dashboard). */}
+      {editing && (
+        <div className="rounded-md border border-border bg-bg px-3 py-2.5">
+          <div className="mb-1 flex items-center justify-between">
+            <span className={labelCls + " mb-0"}>Description artiste</span>
+            <StatusBadge value={oeuvre?.description_status ?? "à écrire"} dict={DESCRIPTION_STATUS} />
+          </div>
+          {oeuvre?.description ? (
+            <p className="whitespace-pre-line text-2xs leading-relaxed text-muted">{oeuvre.description}</p>
+          ) : (
+            <p className="text-2xs text-faint">Pas encore rédigée par l&apos;artiste.</p>
+          )}
+        </div>
       )}
 
       <FormError error={state?.error ?? null} />
