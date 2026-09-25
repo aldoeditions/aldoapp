@@ -117,12 +117,16 @@ export async function getMyActions(iban: string | null): Promise<TodoAction[]> {
   const supabase = createClient();
   const [contractsRes, oeuvresRes, filesRes] = await Promise.all([
     supabase.from("contracts").select("status"),
-    supabase.from("oeuvres").select("id"),
+    supabase.from("oeuvres").select("id, description_status"),
     supabase.from("artist_files").select("oeuvre_id, status"),
   ]);
 
   const actions: TodoAction[] = [];
   if (!iban) actions.push({ label: "Renseigne ton RIB pour être payé", href: "/portail/profil" });
+
+  const toDescribe = (oeuvresRes.data ?? []).filter((o) => o.description_status === "à écrire").length;
+  if (toDescribe > 0)
+    actions.push({ label: `Décris tes œuvres (${toDescribe})`, href: "/portail/oeuvres" });
 
   const contracts = contractsRes.data ?? [];
   if (contracts.some((c) => c.status && c.status !== "signé"))

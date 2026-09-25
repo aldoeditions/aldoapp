@@ -2,7 +2,9 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPendingFiles } from "@/lib/data/artists";
+import { getPendingDescriptions } from "@/lib/data/oeuvres";
 import { getMyOpenTasks } from "@/lib/data/tasks";
+import { DescriptionReview } from "@/components/artists/DescriptionReview";
 import { getUpcomingSocialPosts } from "@/lib/data/social";
 import { socialUrgency } from "@/lib/social";
 import { SOCIAL_STATUS } from "@/lib/constants";
@@ -41,10 +43,11 @@ export default async function DashboardPage() {
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
-  const [pendingFiles, myTasks, upcomingPosts] = await Promise.all([
+  const [pendingFiles, myTasks, upcomingPosts, pendingDescriptions] = await Promise.all([
     getPendingFiles(),
     getMyOpenTasks(user.id),
     getUpcomingSocialPosts(5),
+    getPendingDescriptions(),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -164,6 +167,24 @@ export default async function DashboardPage() {
           )}
         </CardBody>
       </Card>
+
+      {/* Descriptions d'œuvres à valider */}
+      {pendingDescriptions.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Descriptions à valider"
+            subtitle="Descriptions rédigées par les artistes, à relire avant publication."
+            action={
+              <span className="rounded-full bg-warningBg px-2.5 py-0.5 text-2xs font-semibold text-warning">
+                {nombre(pendingDescriptions.length)} à traiter
+              </span>
+            }
+          />
+          <CardBody className="p-0">
+            <DescriptionReview items={pendingDescriptions} />
+          </CardBody>
+        </Card>
+      )}
 
       {/* Fichiers en attente de validation */}
       <Card>

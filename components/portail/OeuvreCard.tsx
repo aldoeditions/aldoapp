@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/ui/Badge";
 import { OEUVRE_STATUS, montantHT } from "@/lib/constants";
 import { euros, nombre } from "@/lib/format";
+import { OeuvreDescriptionForm } from "./OeuvreDescriptionForm";
 import type { MyOeuvre } from "@/lib/data/portal";
 
 export function OeuvreCard({
@@ -50,6 +51,13 @@ export function OeuvreCard({
             </p>
           </div>
         </div>
+
+        <OeuvreDescriptionForm
+          oeuvreId={oeuvre.id}
+          oeuvreName={oeuvre.name}
+          description={oeuvre.description}
+          status={oeuvre.description_status}
+        />
       </div>
     </div>
   );

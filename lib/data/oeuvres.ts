@@ -104,6 +104,36 @@ export async function getAttachableOeuvres(dropId: string): Promise<AttachableOe
     }));
 }
 
+export type PendingDescription = {
+  id: string;
+  name: string;
+  format: string;
+  artist_name: string | null;
+  drop_name: string | null;
+  description: string | null;
+};
+
+/** Descriptions soumises par les artistes, en attente de validation équipe. */
+export async function getPendingDescriptions(): Promise<PendingDescription[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("oeuvres")
+    .select("id, name, format, description, updated_at, artists(name), drops(name)")
+    .eq("description_status", "à valider")
+    .order("updated_at", { ascending: false })
+    .returns<
+      { id: string; name: string; format: string; description: string | null; artists: { name: string } | null; drops: { name: string } | null }[]
+    >();
+  return (data ?? []).map((o) => ({
+    id: o.id,
+    name: o.name,
+    format: o.format,
+    description: o.description,
+    artist_name: o.artists?.name ?? null,
+    drop_name: o.drops?.name ?? null,
+  }));
+}
+
 /** Compteurs pour l'en-tête (total + sans drop). */
 export async function getOeuvreCounts(): Promise<{ total: number; unassigned: number }> {
   const supabase = createClient();

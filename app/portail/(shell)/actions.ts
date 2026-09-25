@@ -48,6 +48,41 @@ function str(fd: FormData, key: string): string | null {
   return t.length ? t : null;
 }
 
+/**
+ * L'artiste soumet/modifie la description d'UNE de ses œuvres → passe en
+ * « à valider » (relecture équipe). Écriture via client admin (l'artiste n'a
+ * pas le droit d'UPDATE oeuvres en RLS), après vérification de propriété.
+ */
+export async function submitOeuvreDescription(
+  oeuvreId: string,
+  description: string,
+): Promise<{ error?: string }> {
+  const user = await requireArtist();
+  const admin = createAdminClient();
+
+  const { data: oeuvre } = await admin
+    .from("oeuvres")
+    .select("id, artist_id")
+    .eq("id", oeuvreId)
+    .maybeSingle();
+  if (!oeuvre || oeuvre.artist_id !== user.artistId) {
+    return { error: "Œuvre introuvable." };
+  }
+
+  const text = description.trim();
+  if (!text) return { error: "La description est vide." };
+
+  const { error } = await admin
+    .from("oeuvres")
+    .update({ description: text, description_status: "à valider" })
+    .eq("id", oeuvreId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/portail/oeuvres");
+  revalidatePath("/portail");
+  return {};
+}
+
 export type ProfileState = { error: string | null; ok?: boolean };
 
 /** Met à jour le profil de l'artiste connecté (+ avatar optionnel). */

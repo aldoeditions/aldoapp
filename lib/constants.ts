@@ -241,6 +241,16 @@ export const SOCIAL_FORMAT = dict(SOCIAL_FORMATS);
 /** Nombre de jours avant la date de post pour l'échéance « Créer le visuel ». */
 export const SOCIAL_VISUAL_LEAD_DAYS = 7;
 
+/* ------------------------------------------------------------------ */
+/* Description d'œuvre (rédigée par l'artiste, validée par l'équipe)   */
+/* ------------------------------------------------------------------ */
+export const DESCRIPTION_STATUSES: StatusOption[] = [
+  { value: "à écrire", label: "À écrire", variant: "gray" },
+  { value: "à valider", label: "À valider", variant: "orange" },
+  { value: "validée", label: "Validée", variant: "green" },
+];
+export const DESCRIPTION_STATUS = dict(DESCRIPTION_STATUSES);
+
 /**
  * Type d'entité artiste — CHECK constraint réelle en base.
  * (Le médium artistique est saisi librement dans le champ « style ».)

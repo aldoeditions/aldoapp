@@ -186,6 +186,8 @@ export type Database = {
           shopify_variant_id: string | null;
           numero: number | null;
           sku: string | null;
+          description: string | null;
+          description_status: string;
         };
         Insert: {
           id?: string;
@@ -205,6 +207,8 @@ export type Database = {
           shopify_variant_id?: string | null;
           numero?: number | null;
           sku?: string | null;
+          description?: string | null;
+          description_status?: string;
         };
         Update: Partial<Database["public"]["Tables"]["oeuvres"]["Insert"]>;
         Relationships: [];
