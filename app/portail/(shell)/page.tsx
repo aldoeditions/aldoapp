@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { PortalHeader } from "@/components/portail/PortalHeader";
 import { euros0, euros, nombre, dateCourte } from "@/lib/format";
-import { COMMISSION_PCT } from "@/lib/constants";
+import { COMMISSION_PCT, montantHT } from "@/lib/constants";
 
 function joursRestants(end: string | null): number | null {
   if (!end) return null;
@@ -106,7 +106,7 @@ export default async function PortalHome() {
                       <td className="px-5 py-2.5 font-medium text-text">{o.name}</td>
                       <td className="px-3 py-2.5 text-muted">{o.format}</td>
                       <td className="px-3 py-2.5 text-right text-text">{nombre(o.nb_ventes)}</td>
-                      <td className="px-5 py-2.5 text-right font-medium text-accent">{euros(o.ca_brut * pct)}</td>
+                      <td className="px-5 py-2.5 text-right font-medium text-accent">{euros(montantHT(o.ca_brut) * pct)}</td>
                     </tr>
                   ))}
                 </tbody>
