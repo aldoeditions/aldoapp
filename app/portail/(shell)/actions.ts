@@ -48,6 +48,19 @@ function str(fd: FormData, key: string): string | null {
   return t.length ? t : null;
 }
 
+/** Marque l'onboarding comme vu (une seule fois). */
+export async function completeOnboarding(): Promise<{ error?: string }> {
+  const user = await requireArtist();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artists")
+    .update({ onboarded_at: new Date().toISOString() })
+    .eq("id", user.artistId);
+  if (error) return { error: error.message };
+  revalidatePath("/portail");
+  return {};
+}
+
 /**
  * L'artiste soumet/modifie la description d'UNE de ses œuvres → passe en
  * « à valider » (relecture équipe). Écriture via client admin (l'artiste n'a

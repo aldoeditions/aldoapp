@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireArtist } from "@/lib/auth/session";
 import {
   getMyArtist,
@@ -9,6 +10,7 @@ import {
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { PortalHeader } from "@/components/portail/PortalHeader";
+import { HowItWorks } from "@/components/portail/HowItWorks";
 import { euros0, euros, nombre, dateCourte } from "@/lib/format";
 import { COMMISSION_PCT, montantHT } from "@/lib/constants";
 
@@ -20,6 +22,8 @@ function joursRestants(end: string | null): number | null {
 export default async function PortalHome() {
   await requireArtist();
   const artist = await getMyArtist();
+  // Première connexion → écran de bienvenue (une seule fois).
+  if (artist && !artist.onboarded_at) redirect("/portail/onboarding");
   const [stats, campaigns, actions] = await Promise.all([
     getMyStats(artist?.commission_pct ?? null),
     getMyCampaigns(),
@@ -155,6 +159,8 @@ export default async function PortalHome() {
           </CardBody>
         </Card>
       )}
+
+      <HowItWorks />
     </div>
   );
 }

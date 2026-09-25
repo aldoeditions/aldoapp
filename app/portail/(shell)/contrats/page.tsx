@@ -16,15 +16,25 @@ export default async function ContratsPage() {
       <PortalHeader
         eyebrow="Administratif"
         title="Mes contrats"
-        description="Retrouve tes contrats de campagne et leur statut. Télécharge-les à tout moment."
+        description="Retrouve tes contrats de campagne, leur statut, et télécharge-les à tout moment."
       />
+
+      <div className="flex items-start gap-2.5 rounded-xl border border-accent/25 bg-accentBg/50 px-4 py-3 text-sm text-muted">
+        <span aria-hidden>✍️</span>
+        <p>
+          <span className="font-medium text-text">La signature se fait par email.</span> Quand Aldo t&apos;envoie un
+          contrat, tu reçois un lien <span className="font-medium text-text">Goodflag</span> pour le signer
+          électroniquement. Une fois signé, le PDF signé apparaît ici automatiquement.
+        </p>
+      </div>
 
       {contracts.length === 0 ? (
         <Card>
           <CardBody className="py-10 text-center">
             <p className="font-serif text-lg text-text">Aucun contrat pour le moment</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-              Dès qu&apos;Aldo t&apos;enverra un contrat de campagne, il apparaîtra ici, prêt à consulter et signer.
+              Dès qu&apos;Aldo t&apos;enverra un contrat de campagne, il apparaîtra ici — et tu recevras un lien
+              par email pour le signer.
             </p>
           </CardBody>
         </Card>

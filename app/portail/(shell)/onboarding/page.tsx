@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireArtist } from "@/lib/auth/session";
 import { getMyArtist } from "@/lib/data/portal";
 import { Mascotte } from "@/components/brand/Logo";
+import { OnboardingDoneButton } from "@/components/portail/OnboardingDoneButton";
 
 export default async function OnboardingPage() {
   await requireArtist();
@@ -47,12 +48,7 @@ export default async function OnboardingPage() {
       </ol>
 
       <div className="text-center">
-        <Link
-          href="/portail"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accentHover"
-        >
-          Accéder à mon espace
-        </Link>
+        <OnboardingDoneButton />
       </div>
     </div>
   );

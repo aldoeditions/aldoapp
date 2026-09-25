@@ -70,6 +70,7 @@ export type Database = {
           user_id: string | null;
           iban: string | null;
           bic: string | null;
+          onboarded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -115,6 +116,7 @@ export type Database = {
           commission_pct?: number | null;
           drive_link?: string | null;
           dans_le_pipe?: boolean | null;
+          onboarded_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["artists"]["Insert"]>;
         Relationships: [];
