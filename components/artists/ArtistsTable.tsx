@@ -7,6 +7,16 @@ import { ARTIST_PHASE } from "@/lib/constants";
 import { euros0, nombre, pourcent } from "@/lib/format";
 import type { ArtistWithStats } from "@/types/database";
 
+/** Handle affiché : "@xxx" (gère les valeurs URL ou avec/sans @). */
+function instaHandle(v: string): string {
+  if (v.startsWith("http")) return "@" + v.replace(/\/+$/, "").split("/").pop();
+  return v.startsWith("@") ? v : "@" + v;
+}
+/** URL absolue vers le profil Instagram. */
+function instaUrl(v: string): string {
+  return v.startsWith("http") ? v : `https://instagram.com/${v.replace(/^@/, "")}`;
+}
+
 export function ArtistsTable({ artists }: { artists: ArtistWithStats[] }) {
   const router = useRouter();
 
@@ -18,6 +28,7 @@ export function ArtistsTable({ artists }: { artists: ArtistWithStats[] }) {
             <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
               <th className="px-5 py-2.5 font-semibold">Artiste</th>
               <th className="px-3 py-2.5 font-semibold">Type · Style</th>
+              <th className="px-3 py-2.5 font-semibold">Instagram</th>
               <th className="px-3 py-2.5 font-semibold">Phase</th>
               <th className="px-3 py-2.5 text-right font-semibold">Œuvres</th>
               <th className="px-3 py-2.5 text-right font-semibold">Ventes</th>
@@ -40,6 +51,21 @@ export function ArtistsTable({ artists }: { artists: ArtistWithStats[] }) {
                 </td>
                 <td className="px-3 py-2.5 text-muted">
                   {[a.type, a.style].filter(Boolean).join(" · ") || "—"}
+                </td>
+                <td className="px-3 py-2.5">
+                  {a.instagram ? (
+                    <a
+                      href={instaUrl(a.instagram)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-2xs font-medium text-accent hover:underline"
+                    >
+                      {instaHandle(a.instagram)}
+                    </a>
+                  ) : (
+                    <span className="text-2xs text-faint">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-2.5">
                   <StatusBadge value={a.phase} dict={ARTIST_PHASE} />
