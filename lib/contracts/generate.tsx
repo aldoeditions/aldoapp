@@ -21,6 +21,7 @@ export type GenArtist = {
   siret: string | null;
   is_maison_des_artistes: boolean | null;
   is_artiste_auteur: boolean | null;
+  social_regime?: string | null;
   address: string | null;
   city: string | null;
   postal_code?: string | null;
@@ -71,19 +72,20 @@ export function buildContractData(input: GenInput): ContractData {
 
   const address = fullAddress(artist);
 
-  // Statut administratif : MDA (si inscrit) sinon SIRET (autoentrepreneur).
-  const isAuteur = artist.is_artiste_auteur !== false; // défaut : oui
-  const isMDA = artist.is_maison_des_artistes === true;
-  const mdaNum = (artist.mda_number ?? "").trim();
+  // Statut social : piloté par social_regime (0025). Repli sur is_artiste_auteur
+  // pour les fiches non encore migrées.
+  const regime =
+    artist.social_regime ??
+    (artist.is_artiste_auteur === false ? "bnc_siret" : "artiste_auteur_precompte");
+  const isAuteur = regime === "artiste_auteur_precompte" || regime === "artiste_auteur_dispense";
+  const isPrecompte = regime === "artiste_auteur_precompte";
   const siret = (artist.siret ?? "").trim();
 
   let statutClause: string;
-  if (isMDA && mdaNum) {
-    statutClause = `${inscrit} à la Maison des Artistes sous le numéro ${mdaNum}`;
-  } else if (siret) {
+  if (siret) {
     statutClause = `${immatricule} sous le numéro SIRET ${siret}`;
-  } else if (mdaNum) {
-    statutClause = `${inscrit} à la Maison des Artistes sous le numéro ${mdaNum}`;
+  } else if (isAuteur) {
+    statutClause = `${inscrit} en qualité d'artiste-auteur auprès de la Sécurité sociale des artistes-auteurs`;
   } else {
     statutClause = "dont l'immatriculation est en cours";
   }
@@ -95,10 +97,14 @@ export function buildContractData(input: GenInput): ContractData {
 
   // Clauses de l'article 5.3 adaptées au statut (voir body.ts).
   const qualite = isAuteur ? "sa qualité d'artiste-auteur" : "son activité de création";
-  const statutSocialBullet =
-    isMDA
-      ? "Maintenir son inscription à la Maison des Artistes ou à l'Agessa (ou tout organisme lui succédant) ;"
-      : "Maintenir son immatriculation et son affiliation au régime social dont il relève (micro-entrepreneur / travailleur indépendant, ou Sécurité sociale des artistes-auteurs selon sa situation) auprès de l'organisme compétent ;";
+  const statutSocialBullet = isAuteur
+    ? "Maintenir son affiliation à la Sécurité sociale des artistes-auteurs (ou à tout organisme lui succédant) auprès de l'organisme compétent ;"
+    : "Maintenir son immatriculation et son affiliation au régime social dont il relève (micro-entrepreneur / travailleur indépendant) auprès de l'organisme compétent ;";
+
+  // Clause 7.3 — précompte (art. RÉMUNÉRATION), selon le régime.
+  const precompteClause = isPrecompte
+    ? "L'Artiste relevant du régime des artistes-auteurs, Aldo, en sa qualité de diffuseur, procédera au précompte des cotisations et contributions sociales dues par l'Artiste (assurance vieillesse, CSG, CRDS et contribution à la formation professionnelle) sur le montant brut de la rémunération, et les reversera à l'Urssaf pour le compte de l'Artiste, conformément aux articles L382-1 et suivants du Code de la sécurité sociale. Le montant net effectivement versé à l'Artiste s'entend après déduction de ce précompte. Aldo acquitte en outre, à sa charge exclusive, la contribution due par le diffuseur."
+    : "L'Artiste déclare assurer lui-même la déclaration et le paiement de l'ensemble de ses cotisations et contributions sociales et fiscales (dispense de précompte ou immatriculation sous numéro SIRET). En conséquence, aucun précompte ne sera opéré par Aldo sur la rémunération, l'Artiste faisant son affaire personnelle de ses obligations sociales et fiscales.";
 
   return {
     civility,
@@ -108,6 +114,7 @@ export function buildContractData(input: GenInput): ContractData {
     identityLine,
     qualite,
     statutSocialBullet,
+    precompteClause,
     address,
     email: (artist.email ?? "").trim() || "—",
     iban: ibanGroupe(iban),

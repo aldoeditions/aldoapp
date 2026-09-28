@@ -228,6 +228,8 @@ retours, nombre de ventes nettes ;
 Le paiement de la rémunération due sera effectué par virement bancaire sur le compte de
 l'Artiste (IBAN : {{IBAN}}), dans un délai maximum de trente
 (30) jours calendaires à compter de la date de production du relevé mensuel.
+7.3. Cotisations sociales et précompte
+{{PRECOMPTE_CLAUSE}}
 ARTICLE 8 – RESPONSABILITÉ ET ASSURANCE
 8.1. Responsabilité contractuelle
 Chaque Partie est responsable de l'exécution de ses obligations contractuelles, dans les conditions
@@ -536,6 +538,7 @@ export function buildContractBody(data: ContractData): string {
   return RAW.replace(/\{\{IDENTITY\}\}/g, data.identityLine)
     .replace(/\{\{QUALITE\}\}/g, data.qualite)
     .replace(/\{\{STATUT_SOCIAL_BULLET\}\}/g, data.statutSocialBullet)
+    .replace(/\{\{PRECOMPTE_CLAUSE\}\}/g, data.precompteClause)
     .replace(/\{\{COMMISSION_WORDS\}\}/g, data.commissionWords)
     .replace(/\{\{COMMISSION_PCT\}\}/g, data.commissionPct)
     .replace(/\{\{IBAN\}\}/g, data.iban)

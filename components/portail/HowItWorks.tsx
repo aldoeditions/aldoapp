@@ -12,6 +12,10 @@ const QA: { q: string; a: string }[] = [
     a: "Après la fin de chaque campagne, Aldo établit le relevé de tes ventes puis te verse ta commission. Le versement intervient généralement dans les ~40 jours suivant la fin de la campagne, sous réserve du relevé. Tu suis « ce qu'il te reste à recevoir » directement sur ton espace.",
   },
   {
+    q: "C'est quoi le « précompte » sur mes versements ?",
+    a: "Si tu es artiste-auteur, Aldo agit comme « diffuseur » : elle retient sur ta rémunération tes cotisations sociales (retraite, CSG/CRDS, formation — environ 16 %) et les reverse pour ton compte à l'Urssaf. Ce n'est pas une charge Aldo : c'est ta protection sociale. Le « net versé » est ce que tu reçois réellement, et tu peux télécharger ton relevé annuel depuis « Mes ventes ». Si tu es dispensé de précompte (attestation Urssaf) ou si tu factures avec un SIRET, rien n'est retenu.",
+  },
+  {
     q: "Que dois-je fournir, et quand ?",
     a: "Tes fichiers d'impression HD (haute résolution) avant la date limite indiquée dans ton Calendrier — ils passent en validation par l'équipe. On peut aussi te demander une bio, une photo, et une description pour chacune de tes œuvres.",
   },

@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import { PAYMENT_STATUS } from "@/lib/constants";
-import { euros, euros0, nombre, dateCourte } from "@/lib/format";
+import { euros, euros0, eurosCents, nombre, dateCourte } from "@/lib/format";
 import { SalesChart } from "@/components/portail/SalesChart";
 import { PortalHeader } from "@/components/portail/PortalHeader";
 import { COMMISSION_PCT } from "@/lib/constants";
@@ -26,6 +26,7 @@ export default async function VentesPage() {
     getMyPayments(),
   ]);
   const kpis = computeSalesKpis(sales, artist?.commission_pct ?? null);
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="space-y-7">
@@ -96,21 +97,37 @@ export default async function VentesPage() {
         </CardBody>
       </Card>
 
-      {/* Paiements */}
+      {/* Versements */}
       <Card>
-        <CardHeader title="Mes paiements" subtitle="Versements de tes commissions." />
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+          <div>
+            <h3 className="font-serif text-base text-text">Mes versements</h3>
+            <p className="text-2xs text-faint">Brut, précompte retenu et net versé.</p>
+          </div>
+          {payments.length > 0 && (
+            <a
+              href={`/portail/releve?year=${currentYear}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text hover:bg-bg"
+            >
+              Télécharger mon relevé {currentYear}
+            </a>
+          )}
+        </div>
         <CardBody className="p-0">
           {payments.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-faint">
-              Aucun paiement pour le moment. Tes commissions te seront versées par l&apos;équipe Aldo.
+              Aucun versement pour le moment. Tes commissions te seront versées par l&apos;équipe Aldo.
             </p>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                   <th className="px-5 py-2.5 font-semibold">Date</th>
-                  <th className="px-3 py-2.5 font-semibold">Référence</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Montant</th>
+                  <th className="px-3 py-2.5 text-right font-semibold">Brut</th>
+                  <th className="px-3 py-2.5 text-right font-semibold">Précompte</th>
+                  <th className="px-3 py-2.5 text-right font-semibold">Net versé</th>
                   <th className="px-5 py-2.5 font-semibold">Statut</th>
                 </tr>
               </thead>
@@ -118,8 +135,11 @@ export default async function VentesPage() {
                 {payments.map((p) => (
                   <tr key={p.id} className="border-b border-border last:border-0">
                     <td className="px-5 py-2.5 text-muted">{dateCourte(p.paid_at ?? p.created_at)}</td>
-                    <td className="px-3 py-2.5 text-muted">{p.reference ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-right font-medium text-text">{euros(p.amount)}</td>
+                    <td className="px-3 py-2.5 text-right text-text">{eurosCents(p.gross_cents)}</td>
+                    <td className="px-3 py-2.5 text-right text-muted">
+                      {p.precompte_cents ? `− ${eurosCents(p.precompte_cents)}` : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-medium text-accent">{eurosCents(p.net_cents)}</td>
                     <td className="px-5 py-2.5"><StatusBadge value={p.status} dict={PAYMENT_STATUS} fallback="—" /></td>
                   </tr>
                 ))}
@@ -128,6 +148,12 @@ export default async function VentesPage() {
           )}
         </CardBody>
       </Card>
+
+      <p className="text-2xs text-faint">
+        Le <span className="font-medium text-text">précompte</span> correspond à tes cotisations sociales
+        d&apos;artiste-auteur, retenues par Aldo et reversées pour ton compte à l&apos;Urssaf. Le
+        <span className="font-medium text-text"> net versé</span> est ce que tu reçois.
+      </p>
     </div>
   );
 }

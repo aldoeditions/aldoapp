@@ -355,27 +355,39 @@ export async function getMyCalendar(): Promise<ArtistCampaignAgenda[]> {
 export type MyPayment = {
   id: string;
   amount: number;
+  gross_cents: number;
+  precompte_cents: number;
+  net_cents: number;
   status: string | null;
   paid_at: string | null;
   created_at: string | null;
   reference: string | null;
 };
 
-/** Paiements de l'artiste (RLS scoping). */
+/**
+ * Versements de l'artiste (RLS scoping). On expose le brut, le précompte retenu
+ * et le net versé — JAMAIS la contribution diffuseur (coût interne Aldo).
+ */
 export async function getMyPayments(): Promise<MyPayment[]> {
   const supabase = createClient();
   const { data } = await supabase
     .from("payments")
-    .select("id, amount, status, paid_at, created_at, reference")
+    .select("id, amount, gross_cents, precompte_cents, net_cents, status, paid_at, created_at, reference")
     .order("created_at", { ascending: false });
-  return (data ?? []).map((p) => ({
-    id: p.id,
-    amount: p.amount ?? 0,
-    status: p.status,
-    paid_at: p.paid_at,
-    created_at: p.created_at,
-    reference: p.reference,
-  }));
+  return (data ?? []).map((p) => {
+    const amountCents = Math.round((p.amount ?? 0) * 100);
+    return {
+      id: p.id,
+      amount: p.amount ?? 0,
+      gross_cents: p.gross_cents ?? amountCents,
+      precompte_cents: p.precompte_cents ?? 0,
+      net_cents: p.net_cents ?? amountCents,
+      status: p.status,
+      paid_at: p.paid_at,
+      created_at: p.created_at,
+      reference: p.reference,
+    };
+  });
 }
 
 /* --------------------- Fichiers & contrat --------------------- */
