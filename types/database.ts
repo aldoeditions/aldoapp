@@ -55,6 +55,9 @@ export type Database = {
           siret: string | null;
           is_maison_des_artistes: boolean | null;
           is_artiste_auteur: boolean | null;
+          social_regime: string;
+          social_security_number_enc: string | null;
+          social_security_last4: string | null;
           dans_le_pipe_notion: string | null;
           phase: ArtistPhase;
           pipe_status: string | null;
@@ -101,6 +104,9 @@ export type Database = {
           siret?: string | null;
           is_maison_des_artistes?: boolean | null;
           is_artiste_auteur?: boolean | null;
+          social_regime?: string;
+          social_security_number_enc?: string | null;
+          social_security_last4?: string | null;
           dans_le_pipe_notion?: string | null;
           phase: ArtistPhase;
           user_id?: string | null;
@@ -479,6 +485,12 @@ export type Database = {
           payment_method: string | null;
           reference: string | null;
           notes: string | null;
+          gross_cents: number | null;
+          precompte_cents: number;
+          contribution_diffuseur_cents: number;
+          net_cents: number | null;
+          social_rate_id: string | null;
+          period_year: number | null;
         };
         Insert: {
           id?: string;
@@ -491,8 +503,76 @@ export type Database = {
           payment_method?: string | null;
           reference?: string | null;
           notes?: string | null;
+          gross_cents?: number | null;
+          precompte_cents?: number;
+          contribution_diffuseur_cents?: number;
+          net_cents?: number | null;
+          social_rate_id?: string | null;
+          period_year?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
+        Relationships: [];
+      };
+      social_rates: {
+        Row: {
+          id: string;
+          effective_from: string;
+          label: string | null;
+          vieillesse_plaf_taux: number;
+          vieillesse_plaf_assiette: number;
+          plafond_ss_annuel_cents: number;
+          vieillesse_deplaf_taux: number;
+          vieillesse_deplaf_assiette: number;
+          csg_taux: number;
+          csg_assiette: number;
+          crds_taux: number;
+          crds_assiette: number;
+          cfp_taux: number;
+          cfp_assiette: number;
+          contribution_diffuseur_taux: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          effective_from: string;
+          label?: string | null;
+          vieillesse_plaf_taux: number;
+          vieillesse_plaf_assiette?: number;
+          plafond_ss_annuel_cents: number;
+          vieillesse_deplaf_taux?: number;
+          vieillesse_deplaf_assiette?: number;
+          csg_taux: number;
+          csg_assiette?: number;
+          crds_taux: number;
+          crds_assiette?: number;
+          cfp_taux?: number;
+          cfp_assiette?: number;
+          contribution_diffuseur_taux?: number;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["social_rates"]["Insert"]>;
+        Relationships: [];
+      };
+      artist_precompte_exemptions: {
+        Row: {
+          id: string;
+          artist_id: string;
+          motif: string;
+          valid_from: string;
+          valid_to: string | null;
+          document_path: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          motif: string;
+          valid_from: string;
+          valid_to?: string | null;
+          document_path?: string | null;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["artist_precompte_exemptions"]["Insert"]>;
         Relationships: [];
       };
       profiles: {
@@ -735,6 +815,8 @@ export type Charge = Tables<"charges">;
 export type ArtistFile = Tables<"artist_files">;
 export type Contract = Tables<"contracts">;
 export type Payment = Tables<"payments">;
+export type SocialRateRow = Tables<"social_rates">;
+export type PrecompteExemption = Tables<"artist_precompte_exemptions">;
 export type Profile = Tables<"profiles">;
 export type Task = Tables<"tasks">;
 export type TaskComment = Tables<"task_comments">;

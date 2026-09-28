@@ -256,3 +256,17 @@ export const DESCRIPTION_STATUS = dict(DESCRIPTION_STATUSES);
  * (Le médium artistique est saisi librement dans le champ « style ».)
  */
 export const ARTIST_TYPES = ["Artiste", "Collectif", "Studio"] as const;
+
+/* ------------------------------------------------------------------ */
+/* Régime social de l'artiste (pilote le précompte) — CHECK 0025      */
+/* ------------------------------------------------------------------ */
+export const SOCIAL_REGIMES: StatusOption[] = [
+  { value: "artiste_auteur_precompte", label: "Artiste-auteur (précompté)", variant: "green" },
+  { value: "artiste_auteur_dispense", label: "Artiste-auteur (dispense de précompte)", variant: "blue" },
+  { value: "bnc_siret", label: "Déclare lui-même (SIRET / BNC)", variant: "gray" },
+  { value: "autre", label: "Autre", variant: "gray" },
+];
+export const SOCIAL_REGIME = dict(SOCIAL_REGIMES);
+
+/** Régimes pour lesquels Aldo précompte les cotisations (retenue sur la rému). */
+export const PRECOMPTE_REGIMES = new Set(["artiste_auteur_precompte"]);

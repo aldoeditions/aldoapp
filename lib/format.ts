@@ -30,6 +30,11 @@ export function nombre(value: number | null | undefined): string {
   return new Intl.NumberFormat("fr-FR").format(value ?? 0);
 }
 
+/** Montant stocké en CENTIMES entiers → euros, ex. 840 → « 8,40 € ». */
+export function eurosCents(cents: number | null | undefined): string {
+  return EUR.format((cents ?? 0) / 100);
+}
+
 /** Pourcentage, ex. 0.3 → « 30 % ». */
 export function pourcent(ratio: number | null | undefined): string {
   return `${Math.round((ratio ?? 0) * 100)} %`;
