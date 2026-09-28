@@ -21,20 +21,20 @@ create table if not exists public.social_rates (
   label text,
 
   -- Précompte — part ARTISTE (retenue par le diffuseur). Taux et assiette en %.
-  vieillesse_plaf_taux       numeric(6,4) not null,               -- ex. 6.1500
-  vieillesse_plaf_assiette   numeric(6,4) not null default 100,   -- 100 %
+  vieillesse_plaf_taux       numeric(7,4) not null,               -- ex. 6.1500
+  vieillesse_plaf_assiette   numeric(7,4) not null default 100,   -- 100 %
   plafond_ss_annuel_cents    bigint       not null,               -- 4806000 = 48 060 €
-  vieillesse_deplaf_taux     numeric(6,4) not null default 0,     -- 0 % (pris en charge État)
-  vieillesse_deplaf_assiette numeric(6,4) not null default 100,
-  csg_taux                   numeric(6,4) not null,               -- 9.2000
-  csg_assiette               numeric(6,4) not null default 98.25,
-  crds_taux                  numeric(6,4) not null,               -- 0.5000
-  crds_assiette              numeric(6,4) not null default 98.25,
-  cfp_taux                   numeric(6,4) not null default 0.35,
-  cfp_assiette               numeric(6,4) not null default 100,
+  vieillesse_deplaf_taux     numeric(7,4) not null default 0,     -- 0 % (pris en charge État)
+  vieillesse_deplaf_assiette numeric(7,4) not null default 100,
+  csg_taux                   numeric(7,4) not null,               -- 9.2000
+  csg_assiette               numeric(7,4) not null default 98.25,
+  crds_taux                  numeric(7,4) not null,               -- 0.5000
+  crds_assiette              numeric(7,4) not null default 98.25,
+  cfp_taux                   numeric(7,4) not null default 0.35,
+  cfp_assiette               numeric(7,4) not null default 100,
 
   -- Contribution DIFFUSEUR (coût Aldo, NON retenue à l'artiste).
-  contribution_diffuseur_taux numeric(6,4) not null default 1.10, -- 1 % + 0,10 % formation
+  contribution_diffuseur_taux numeric(7,4) not null default 1.10, -- 1 % + 0,10 % formation
 
   created_at timestamptz default now()
 );
