@@ -13,6 +13,7 @@ import {
   VISUELS_STATUSES,
   DEMANDE_STATUSES,
   CIVILITIES,
+  SOCIAL_REGIMES,
 } from "@/lib/constants";
 import type { Artist } from "@/types/database";
 
@@ -119,7 +120,6 @@ export function ArtistForm({
   );
   const [preview, setPreview] = useState<string | null>(artist?.avatar_url ?? null);
   const [phase, setPhase] = useState<string>(artist?.phase ?? "prospect");
-  const [isMDA, setIsMDA] = useState<boolean>(artist?.is_maison_des_artistes ?? false);
 
   return (
     <form action={formAction} className="space-y-5 px-5 py-5">
@@ -227,38 +227,44 @@ export function ArtistForm({
             <Field label="Lieu de naissance" name="birth_place" defaultValue={artist?.birth_place} placeholder="Ville" />
           </div>
 
-          {/* Statut administratif : SIRET (autoentrepreneur) et/ou Maison des Artistes. */}
-          <label className="flex items-center gap-2.5 rounded-md border border-border bg-bg px-3 py-2.5 text-sm">
-            <input
-              type="checkbox"
-              name="is_artiste_auteur"
-              defaultChecked={artist?.is_artiste_auteur ?? true}
-              className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
-            />
-            <span className="font-medium text-text">Artiste-auteur</span>
-            <span className="text-2xs text-faint">— statut artiste-auteur (droits d’auteur)</span>
-          </label>
-
+          {/* Statut social : pilote le PRÉCOMPTE (voir migration 0025). */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="N° SIRET" name="siret" defaultValue={artist?.siret} placeholder="autoentrepreneur" />
-            {isMDA ? (
-              <Field label="N° MDA" name="mda_number" defaultValue={artist?.mda_number} placeholder="n° Maison des Artistes" />
-            ) : (
-              <div />
-            )}
+            <div>
+              <label className={labelCls} htmlFor="social_regime">Régime social</label>
+              <select
+                id="social_regime"
+                name="social_regime"
+                defaultValue={artist?.social_regime ?? "artiste_auteur_precompte"}
+                className={inputCls}
+              >
+                {SOCIAL_REGIMES.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <Field label="N° SIRET" name="siret" defaultValue={artist?.siret} placeholder="si déclare lui-même" />
           </div>
+          <p className="-mt-1 text-2xs text-faint">
+            « Artiste-auteur (précompté) » → Aldo retient les cotisations sur la rémunération.
+            « Dispense » ou « SIRET / BNC » → pas de précompte.
+          </p>
 
-          <label className="flex items-center gap-2.5 rounded-md border border-border bg-bg px-3 py-2.5 text-sm">
+          <div>
+            <label className={labelCls} htmlFor="social_security_number">N° sécurité sociale</label>
             <input
-              type="checkbox"
-              name="is_maison_des_artistes"
-              checked={isMDA}
-              onChange={(e) => setIsMDA(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+              id="social_security_number"
+              name="social_security_number"
+              className={inputCls}
+              placeholder={
+                artist?.social_security_last4
+                  ? `•••• •••• ••• ${artist.social_security_last4} — laisser vide pour conserver`
+                  : "1 85 12 33 123 456 78"
+              }
             />
-            <span className="font-medium text-text">Inscrit à la Maison des Artistes</span>
-            <span className="text-2xs text-faint">— révèle le champ N° MDA</span>
-          </label>
+            <p className="mt-1 text-2xs text-faint">
+              Chiffré au repos (jamais stocké en clair). Laisse vide pour ne pas modifier.
+            </p>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="IBAN" name="iban" defaultValue={iban} placeholder="FR76 …" />

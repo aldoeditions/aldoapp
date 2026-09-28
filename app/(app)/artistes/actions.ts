@@ -8,6 +8,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { syncOeuvreVisuel } from "@/lib/files/visuel";
+import { encryptSensitive, last4 } from "@/lib/crypto";
+import { computeVersement } from "@/lib/fiscal";
+import { PRECOMPTE_REGIMES } from "@/lib/constants";
+import {
+  getRateForDate,
+  getPriorYearGrossCents,
+  hasActiveExemption,
+} from "@/lib/data/social-rates";
 import type { TablesInsert, TablesUpdate, ArtistPhase } from "@/types/database";
 
 const BUCKET = "artist-assets";
@@ -58,10 +66,9 @@ function artistFieldsFrom(fd: FormData) {
     birth_place: str(fd, "birth_place"),
     sku_code: str(fd, "sku_code")?.toUpperCase() ?? null,
     siret: str(fd, "siret"),
-    is_maison_des_artistes: fd.get("is_maison_des_artistes") === "on",
-    // Inscrit à la MDA décoché → on efface le n° pour rester cohérent.
-    mda_number: fd.get("is_maison_des_artistes") === "on" ? str(fd, "mda_number") : null,
-    is_artiste_auteur: fd.get("is_artiste_auteur") === "on",
+    social_regime: str(fd, "social_regime") ?? "artiste_auteur_precompte",
+    // Cohérence contrat : is_artiste_auteur dérivé du régime (les deux régimes AA).
+    is_artiste_auteur: (str(fd, "social_regime") ?? "artiste_auteur_precompte").startsWith("artiste_auteur"),
     bic: str(fd, "bic"),
     phase: (str(fd, "phase") ?? "prospect") as ArtistPhase,
     pipe_status: str(fd, "pipe_status"),
@@ -123,8 +130,15 @@ export async function saveArtist(
     const fields = artistFieldsFrom(fd);
     if (!fields.name) return { error: "Le nom est obligatoire." };
 
+    // N° de sécurité sociale : chiffré au repos. Vide = on ne change rien.
+    const ssnRaw = str(fd, "social_security_number");
+    const ssnFields: Pick<TablesUpdate<"artists">, "social_security_number_enc" | "social_security_last4"> =
+      ssnRaw
+        ? { social_security_number_enc: encryptSensitive(ssnRaw), social_security_last4: last4(ssnRaw) }
+        : {};
+
     if (targetId) {
-      const update: TablesUpdate<"artists"> = { ...fields };
+      const update: TablesUpdate<"artists"> = { ...fields, ...ssnFields };
       const avatar = fd.get("avatar");
       if (avatar instanceof File && avatar.size > 0) {
         const url = await uploadAvatar(targetId, avatar);
@@ -138,7 +152,7 @@ export async function saveArtist(
     } else {
       const { data, error } = await supabase
         .from("artists")
-        .insert(fields as TablesInsert<"artists">)
+        .insert({ ...fields, ...ssnFields } as TablesInsert<"artists">)
         .select("id")
         .single();
       if (error) throw error;
@@ -182,6 +196,96 @@ export async function deleteArtist(id: string) {
 
   revalidatePath("/artistes");
   redirect("/artistes");
+}
+
+/* ------------------------------------------------------------------ */
+/* Versements artiste (précompte / net / contribution diffuseur)       */
+/* ------------------------------------------------------------------ */
+
+export type PaymentFormState = { error: string | null; ok?: boolean };
+
+/**
+ * Enregistre un versement à un artiste. On saisit la RÉMUNÉRATION BRUTE (30 %
+ * du HT, en euros) ; le précompte, le net et la contribution diffuseur sont
+ * calculés au barème en vigueur à la date du versement. Tous les montants sont
+ * stockés en centimes ; `amount` (euros) est conservé pour compatibilité.
+ */
+export async function recordPayment(
+  artistId: string,
+  _prev: PaymentFormState,
+  fd: FormData,
+): Promise<PaymentFormState> {
+  try {
+    await assertCanEdit();
+    const supabase = createClient();
+
+    const grossEuros = num(fd, "gross");
+    if (grossEuros === null || grossEuros <= 0) {
+      return { error: "Saisis une rémunération brute valide." };
+    }
+    const grossCents = Math.round(grossEuros * 100);
+    const dropId = str(fd, "drop_id");
+    const status = str(fd, "status") ?? "a_payer";
+    const paidAtInput = str(fd, "paid_at");
+    const dateRef = paidAtInput ?? new Date().toISOString().slice(0, 10);
+
+    const rate = await getRateForDate(dateRef);
+    if (!rate) return { error: "Aucun barème social n'est défini pour cette date." };
+
+    const { data: artist } = await supabase
+      .from("artists")
+      .select("social_regime")
+      .eq("id", artistId)
+      .single();
+    const regime = artist?.social_regime ?? "artiste_auteur_precompte";
+    const year = new Date(dateRef).getFullYear();
+    const exempt =
+      !PRECOMPTE_REGIMES.has(regime) || (await hasActiveExemption(artistId, dateRef));
+    const prior = await getPriorYearGrossCents(artistId, year);
+
+    const v = computeVersement(grossCents, rate, { exempt, priorYearGrossCents: prior });
+
+    const { error } = await supabase.from("payments").insert({
+      artist_id: artistId,
+      drop_id: dropId,
+      status,
+      paid_at: status === "paye" ? paidAtInput ?? new Date().toISOString() : paidAtInput,
+      amount: v.gross_cents / 100,
+      gross_cents: v.gross_cents,
+      precompte_cents: v.precompte_cents,
+      contribution_diffuseur_cents: v.contribution_diffuseur_cents,
+      net_cents: v.net_cents,
+      social_rate_id: rate.id,
+      period_year: year,
+      notes: str(fd, "notes"),
+    });
+    if (error) throw error;
+
+    revalidatePath(`/artistes/${artistId}`);
+    return { error: null, ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur inattendue." };
+  }
+}
+
+export async function deletePayment(paymentId: string, artistId: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+  if (error) throw error;
+  revalidatePath(`/artistes/${artistId}`);
+}
+
+/** Marque un versement comme payé (statut + date). */
+export async function markPaymentPaid(paymentId: string, artistId: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("payments")
+    .update({ status: "paye", paid_at: new Date().toISOString() })
+    .eq("id", paymentId);
+  if (error) throw error;
+  revalidatePath(`/artistes/${artistId}`);
 }
 
 /**

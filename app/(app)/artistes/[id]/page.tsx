@@ -12,12 +12,19 @@ import { DeleteArtistButton } from "@/components/artists/DeleteArtistButton";
 import { InviteButton } from "@/components/artists/InviteButton";
 import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import { FilesReview } from "@/components/artists/FilesReview";
+import { PaymentFormButton } from "@/components/artists/PaymentFormButton";
 import { ContractPanel } from "@/components/contracts/ContractPanel";
 import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 import { PhotoDownloadButton } from "@/components/artists/PhotoDownloadButton";
 import { OnboardingButton } from "@/components/tasks/OnboardingButton";
 import { getTasks } from "@/lib/data/tasks";
 import { getContractContext } from "@/lib/data/contracts";
+import { getDropsForSelect } from "@/lib/data/drops";
+import {
+  getCurrentRate,
+  getPriorYearGrossCents,
+  hasActiveExemption,
+} from "@/lib/data/social-rates";
 import type { PendingFile } from "@/lib/data/artists";
 import {
   ARTIST_PHASE,
@@ -25,8 +32,10 @@ import {
   FILE_STATUS,
   PAYMENT_STATUS,
   TASK_STATUS,
+  SOCIAL_REGIME,
+  PRECOMPTE_REGIMES,
 } from "@/lib/constants";
-import { euros, euros0, nombre, dateCourte, pourcent } from "@/lib/format";
+import { euros, euros0, eurosCents, nombre, dateCourte, pourcent } from "@/lib/format";
 
 function igUrl(handle: string): string {
   const h = handle.replace(/^@/, "");
@@ -81,6 +90,25 @@ export default async function ArtistDetailPage({
   if (!detail || !row) notFound();
 
   const { artist, oeuvres, payments, files } = detail;
+
+  // Contexte social (barème, dispense, cumul annuel) pour le versement.
+  const today = new Date().toISOString().slice(0, 10);
+  const year = new Date().getFullYear();
+  const regime = row.social_regime ?? "artiste_auteur_precompte";
+  const [rate, exemptByRow, priorYearGrossCents, drops] = await Promise.all([
+    getCurrentRate(),
+    hasActiveExemption(row.id, today),
+    getPriorYearGrossCents(row.id, year),
+    getDropsForSelect(),
+  ]);
+  const exempt = !PRECOMPTE_REGIMES.has(regime) || exemptByRow;
+
+  // Totaux versements (en centimes) + suggestion de rému restant à verser.
+  const paidGrossCents = payments.reduce((s, p) => s + (p.gross_cents ?? 0), 0);
+  const totalNetCents = payments.reduce((s, p) => s + (p.net_cents ?? 0), 0);
+  const totalPrecompteCents = payments.reduce((s, p) => s + (p.precompte_cents ?? 0), 0);
+  const remEarnedCents = Math.round((artist.total_remuneration ?? 0) * 100);
+  const suggestedGross = Math.max(0, remEarnedCents - paidGrossCents) / 100;
 
   // Fichiers déposés en attente → mêmes actions Valider/Refuser que le Dashboard.
   const pendingFiles: PendingFile[] = editable
@@ -243,18 +271,38 @@ export default async function ArtistDetailPage({
 
           {/* Paiements */}
           <Card>
-            <CardHeader title="Paiements" subtitle={`${payments.length} paiement(s)`} />
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div>
+                <h3 className="font-serif text-base text-text">Versements</h3>
+                <p className="text-2xs text-faint">
+                  {payments.length} versement(s)
+                  {totalPrecompteCents > 0 && ` · ${eurosCents(totalPrecompteCents)} précomptés`}
+                </p>
+              </div>
+              {editable && (
+                <PaymentFormButton
+                  artistId={artist.id ?? ""}
+                  rate={rate}
+                  exempt={exempt}
+                  priorYearGrossCents={priorYearGrossCents}
+                  drops={drops}
+                  suggestedGross={suggestedGross}
+                />
+              )}
+            </div>
             <CardBody className="p-0">
               {payments.length === 0 ? (
                 <p className="px-5 py-8 text-center text-sm text-faint">
-                  Aucun paiement enregistré.
+                  Aucun versement enregistré.
                 </p>
               ) : (
                 <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                       <th className="px-5 py-2.5 font-semibold">Drop</th>
-                      <th className="px-5 py-2.5 text-right font-semibold">Montant</th>
+                      <th className="px-5 py-2.5 text-right font-semibold">Brut</th>
+                      <th className="px-5 py-2.5 text-right font-semibold">Précompte</th>
+                      <th className="px-5 py-2.5 text-right font-semibold">Net</th>
                       <th className="px-5 py-2.5 font-semibold">Payé le</th>
                       <th className="px-5 py-2.5 font-semibold">Statut</th>
                     </tr>
@@ -263,7 +311,15 @@ export default async function ArtistDetailPage({
                     {payments.map((p) => (
                       <tr key={p.id} className="border-b border-border last:border-0">
                         <td className="px-5 py-2.5 text-muted">{p.drop_name ?? "—"}</td>
-                        <td className="px-5 py-2.5 text-right font-medium text-text">{euros(p.amount)}</td>
+                        <td className="px-5 py-2.5 text-right text-text">
+                          {eurosCents(p.gross_cents ?? Math.round((p.amount ?? 0) * 100))}
+                        </td>
+                        <td className="px-5 py-2.5 text-right text-muted">
+                          {p.precompte_cents ? `− ${eurosCents(p.precompte_cents)}` : "—"}
+                        </td>
+                        <td className="px-5 py-2.5 text-right font-medium text-text">
+                          {eurosCents(p.net_cents ?? Math.round((p.amount ?? 0) * 100))}
+                        </td>
                         <td className="px-5 py-2.5 text-muted">{dateCourte(p.paid_at)}</td>
                         <td className="px-5 py-2.5">
                           <StatusBadge value={p.status} dict={PAYMENT_STATUS} />
@@ -271,6 +327,13 @@ export default async function ArtistDetailPage({
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t border-border text-2xs">
+                      <td colSpan={3} className="px-5 py-2.5 font-semibold uppercase tracking-wide text-faint">Total net versé</td>
+                      <td className="px-5 py-2.5 text-right font-semibold text-text">{eurosCents(totalNetCents)}</td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
                 </table></div>
               )}
             </CardBody>
@@ -301,6 +364,32 @@ export default async function ArtistDetailPage({
                     Aucune coordonnée renseignée.
                   </p>
                 )}
+            </CardBody>
+          </Card>
+
+          {/* Statut social (précompte) */}
+          <Card>
+            <CardHeader title="Statut social" subtitle="Pilote le précompte" />
+            <CardBody className="py-2">
+              <div className="divide-y divide-border">
+                <div className="flex items-center justify-between gap-4 py-2 text-sm">
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Régime</span>
+                  <StatusBadge value={regime} dict={SOCIAL_REGIME} />
+                </div>
+                <ContactRow label="SIRET" value={row.siret} />
+                <div className="flex items-center justify-between gap-4 py-2 text-sm">
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">N° sécu</span>
+                  <span className="truncate text-text">
+                    {row.social_security_last4 ? `•••• •••• ••• ${row.social_security_last4}` : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-2 text-sm">
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Précompte</span>
+                  <span className={exempt ? "text-muted" : "font-medium text-text"}>
+                    {exempt ? "Non (dispense / SIRET)" : "Oui, retenu par Aldo"}
+                  </span>
+                </div>
+              </div>
             </CardBody>
           </Card>
 
