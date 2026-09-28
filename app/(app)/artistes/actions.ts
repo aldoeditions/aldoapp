@@ -268,6 +268,64 @@ export async function recordPayment(
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Dispenses de précompte (bucket privé artist-documents)              */
+/* ------------------------------------------------------------------ */
+
+const DOCS_BUCKET = "artist-documents";
+
+export async function createExemption(
+  artistId: string,
+  _prev: PaymentFormState,
+  fd: FormData,
+): Promise<PaymentFormState> {
+  try {
+    await assertCanEdit();
+    const supabase = createClient();
+
+    const motif = str(fd, "motif");
+    const valid_from = str(fd, "valid_from");
+    if (!motif || !valid_from) return { error: "Motif et date de début obligatoires." };
+    const valid_to = str(fd, "valid_to");
+
+    let document_path: string | null = null;
+    const file = fd.get("document");
+    if (file instanceof File && file.size > 0) {
+      const admin = createAdminClient();
+      const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
+      const path = `${artistId}/exemption-${Date.now()}.${ext}`;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const up = await admin.storage
+        .from(DOCS_BUCKET)
+        .upload(path, bytes, { contentType: file.type, upsert: true });
+      if (up.error) return { error: up.error.message };
+      document_path = path;
+    }
+
+    const { error } = await supabase.from("artist_precompte_exemptions").insert({
+      artist_id: artistId,
+      motif,
+      valid_from,
+      valid_to,
+      document_path,
+    });
+    if (error) throw error;
+
+    revalidatePath(`/artistes/${artistId}`);
+    return { error: null, ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur inattendue." };
+  }
+}
+
+export async function deleteExemption(id: string, artistId: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase.from("artist_precompte_exemptions").delete().eq("id", id);
+  if (error) throw error;
+  revalidatePath(`/artistes/${artistId}`);
+}
+
 export async function deletePayment(paymentId: string, artistId: string) {
   await assertCanEdit();
   const supabase = createClient();

@@ -6,11 +6,13 @@ export type PnlBreakdown = {
   impression: number;
   packaging: number;
   charges: number;
+  diffuseur?: number;
   net: number;
 };
 
 const SEGMENTS: { key: keyof Omit<PnlBreakdown, "ca" | "net">; label: string; cls: string }[] = [
   { key: "commissions", label: "Commissions", cls: "bg-accent" },
+  { key: "diffuseur", label: "Contribution diffuseur", cls: "bg-accentHover" },
   { key: "impression", label: "Impression", cls: "bg-warning" },
   { key: "packaging", label: "Packaging", cls: "bg-muted" },
   { key: "charges", label: "Charges", cls: "bg-danger" },
@@ -18,7 +20,8 @@ const SEGMENTS: { key: keyof Omit<PnlBreakdown, "ca" | "net">; label: string; cl
 
 /** Barre empilée : décompose le CA en coûts + résultat net. */
 export function CostBar({ data, showLegend = true }: { data: PnlBreakdown; showLegend?: boolean }) {
-  const costs = data.commissions + data.impression + data.packaging + data.charges;
+  const costs =
+    data.commissions + data.impression + data.packaging + data.charges + (data.diffuseur ?? 0);
   const base = Math.max(data.ca, costs, 1);
   const pct = (v: number) => `${Math.max(0, (v / base) * 100)}%`;
   const netPositive = data.net >= 0;
@@ -27,7 +30,7 @@ export function CostBar({ data, showLegend = true }: { data: PnlBreakdown; showL
     <div>
       <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-border">
         {SEGMENTS.map((s) => {
-          const v = data[s.key];
+          const v = data[s.key] ?? 0;
           if (v <= 0) return null;
           return (
             <div
@@ -46,7 +49,7 @@ export function CostBar({ data, showLegend = true }: { data: PnlBreakdown; showL
       {showLegend && (
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
           {SEGMENTS.map((s) => (
-            <LegendItem key={s.key} cls={s.cls} label={s.label} value={data[s.key]} />
+            <LegendItem key={s.key} cls={s.cls} label={s.label} value={data[s.key] ?? 0} />
           ))}
           <LegendItem
             cls={netPositive ? "bg-success" : "bg-danger"}

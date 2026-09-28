@@ -89,6 +89,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
                 <StatementRow label="Coût d'impression" value={pnl.total_impression ?? 0} />
                 <StatementRow label="Coût de packaging" value={pnl.total_packaging ?? 0} />
                 <StatementRow label="Charges (fixes & variables)" value={pnl.total_charges ?? 0} />
+                <StatementRow label="Contribution diffuseur (1,1 %)" value={pnl.contribution_diffuseur ?? 0} />
                 <StatementRow label="Résultat net" value={net} kind="result" strong />
               </div>
             </CardBody>
@@ -104,6 +105,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
                   impression: pnl.total_impression ?? 0,
                   packaging: pnl.total_packaging ?? 0,
                   charges: pnl.total_charges ?? 0,
+                  diffuseur: pnl.contribution_diffuseur ?? 0,
                   net,
                 }}
               />

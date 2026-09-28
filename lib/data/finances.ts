@@ -1,14 +1,44 @@
 import { createClient } from "@/lib/supabase/server";
 import type { DropPnl, Charge, Oeuvre } from "@/types/database";
 
-/** Toutes les lignes P&L (une par drop), triées par date de début. */
-export async function getAllPnl(): Promise<DropPnl[]> {
-  const supabase = createClient();
+/** Ligne P&L enrichie de la contribution diffuseur (coût Aldo, hors vue SQL). */
+export type PnlRow = DropPnl & { contribution_diffuseur: number };
+
+/** Contribution diffuseur cumulée par drop (centimes → euros), depuis les versements. */
+async function contributionByDrop(
+  supabase: ReturnType<typeof createClient>,
+): Promise<Map<string, number>> {
   const { data } = await supabase
-    .from("drop_pnl")
-    .select("*")
-    .order("start_date", { ascending: false });
-  return (data ?? []) as DropPnl[];
+    .from("payments")
+    .select("drop_id, contribution_diffuseur_cents");
+  const m = new Map<string, number>();
+  for (const p of data ?? []) {
+    if (!p.drop_id) continue;
+    m.set(p.drop_id, (m.get(p.drop_id) ?? 0) + (p.contribution_diffuseur_cents ?? 0));
+  }
+  return m;
+}
+
+/**
+ * Toutes les lignes P&L (une par drop), triées par date de début.
+ * La contribution diffuseur (1,1 % de la rému versée) est un coût Aldo : on la
+ * retranche du résultat net et on l'expose à part pour l'affichage.
+ */
+export async function getAllPnl(): Promise<PnlRow[]> {
+  const supabase = createClient();
+  const [pnlRes, contrib] = await Promise.all([
+    supabase.from("drop_pnl").select("*").order("start_date", { ascending: false }),
+    contributionByDrop(supabase),
+  ]);
+  return (pnlRes.data ?? []).map((r) => {
+    const row = r as DropPnl;
+    const diff = (contrib.get(row.id ?? "") ?? 0) / 100;
+    return {
+      ...row,
+      contribution_diffuseur: diff,
+      resultat_net: (row.resultat_net ?? 0) - diff,
+    } as PnlRow;
+  });
 }
 
 export type GlobalPnl = {
@@ -19,12 +49,13 @@ export type GlobalPnl = {
   total_impression: number;
   total_packaging: number;
   total_charges: number;
+  total_diffuseur: number; // contribution diffuseur (coût Aldo)
   resultat_net: number;
   marge: number; // ratio net / CA HT
 };
 
 /** Agrège toutes les lignes P&L en un total global. */
-export function computeGlobal(rows: DropPnl[]): GlobalPnl {
+export function computeGlobal(rows: PnlRow[]): GlobalPnl {
   const g: GlobalPnl = {
     ca_brut: 0,
     ca_ht: 0,
@@ -33,6 +64,7 @@ export function computeGlobal(rows: DropPnl[]): GlobalPnl {
     total_impression: 0,
     total_packaging: 0,
     total_charges: 0,
+    total_diffuseur: 0,
     resultat_net: 0,
     marge: 0,
   };
@@ -44,7 +76,8 @@ export function computeGlobal(rows: DropPnl[]): GlobalPnl {
     g.total_impression += r.total_impression ?? 0;
     g.total_packaging += r.total_packaging ?? 0;
     g.total_charges += r.total_charges ?? 0;
-    g.resultat_net += r.resultat_net ?? 0;
+    g.total_diffuseur += r.contribution_diffuseur ?? 0;
+    g.resultat_net += r.resultat_net ?? 0; // déjà net de la contribution diffuseur
   }
   g.marge = g.ca_ht > 0 ? g.resultat_net / g.ca_ht : 0;
   return g;
@@ -60,7 +93,7 @@ export type OeuvreContribution = {
 };
 
 export type DropFinance = {
-  pnl: DropPnl;
+  pnl: PnlRow;
   charges: Charge[];
   oeuvres: OeuvreContribution[];
 };
@@ -69,12 +102,24 @@ export type DropFinance = {
 export async function getDropFinance(id: string): Promise<DropFinance | null> {
   const supabase = createClient();
 
-  const { data: pnl } = await supabase
+  const { data: pnlBase } = await supabase
     .from("drop_pnl")
     .select("*")
     .eq("id", id)
     .maybeSingle<DropPnl>();
-  if (!pnl) return null;
+  if (!pnlBase) return null;
+
+  const { data: pays } = await supabase
+    .from("payments")
+    .select("contribution_diffuseur_cents")
+    .eq("drop_id", id);
+  const diff =
+    (pays ?? []).reduce((s, p) => s + (p.contribution_diffuseur_cents ?? 0), 0) / 100;
+  const pnl: PnlRow = {
+    ...pnlBase,
+    contribution_diffuseur: diff,
+    resultat_net: (pnlBase.resultat_net ?? 0) - diff,
+  };
 
   const [chargesRes, oeuvresRes, statsRes] = await Promise.all([
     supabase.from("charges").select("*").eq("drop_id", id).order("montant", { ascending: false }),

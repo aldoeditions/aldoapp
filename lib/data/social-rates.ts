@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { SocialRate } from "@/lib/fiscal";
 import type { SocialRateRow } from "@/types/database";
 
@@ -70,4 +71,46 @@ export async function hasActiveExemption(artistId: string, dateISO: string): Pro
     .eq("artist_id", artistId)
     .lte("valid_from", dateISO);
   return (data ?? []).some((e) => !e.valid_to || e.valid_to >= dateISO);
+}
+
+export type ExemptionView = {
+  id: string;
+  motif: string;
+  valid_from: string;
+  valid_to: string | null;
+  document_url: string | null;
+  active: boolean;
+};
+
+/** Dispenses d'un artiste, avec URL signée (bucket privé) et statut actif. */
+export async function getArtistExemptions(artistId: string): Promise<ExemptionView[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("artist_precompte_exemptions")
+    .select("*")
+    .eq("artist_id", artistId)
+    .order("valid_from", { ascending: false });
+  if (!data || data.length === 0) return [];
+
+  const admin = createAdminClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const out: ExemptionView[] = [];
+  for (const e of data) {
+    let document_url: string | null = null;
+    if (e.document_path) {
+      const { data: signed } = await admin.storage
+        .from("artist-documents")
+        .createSignedUrl(e.document_path, 3600);
+      document_url = signed?.signedUrl ?? null;
+    }
+    out.push({
+      id: e.id,
+      motif: e.motif,
+      valid_from: e.valid_from,
+      valid_to: e.valid_to,
+      document_url,
+      active: e.valid_from <= today && (!e.valid_to || e.valid_to >= today),
+    });
+  }
+  return out;
 }

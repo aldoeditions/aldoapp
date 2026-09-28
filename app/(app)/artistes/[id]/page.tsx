@@ -13,6 +13,7 @@ import { InviteButton } from "@/components/artists/InviteButton";
 import { SuiviEditor } from "@/components/artists/SuiviEditor";
 import { FilesReview } from "@/components/artists/FilesReview";
 import { PaymentFormButton } from "@/components/artists/PaymentFormButton";
+import { ExemptionsManager } from "@/components/artists/ExemptionsManager";
 import { ContractPanel } from "@/components/contracts/ContractPanel";
 import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 import { PhotoDownloadButton } from "@/components/artists/PhotoDownloadButton";
@@ -24,6 +25,7 @@ import {
   getCurrentRate,
   getPriorYearGrossCents,
   hasActiveExemption,
+  getArtistExemptions,
 } from "@/lib/data/social-rates";
 import type { PendingFile } from "@/lib/data/artists";
 import {
@@ -95,11 +97,12 @@ export default async function ArtistDetailPage({
   const today = new Date().toISOString().slice(0, 10);
   const year = new Date().getFullYear();
   const regime = row.social_regime ?? "artiste_auteur_precompte";
-  const [rate, exemptByRow, priorYearGrossCents, drops] = await Promise.all([
+  const [rate, exemptByRow, priorYearGrossCents, drops, exemptions] = await Promise.all([
     getCurrentRate(),
     hasActiveExemption(row.id, today),
     getPriorYearGrossCents(row.id, year),
     getDropsForSelect(),
+    getArtistExemptions(row.id),
   ]);
   const exempt = !PRECOMPTE_REGIMES.has(regime) || exemptByRow;
 
@@ -280,14 +283,26 @@ export default async function ArtistDetailPage({
                 </p>
               </div>
               {editable && (
-                <PaymentFormButton
-                  artistId={artist.id ?? ""}
-                  rate={rate}
-                  exempt={exempt}
-                  priorYearGrossCents={priorYearGrossCents}
-                  drops={drops}
-                  suggestedGross={suggestedGross}
-                />
+                <div className="flex items-center gap-2">
+                  {payments.length > 0 && (
+                    <a
+                      href={`/artistes/${artist.id}/releve?year=${year}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text hover:bg-bg"
+                    >
+                      Relevé {year}
+                    </a>
+                  )}
+                  <PaymentFormButton
+                    artistId={artist.id ?? ""}
+                    rate={rate}
+                    exempt={exempt}
+                    priorYearGrossCents={priorYearGrossCents}
+                    drops={drops}
+                    suggestedGross={suggestedGross}
+                  />
+                </div>
               )}
             </div>
             <CardBody className="p-0">
@@ -392,6 +407,13 @@ export default async function ArtistDetailPage({
               </div>
             </CardBody>
           </Card>
+
+          {/* Dispenses de précompte */}
+          {editable && (
+            <Card>
+              <ExemptionsManager artistId={artist.id ?? ""} exemptions={exemptions} />
+            </Card>
+          )}
 
           {/* Photo & bio */}
           <Card>

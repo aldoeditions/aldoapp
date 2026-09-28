@@ -17,11 +17,19 @@ export default async function FinancesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Business"
-        title="Finances"
-        description="Compte de résultat par drop : CA, commissions, coûts de production, charges et marge nette."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          eyebrow="Business"
+          title="Finances"
+          description="Compte de résultat par drop : CA, commissions, coûts de production, charges et marge nette."
+        />
+        <Link
+          href="/finances/urssaf"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-text hover:bg-bg"
+        >
+          Déclaration Urssaf
+        </Link>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -60,6 +68,7 @@ export default async function FinancesPage() {
                   impression: g.total_impression,
                   packaging: g.total_packaging,
                   charges: g.total_charges,
+                  diffuseur: g.total_diffuseur,
                   net: g.resultat_net,
                 }}
               />
@@ -116,6 +125,7 @@ export default async function FinancesPage() {
                         impression: r.total_impression ?? 0,
                         packaging: r.total_packaging ?? 0,
                         charges: r.total_charges ?? 0,
+                        diffuseur: r.contribution_diffuseur ?? 0,
                         net,
                       }}
                     />
