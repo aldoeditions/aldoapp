@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireArtist } from "@/lib/auth/session";
-import { createFileReviewTask } from "@/app/(app)/projet/actions";
+import { createFileReviewTask, notifyArtistProfileChange } from "@/app/(app)/projet/actions";
 import { encryptSensitive, last4 } from "@/lib/crypto";
 import type { TablesInsert, TablesUpdate } from "@/types/database";
 
@@ -146,6 +146,13 @@ export async function updateMyProfile(
     .eq("id", user.artistId);
   if (error) return { error: error.message };
 
+  // Prévient l'équipe (tâche à vérifier), sans bloquer l'enregistrement.
+  try {
+    await notifyArtistProfileChange(user.artistId);
+  } catch {
+    /* non bloquant */
+  }
+
   revalidatePath("/portail/profil");
   revalidatePath("/portail");
   return { error: null, ok: true };
@@ -198,6 +205,12 @@ export async function updateMySocialStatus(
     .update(update)
     .eq("id", user.artistId);
   if (error) return { error: error.message };
+
+  try {
+    await notifyArtistProfileChange(user.artistId);
+  } catch {
+    /* non bloquant */
+  }
 
   revalidatePath("/portail/profil");
   return { error: null, ok: true };

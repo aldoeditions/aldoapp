@@ -329,6 +329,40 @@ export async function createFileReviewTask(input: {
   revalidatePath("/");
 }
 
+/**
+ * Prévient l'équipe qu'un artiste a modifié ses informations (profil, RIB,
+ * statut social…). Appelée depuis le portail → client admin (franchit la RLS).
+ * Idempotent : une seule tâche OUVERTE par artiste à la fois (recréée après
+ * qu'elle a été marquée terminée).
+ */
+export async function notifyArtistProfileChange(artistId: string): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: artist } = await admin
+    .from("artists")
+    .select("name")
+    .eq("id", artistId)
+    .maybeSingle();
+  const artistName = artist?.name ?? "artiste";
+  const title = `Vérifier les infos mises à jour — ${artistName}`;
+
+  const { data: existing } = await admin
+    .from("tasks")
+    .select("id")
+    .eq("artist_id", artistId)
+    .eq("title", title)
+    .neq("status", "terminé")
+    .maybeSingle();
+  if (existing) return;
+
+  await admin
+    .from("tasks")
+    .insert({ title, priority: "normale", artist_id: artistId, status: "à faire" } as TablesInsert<"tasks">);
+
+  revalidatePath("/projet");
+  revalidatePath("/");
+}
+
 const LAUNCH_TASKS = [
   "Valider les fichiers HD des artistes",
   "Générer et envoyer les contrats",
