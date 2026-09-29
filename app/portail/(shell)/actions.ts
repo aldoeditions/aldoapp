@@ -176,10 +176,17 @@ export async function updateMySocialStatus(
     is_artiste_auteur: regime.startsWith("artiste_auteur"),
     siret: str(fd, "siret"),
   };
+  // Chiffrement du n° de sécu — si la clé serveur est indisponible, on ne bloque
+  // pas l'enregistrement du reste ; on prévient l'artiste.
+  let ssnError = false;
   const ssn = str(fd, "social_security_number");
   if (ssn) {
-    update.social_security_number_enc = encryptSensitive(ssn);
-    update.social_security_last4 = last4(ssn);
+    try {
+      update.social_security_number_enc = encryptSensitive(ssn);
+      update.social_security_last4 = last4(ssn);
+    } catch {
+      ssnError = true;
+    }
   }
 
   // Justificatif optionnel → bucket privé (admin-only).
@@ -213,5 +220,11 @@ export async function updateMySocialStatus(
   }
 
   revalidatePath("/portail/profil");
+  if (ssnError) {
+    return {
+      error:
+        "Tes autres infos sont enregistrées, mais ton n° de sécurité sociale n'a pas pu être sauvegardé (indisponibilité technique côté Aldo). L'équipe est prévenue et va corriger.",
+    };
+  }
   return { error: null, ok: true };
 }
