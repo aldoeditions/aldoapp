@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireArtist } from "@/lib/auth/session";
 import { createFileReviewTask } from "@/app/(app)/projet/actions";
+import { encryptSensitive, last4 } from "@/lib/crypto";
 import type { TablesInsert, TablesUpdate } from "@/types/database";
+
+const DOCS_BUCKET = "artist-documents";
 
 /** Enregistre en base un fichier déjà uploadé sur le Storage (statut en attente). */
 export async function registerFile(input: {
@@ -145,5 +148,57 @@ export async function updateMyProfile(
 
   revalidatePath("/portail/profil");
   revalidatePath("/portail");
+  return { error: null, ok: true };
+}
+
+/**
+ * Statut social (Urssaf) déclaré par l'artiste : régime, n° sécu (chiffré),
+ * SIRET, + justificatif optionnel déposé dans le bucket privé artist-documents
+ * (via client admin car l'artiste n'y a pas accès en RLS).
+ */
+export async function updateMySocialStatus(
+  _prev: ProfileState,
+  fd: FormData,
+): Promise<ProfileState> {
+  const user = await requireArtist();
+  const supabase = createClient();
+
+  const regime = str(fd, "social_regime") ?? "artiste_auteur_precompte";
+  const update: TablesUpdate<"artists"> = {
+    social_regime: regime,
+    is_artiste_auteur: regime.startsWith("artiste_auteur"),
+    siret: str(fd, "siret"),
+  };
+  const ssn = str(fd, "social_security_number");
+  if (ssn) {
+    update.social_security_number_enc = encryptSensitive(ssn);
+    update.social_security_last4 = last4(ssn);
+  }
+
+  // Justificatif optionnel → bucket privé (admin-only).
+  const doc = fd.get("document");
+  if (doc instanceof File && doc.size > 0) {
+    try {
+      const admin = createAdminClient();
+      const ext = (doc.name.split(".").pop() || "pdf").toLowerCase();
+      const safe = doc.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.artistId}/statut-${Date.now()}-${safe}`.replace(/\.[^.]*$/, `.${ext}`);
+      const bytes = new Uint8Array(await doc.arrayBuffer());
+      const { error: upErr } = await admin.storage
+        .from(DOCS_BUCKET)
+        .upload(path, bytes, { contentType: doc.type, upsert: true });
+      if (upErr) throw upErr;
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Échec de l'envoi du justificatif." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("artists")
+    .update(update)
+    .eq("id", user.artistId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/portail/profil");
   return { error: null, ok: true };
 }

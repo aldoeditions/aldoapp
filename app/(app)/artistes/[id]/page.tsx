@@ -26,6 +26,7 @@ import {
   getPriorYearGrossCents,
   hasActiveExemption,
   getArtistExemptions,
+  listArtistDocuments,
 } from "@/lib/data/social-rates";
 import type { PendingFile } from "@/lib/data/artists";
 import {
@@ -97,12 +98,13 @@ export default async function ArtistDetailPage({
   const today = new Date().toISOString().slice(0, 10);
   const year = new Date().getFullYear();
   const regime = row.social_regime ?? "artiste_auteur_precompte";
-  const [rate, exemptByRow, priorYearGrossCents, drops, exemptions] = await Promise.all([
+  const [rate, exemptByRow, priorYearGrossCents, drops, exemptions, statusDocs] = await Promise.all([
     getCurrentRate(),
     hasActiveExemption(row.id, today),
     getPriorYearGrossCents(row.id, year),
     getDropsForSelect(),
     getArtistExemptions(row.id),
+    listArtistDocuments(row.id),
   ]);
   const exempt = !PRECOMPTE_REGIMES.has(regime) || exemptByRow;
 
@@ -404,6 +406,21 @@ export default async function ArtistDetailPage({
                     {exempt ? "Non (dispense / SIRET)" : "Oui, retenu par Aldo"}
                   </span>
                 </div>
+                {statusDocs.length > 0 && (
+                  <div className="py-2">
+                    <span className="text-2xs font-semibold uppercase tracking-wide text-faint">Justificatifs de l&apos;artiste</span>
+                    <ul className="mt-1.5 space-y-1">
+                      {statusDocs.map((d) => (
+                        <li key={d.name} className="flex items-center justify-between gap-3 text-sm">
+                          <span className="truncate text-text">{d.name}</span>
+                          <a href={d.url} target="_blank" rel="noreferrer" className="shrink-0 text-2xs text-accent hover:underline">
+                            Voir
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </CardBody>
           </Card>

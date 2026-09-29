@@ -73,6 +73,29 @@ export async function hasActiveExemption(artistId: string, dateISO: string): Pro
   return (data ?? []).some((e) => !e.valid_to || e.valid_to >= dateISO);
 }
 
+export type ArtistDoc = { name: string; url: string };
+
+/**
+ * Justificatifs de statut déposés par l'artiste dans le bucket privé
+ * (préfixe « statut-… »). URL signées 1 h. Les pièces de dispense (préfixe
+ * « exemption-… ») sont exclues car affichées à part.
+ */
+export async function listArtistDocuments(artistId: string): Promise<ArtistDoc[]> {
+  const admin = createAdminClient();
+  const { data } = await admin.storage.from("artist-documents").list(artistId, { limit: 100 });
+  const out: ArtistDoc[] = [];
+  for (const f of data ?? []) {
+    if (!f.name.startsWith("statut-")) continue;
+    const { data: signed } = await admin.storage
+      .from("artist-documents")
+      .createSignedUrl(`${artistId}/${f.name}`, 3600);
+    // Nom lisible : on retire le préfixe « statut-<timestamp>- ».
+    const nice = f.name.replace(/^statut-\d+-/, "");
+    if (signed?.signedUrl) out.push({ name: nice, url: signed.signedUrl });
+  }
+  return out;
+}
+
 export type ExemptionView = {
   id: string;
   motif: string;

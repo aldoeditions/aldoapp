@@ -1,16 +1,22 @@
 import { requireArtist } from "@/lib/auth/session";
 import { getMyArtist, getMyContract } from "@/lib/data/portal";
+import { listArtistDocuments } from "@/lib/data/social-rates";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import { CONTRACT_STATUS } from "@/lib/constants";
 import { dateCourte, pourcent } from "@/lib/format";
 import { ProfileForm } from "@/components/portail/ProfileForm";
+import { SocialStatusForm } from "@/components/portail/SocialStatusForm";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
 import { PortalHeader } from "@/components/portail/PortalHeader";
 
 export default async function ProfilPage() {
-  await requireArtist();
-  const [artist, contract] = await Promise.all([getMyArtist(), getMyContract()]);
+  const user = await requireArtist();
+  const [artist, contract, documents] = await Promise.all([
+    getMyArtist(),
+    getMyContract(),
+    listArtistDocuments(user.artistId),
+  ]);
 
   if (!artist) return null;
 
@@ -27,6 +33,16 @@ export default async function ProfilPage() {
           <Card>
             <CardBody>
               <ProfileForm artist={artist} />
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Statut social & Urssaf */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader title="Statut social & Urssaf" subtitle="Ton régime d'artiste-auteur et tes justificatifs." />
+            <CardBody>
+              <SocialStatusForm artist={artist} documents={documents} />
             </CardBody>
           </Card>
         </div>
