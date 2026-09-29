@@ -73,8 +73,8 @@ export default async function VentesPage() {
                   <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                     <th className="px-5 py-2.5 font-semibold">Date</th>
                     <th className="px-3 py-2.5 font-semibold">Œuvre</th>
-                    <th className="px-3 py-2.5 font-semibold">Format</th>
-                    <th className="px-3 py-2.5 text-right font-semibold">Qté</th>
+                    <th className="hidden px-3 py-2.5 font-semibold sm:table-cell">Format</th>
+                    <th className="hidden px-3 py-2.5 text-right font-semibold sm:table-cell">Qté</th>
                     <th className="px-5 py-2.5 text-right font-semibold">Ma commission</th>
                   </tr>
                 </thead>
@@ -83,8 +83,8 @@ export default async function VentesPage() {
                     <tr key={s.id} className="border-b border-border last:border-0">
                       <td className="px-5 py-2.5 text-muted">{dateCourte(s.sold_at)}</td>
                       <td className="px-3 py-2.5 font-medium text-text">{s.oeuvre_name ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-muted">{s.format ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-right text-muted">{nombre(s.quantity)}</td>
+                      <td className="hidden px-3 py-2.5 text-muted sm:table-cell">{s.format ?? "—"}</td>
+                      <td className="hidden px-3 py-2.5 text-right text-muted sm:table-cell">{nombre(s.quantity)}</td>
                       <td className="px-5 py-2.5 text-right font-medium text-accent">
                         {euros(s.total_price * pct)}
                       </td>
@@ -125,8 +125,8 @@ export default async function VentesPage() {
               <thead>
                 <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                   <th className="px-5 py-2.5 font-semibold">Date</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Brut</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Précompte</th>
+                  <th className="hidden px-3 py-2.5 text-right font-semibold sm:table-cell">Brut</th>
+                  <th className="hidden px-3 py-2.5 text-right font-semibold sm:table-cell">Précompte</th>
                   <th className="px-3 py-2.5 text-right font-semibold">Net versé</th>
                   <th className="px-5 py-2.5 font-semibold">Statut</th>
                 </tr>
@@ -135,8 +135,8 @@ export default async function VentesPage() {
                 {payments.map((p) => (
                   <tr key={p.id} className="border-b border-border last:border-0">
                     <td className="px-5 py-2.5 text-muted">{dateCourte(p.paid_at ?? p.created_at)}</td>
-                    <td className="px-3 py-2.5 text-right text-text">{eurosCents(p.gross_cents)}</td>
-                    <td className="px-3 py-2.5 text-right text-muted">
+                    <td className="hidden px-3 py-2.5 text-right text-text sm:table-cell">{eurosCents(p.gross_cents)}</td>
+                    <td className="hidden px-3 py-2.5 text-right text-muted sm:table-cell">
                       {p.precompte_cents ? `− ${eurosCents(p.precompte_cents)}` : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-right font-medium text-accent">{eurosCents(p.net_cents)}</td>

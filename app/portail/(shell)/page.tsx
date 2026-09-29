@@ -99,7 +99,7 @@ export default async function PortalHome() {
                 <thead>
                   <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                     <th className="px-5 py-2.5 font-semibold">Ton œuvre</th>
-                    <th className="px-3 py-2.5 font-semibold">Format</th>
+                    <th className="hidden px-3 py-2.5 font-semibold sm:table-cell">Format</th>
                     <th className="px-3 py-2.5 text-right font-semibold">Ventes</th>
                     <th className="px-5 py-2.5 text-right font-semibold">Ta commission</th>
                   </tr>
@@ -108,7 +108,7 @@ export default async function PortalHome() {
                   {campaigns.current.oeuvres.map((o) => (
                     <tr key={o.id} className="border-b border-border last:border-0">
                       <td className="px-5 py-2.5 font-medium text-text">{o.name}</td>
-                      <td className="px-3 py-2.5 text-muted">{o.format}</td>
+                      <td className="hidden px-3 py-2.5 text-muted sm:table-cell">{o.format}</td>
                       <td className="px-3 py-2.5 text-right text-text">{nombre(o.nb_ventes)}</td>
                       <td className="px-5 py-2.5 text-right font-medium text-accent">{euros(montantHT(o.ca_brut) * pct)}</td>
                     </tr>
