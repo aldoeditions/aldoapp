@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFormState } from "react-dom";
+import { useRouter } from "next/navigation";
 import { updateMySocialStatus, type ProfileState } from "@/app/portail/(shell)/actions";
 import { Field, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
 import { SOCIAL_REGIMES } from "@/lib/constants";
@@ -17,13 +19,20 @@ export function SocialStatusForm({
   artist: Artist;
   documents: ArtistDoc[];
 }) {
+  const router = useRouter();
   const [state, formAction] = useFormState(updateMySocialStatus, initial);
+
+  // Rafraîchit la page à la réussite pour refléter l'état enregistré (n° masqué).
+  useEffect(() => {
+    if (state.ok) router.refresh();
+  }, [state.ok, router]);
 
   return (
     <form action={formAction} className="space-y-5">
       {state.ok && (
         <p className="rounded-lg bg-successBg px-4 py-3 text-sm font-medium text-success">
-          ✓ Statut social enregistré.
+          ✓ Statut social enregistré. Ton n° de sécurité sociale est bien pris en compte
+          (affiché masqué, par sécurité).
         </p>
       )}
 
@@ -63,7 +72,14 @@ export function SocialStatusForm({
                 : "1 85 12 33 123 456 78"
             }
           />
-          <p className="mt-1 text-2xs text-faint">Chiffré au repos. Laisse vide pour ne pas modifier.</p>
+          {artist.social_security_last4 ? (
+            <p className="mt-1 flex items-center gap-1.5 text-2xs font-medium text-success">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+              Numéro enregistré (••••&nbsp;{artist.social_security_last4}). Laisse vide pour le conserver.
+            </p>
+          ) : (
+            <p className="mt-1 text-2xs text-faint">Chiffré au repos. Laisse vide pour ne pas modifier.</p>
+          )}
         </div>
         <Field label="N° SIRET (si tu factures)" name="siret" defaultValue={artist.siret} placeholder="optionnel" />
       </div>
