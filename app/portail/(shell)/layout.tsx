@@ -18,7 +18,7 @@ export default async function PortalLayout({
 
       <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
         <main className="flex flex-1 flex-col md:overflow-y-auto">
-          <div className="w-full flex-1 px-5 py-8 sm:px-8 sm:py-10">
+          <div className="w-full min-w-0 flex-1 overflow-x-clip px-5 py-8 sm:px-8 sm:py-10">
             {children}
           </div>
 

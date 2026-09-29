@@ -24,8 +24,8 @@ export function ProfileForm({ artist }: { artist: Artist }) {
       {/* Photo + identité */}
       <div className="flex items-center gap-4">
         <Avatar name={artist.name} src={preview} size="lg" />
-        <div>
-          <p className="font-medium text-text">{artist.name}</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-text">{artist.name}</p>
           <label className={labelCls + " mt-1"} htmlFor="avatar">Changer la photo</label>
           <input
             id="avatar"
@@ -33,7 +33,7 @@ export function ProfileForm({ artist }: { artist: Artist }) {
             type="file"
             accept="image/*"
             onChange={(e) => { const f = e.target.files?.[0]; setPreview(f ? URL.createObjectURL(f) : artist.avatar_url ?? null); }}
-            className="text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
+            className="w-full max-w-full text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
           />
         </div>
       </div>
@@ -52,7 +52,7 @@ export function ProfileForm({ artist }: { artist: Artist }) {
 
       <div className="space-y-3">
         <Field label="Adresse postale" name="address" defaultValue={artist.address} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Ville" name="city" defaultValue={artist.city} />
           <Field label="Pays" name="country" defaultValue={artist.country} />
         </div>

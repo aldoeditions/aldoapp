@@ -59,7 +59,7 @@ export function SocialStatusForm({
             className={inputCls}
             placeholder={
               artist.social_security_last4
-                ? `•••• •••• ••• ${artist.social_security_last4} — laisser vide pour conserver`
+                ? `•••• ${artist.social_security_last4} (laisser vide)`
                 : "1 85 12 33 123 456 78"
             }
           />
@@ -77,7 +77,7 @@ export function SocialStatusForm({
           <ul className="mb-3 space-y-1">
             {documents.map((d) => (
               <li key={d.name} className="flex items-center justify-between gap-3 text-sm">
-                <span className="truncate text-text">{d.name}</span>
+                <span className="min-w-0 truncate text-text">{d.name}</span>
                 <a href={d.url} target="_blank" rel="noreferrer" className="shrink-0 text-2xs text-accent hover:underline">
                   Voir
                 </a>
@@ -90,7 +90,7 @@ export function SocialStatusForm({
           name="document"
           type="file"
           accept="application/pdf,image/*"
-          className="text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
+          className="w-full max-w-full text-xs text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accentBg file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent"
         />
       </div>
 

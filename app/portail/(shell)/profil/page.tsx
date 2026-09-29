@@ -28,8 +28,8 @@ export default async function ProfilPage() {
         description="Tiens tes informations à jour pour Aldo et pour tes futurs acheteurs."
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
           <Card>
             <CardBody>
               <ProfileForm artist={artist} />
@@ -38,7 +38,7 @@ export default async function ProfilPage() {
         </div>
 
         {/* Statut social & Urssaf */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <Card>
             <CardHeader title="Statut social & Urssaf" subtitle="Ton régime d'artiste-auteur et tes justificatifs." />
             <CardBody>
@@ -48,7 +48,7 @@ export default async function ProfilPage() {
         </div>
 
         {/* Mon contrat */}
-        <div>
+        <div className="min-w-0">
           <Card>
             <CardHeader title="Mon contrat" />
             <CardBody>
