@@ -466,3 +466,33 @@ export async function inviteArtist(artistId: string): Promise<InviteResult> {
     info: tempPassword ? undefined : "Compte existant relié au portail.",
   };
 }
+
+/**
+ * Régénère un mot de passe temporaire pour un artiste DÉJÀ relié au portail
+ * (compte créé mais mot de passe perdu / jamais transmis). Ne dépend d'aucun
+ * email : renvoie le nouveau mot de passe à communiquer à la main.
+ */
+export async function resetArtistPortalPassword(artistId: string): Promise<InviteResult> {
+  await assertCanEdit();
+  const supabase = createClient();
+
+  const { data: artist } = await supabase
+    .from("artists")
+    .select("id, email, user_id")
+    .eq("id", artistId)
+    .maybeSingle();
+
+  if (!artist) return { error: "Artiste introuvable." };
+  if (!artist.user_id)
+    return { error: "Pas encore de compte portail. Utilise « Inviter au portail »." };
+
+  const admin = createAdminClient();
+  const password = "Aldo-" + randomUUID().replace(/-/g, "").slice(0, 10);
+  const { error } = await admin.auth.admin.updateUserById(artist.user_id, {
+    password,
+    email_confirm: true,
+  });
+  if (error) return { error: error.message };
+
+  return { email: artist.email ?? undefined, password };
+}
