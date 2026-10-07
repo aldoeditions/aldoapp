@@ -69,6 +69,7 @@ export default async function FinancesPage() {
                   packaging: g.total_packaging,
                   charges: g.total_charges,
                   diffuseur: g.total_diffuseur,
+                  frais: g.total_frais_paiement,
                   net: g.resultat_net,
                 }}
               />
@@ -126,6 +127,7 @@ export default async function FinancesPage() {
                         packaging: r.total_packaging ?? 0,
                         charges: r.total_charges ?? 0,
                         diffuseur: r.contribution_diffuseur ?? 0,
+                        frais: r.frais_paiement ?? 0,
                         net,
                       }}
                     />

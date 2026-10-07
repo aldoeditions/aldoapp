@@ -7,6 +7,7 @@ export type PnlBreakdown = {
   packaging: number;
   charges: number;
   diffuseur?: number;
+  frais?: number;
   net: number;
 };
 
@@ -15,13 +16,19 @@ const SEGMENTS: { key: keyof Omit<PnlBreakdown, "ca" | "net">; label: string; cl
   { key: "diffuseur", label: "Contribution diffuseur", cls: "bg-accentHover" },
   { key: "impression", label: "Impression", cls: "bg-warning" },
   { key: "packaging", label: "Packaging", cls: "bg-muted" },
+  { key: "frais", label: "Frais paiement", cls: "bg-faint" },
   { key: "charges", label: "Charges", cls: "bg-danger" },
 ];
 
 /** Barre empilée : décompose le CA en coûts + résultat net. */
 export function CostBar({ data, showLegend = true }: { data: PnlBreakdown; showLegend?: boolean }) {
   const costs =
-    data.commissions + data.impression + data.packaging + data.charges + (data.diffuseur ?? 0);
+    data.commissions +
+    data.impression +
+    data.packaging +
+    data.charges +
+    (data.diffuseur ?? 0) +
+    (data.frais ?? 0);
   const base = Math.max(data.ca, costs, 1);
   const pct = (v: number) => `${Math.max(0, (v / base) * 100)}%`;
   const netPositive = data.net >= 0;

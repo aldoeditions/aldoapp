@@ -13,6 +13,22 @@ export const COMMISSION_PCT = 0.3;
 /** Taux de TVA appliqué aux prix de vente (prix affichés = TTC). */
 export const TVA_PCT = 0.2;
 
+/**
+ * Frais de paiement Shopify (prélevés sur chaque transaction encaissée).
+ * Observé au lancement : 1,42 € pour 61 € sur 2 commandes ⇒ ≈ 1,5 % + 0,25 €.
+ * Appliqués sur le montant TOTAL de la commande (produit + port).
+ * À ajuster ici si Shopify change de grille.
+ */
+export const PAYMENT_FEE_PCT = 0.015;
+export const PAYMENT_FEE_FIXED = 0.25;
+
+/** Frais de paiement pour un montant TTC de commande (en euros). */
+export function fraisPaiement(totalTTC: number | null | undefined): number {
+  const t = totalTTC ?? 0;
+  if (t <= 0) return 0;
+  return Math.round((t * PAYMENT_FEE_PCT + PAYMENT_FEE_FIXED) * 100) / 100;
+}
+
 /** Convertit un montant TTC en HT (base de calcul de la commission artiste). */
 export function montantHT(ttc: number | null | undefined): number {
   return Math.round(((ttc ?? 0) / (1 + TVA_PCT)) * 100) / 100;

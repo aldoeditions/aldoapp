@@ -1,8 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
+import { fraisPaiement } from "@/lib/constants";
 import type { DropPnl, Charge, Oeuvre } from "@/types/database";
 
-/** Ligne P&L enrichie de la contribution diffuseur (coût Aldo, hors vue SQL). */
-export type PnlRow = DropPnl & { contribution_diffuseur: number };
+/**
+ * Ligne P&L enrichie des coûts calculés hors vue SQL : contribution diffuseur
+ * (depuis les versements) et frais de paiement Shopify (depuis les commandes).
+ */
+export type PnlRow = DropPnl & {
+  contribution_diffuseur: number;
+  frais_paiement: number;
+};
 
 /** Contribution diffuseur cumulée par drop (centimes → euros), depuis les versements. */
 async function contributionByDrop(
@@ -20,23 +27,45 @@ async function contributionByDrop(
 }
 
 /**
+ * Frais de paiement Shopify cumulés par drop, depuis les commandes payées
+ * (frais appliqués au montant TOTAL encaissé, produit + port).
+ */
+async function feesByDrop(
+  supabase: ReturnType<typeof createClient>,
+): Promise<Map<string, number>> {
+  const { data } = await supabase
+    .from("orders")
+    .select("drop_id, total_amount, financial_status")
+    .eq("financial_status", "paid");
+  const m = new Map<string, number>();
+  for (const o of data ?? []) {
+    if (!o.drop_id) continue;
+    m.set(o.drop_id, (m.get(o.drop_id) ?? 0) + fraisPaiement(o.total_amount));
+  }
+  return m;
+}
+
+/**
  * Toutes les lignes P&L (une par drop), triées par date de début.
  * La contribution diffuseur (1,1 % de la rému versée) est un coût Aldo : on la
  * retranche du résultat net et on l'expose à part pour l'affichage.
  */
 export async function getAllPnl(): Promise<PnlRow[]> {
   const supabase = createClient();
-  const [pnlRes, contrib] = await Promise.all([
+  const [pnlRes, contrib, fees] = await Promise.all([
     supabase.from("drop_pnl").select("*").order("start_date", { ascending: false }),
     contributionByDrop(supabase),
+    feesByDrop(supabase),
   ]);
   return (pnlRes.data ?? []).map((r) => {
     const row = r as DropPnl;
     const diff = (contrib.get(row.id ?? "") ?? 0) / 100;
+    const fee = fees.get(row.id ?? "") ?? 0;
     return {
       ...row,
       contribution_diffuseur: diff,
-      resultat_net: (row.resultat_net ?? 0) - diff,
+      frais_paiement: fee,
+      resultat_net: (row.resultat_net ?? 0) - diff - fee,
     } as PnlRow;
   });
 }
@@ -50,6 +79,7 @@ export type GlobalPnl = {
   total_packaging: number;
   total_charges: number;
   total_diffuseur: number; // contribution diffuseur (coût Aldo)
+  total_frais_paiement: number; // frais Shopify/paiement
   resultat_net: number;
   marge: number; // ratio net / CA HT
 };
@@ -65,6 +95,7 @@ export function computeGlobal(rows: PnlRow[]): GlobalPnl {
     total_packaging: 0,
     total_charges: 0,
     total_diffuseur: 0,
+    total_frais_paiement: 0,
     resultat_net: 0,
     marge: 0,
   };
@@ -77,7 +108,8 @@ export function computeGlobal(rows: PnlRow[]): GlobalPnl {
     g.total_packaging += r.total_packaging ?? 0;
     g.total_charges += r.total_charges ?? 0;
     g.total_diffuseur += r.contribution_diffuseur ?? 0;
-    g.resultat_net += r.resultat_net ?? 0; // déjà net de la contribution diffuseur
+    g.total_frais_paiement += r.frais_paiement ?? 0;
+    g.resultat_net += r.resultat_net ?? 0; // déjà net de la contribution diffuseur et des frais
   }
   g.marge = g.ca_ht > 0 ? g.resultat_net / g.ca_ht : 0;
   return g;
@@ -109,16 +141,18 @@ export async function getDropFinance(id: string): Promise<DropFinance | null> {
     .maybeSingle<DropPnl>();
   if (!pnlBase) return null;
 
-  const { data: pays } = await supabase
-    .from("payments")
-    .select("contribution_diffuseur_cents")
-    .eq("drop_id", id);
+  const [{ data: pays }, { data: ords }] = await Promise.all([
+    supabase.from("payments").select("contribution_diffuseur_cents").eq("drop_id", id),
+    supabase.from("orders").select("total_amount").eq("drop_id", id).eq("financial_status", "paid"),
+  ]);
   const diff =
     (pays ?? []).reduce((s, p) => s + (p.contribution_diffuseur_cents ?? 0), 0) / 100;
+  const fee = (ords ?? []).reduce((s, o) => s + fraisPaiement(o.total_amount), 0);
   const pnl: PnlRow = {
     ...pnlBase,
     contribution_diffuseur: diff,
-    resultat_net: (pnlBase.resultat_net ?? 0) - diff,
+    frais_paiement: fee,
+    resultat_net: (pnlBase.resultat_net ?? 0) - diff - fee,
   };
 
   const [chargesRes, oeuvresRes, statsRes] = await Promise.all([

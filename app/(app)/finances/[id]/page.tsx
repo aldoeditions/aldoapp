@@ -90,6 +90,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
                 <StatementRow label="Coût de packaging" value={pnl.total_packaging ?? 0} />
                 <StatementRow label="Charges (fixes & variables)" value={pnl.total_charges ?? 0} />
                 <StatementRow label="Contribution diffuseur (1,1 %)" value={pnl.contribution_diffuseur ?? 0} />
+                <StatementRow label="Frais de paiement (Shopify)" value={pnl.frais_paiement ?? 0} />
                 <StatementRow label="Résultat net" value={net} kind="result" strong />
               </div>
             </CardBody>
@@ -106,6 +107,7 @@ export default async function DropFinancePage({ params }: { params: { id: string
                   packaging: pnl.total_packaging ?? 0,
                   charges: pnl.total_charges ?? 0,
                   diffuseur: pnl.contribution_diffuseur ?? 0,
+                  frais: pnl.frais_paiement ?? 0,
                   net,
                 }}
               />
