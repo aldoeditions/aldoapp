@@ -12,15 +12,66 @@ import type {
 export type SignedArtistsFilter = {
   archived?: boolean;
   q?: string;
+  drop?: string;
 };
+
+export type DropRef = { id: string; name: string };
+/** Ligne de la vue Artistes enrichie des campagnes auxquelles l'artiste participe. */
+export type ArtistListRow = ArtistWithStats & { drops: DropRef[] };
+
+/**
+ * Campagnes (drops) par artiste : un artiste « participe » à un drop s'il y a au
+ * moins une de ses œuvres — via la programmation (drop_oeuvres) OU le drop_id de
+ * l'œuvre. Renvoie une map artist_id → drops (triés par nom).
+ */
+async function artistDropsMap(
+  supabase: ReturnType<typeof createClient>,
+): Promise<Map<string, DropRef[]>> {
+  const [oeuvresRes, progRes, dropsRes] = await Promise.all([
+    supabase.from("oeuvres").select("id, artist_id, drop_id"),
+    supabase.from("drop_oeuvres").select("oeuvre_id, drop_id"),
+    supabase.from("drops").select("id, name"),
+  ]);
+
+  const dropName = new Map<string, string>();
+  for (const d of dropsRes.data ?? []) dropName.set(d.id, d.name);
+
+  const oeuvreArtist = new Map<string, string>();
+  const byArtist = new Map<string, Set<string>>();
+  const add = (artistId: string | null, dropId: string | null) => {
+    if (!artistId || !dropId || !dropName.has(dropId)) return;
+    if (!byArtist.has(artistId)) byArtist.set(artistId, new Set());
+    byArtist.get(artistId)!.add(dropId);
+  };
+
+  for (const o of oeuvresRes.data ?? []) {
+    if (o.artist_id) oeuvreArtist.set(o.id, o.artist_id);
+    add(o.artist_id, o.drop_id);
+  }
+  for (const p of progRes.data ?? []) {
+    add(oeuvreArtist.get(p.oeuvre_id) ?? null, p.drop_id);
+  }
+
+  const out = new Map<string, DropRef[]>();
+  for (const [artistId, set] of Array.from(byArtist.entries())) {
+    out.set(
+      artistId,
+      Array.from(set)
+        .map((id) => ({ id, name: dropName.get(id)! }))
+        .sort((a, b) => a.name.localeCompare(b.name, "fr")),
+    );
+  }
+  return out;
+}
 
 /**
  * Artistes SIGNÉS (vue Artistes) : phase actif/suivi par défaut,
  * ou archivés (inactif). Ne renvoie jamais de prospects.
+ * Chaque artiste porte la liste des campagnes auxquelles il participe.
  */
 export async function getArtists(
   filter: SignedArtistsFilter = {},
-): Promise<ArtistWithStats[]> {
+): Promise<ArtistListRow[]> {
   const supabase = createClient();
   let query = supabase
     .from("artists_with_stats")
@@ -33,9 +84,15 @@ export async function getArtists(
   query = query.in("phase", phases);
   if (filter.q) query = query.ilike("name", `%${filter.q}%`);
 
-  const { data, error } = await query;
+  const [{ data, error }, dropsMap] = await Promise.all([query, artistDropsMap(supabase)]);
   if (error) throw error;
-  return data ?? [];
+
+  let rows: ArtistListRow[] = (data ?? []).map((a) => ({
+    ...a,
+    drops: dropsMap.get(a.id ?? "") ?? [],
+  }));
+  if (filter.drop) rows = rows.filter((a) => a.drops.some((d) => d.id === filter.drop));
+  return rows;
 }
 
 /** Compteurs signés / archivés pour les onglets de la vue Artistes. */

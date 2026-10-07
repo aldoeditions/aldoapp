@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { getArtists, getSignedCounts } from "@/lib/data/artists";
+import { getDropsForSelect } from "@/lib/data/drops";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Avatar } from "@/components/ui/Avatar";
@@ -15,16 +16,17 @@ import { ArtistFormButton } from "@/components/artists/ArtistFormButton";
 export default async function ArtistesPage({
   searchParams,
 }: {
-  searchParams: { archived?: string; q?: string; view?: string };
+  searchParams: { archived?: string; q?: string; view?: string; drop?: string };
 }) {
   const user = await requireModule("artistes");
   const editable = canEdit(user.role, "artistes");
   const archived = searchParams.archived === "1";
   const cards = searchParams.view === "cards";
 
-  const [artists, counts] = await Promise.all([
-    getArtists({ archived, q: searchParams.q }),
+  const [artists, counts, drops] = await Promise.all([
+    getArtists({ archived, q: searchParams.q, drop: searchParams.drop }),
     getSignedCounts(),
+    getDropsForSelect(),
   ]);
 
   return (
@@ -36,7 +38,7 @@ export default async function ArtistesPage({
         action={editable ? <ArtistFormButton /> : undefined}
       />
 
-      <ArtistsFilters signed={counts.signed} archived={counts.archived} />
+      <ArtistsFilters signed={counts.signed} archived={counts.archived} drops={drops} />
 
       {artists.length === 0 ? (
         <EmptyState

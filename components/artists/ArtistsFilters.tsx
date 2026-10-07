@@ -8,15 +8,18 @@ import { cn } from "@/lib/cn";
 export function ArtistsFilters({
   signed,
   archived,
+  drops = [],
 }: {
   signed: number;
   archived: number;
+  drops?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const isArchived = params.get("archived") === "1";
   const q = params.get("q") ?? "";
+  const drop = params.get("drop") ?? "";
   const view = params.get("view") === "cards" ? "cards" : "liste";
 
   const setParam = useCallback(
@@ -62,6 +65,19 @@ export function ArtistsFilters({
       </div>
 
       <div className="flex items-center gap-2">
+        {drops.length > 0 && (
+          <select
+            value={drop}
+            onChange={(e) => setParam("drop", e.target.value)}
+            className="shrink-0 rounded-md border border-border bg-surface py-2 pl-3 pr-8 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+            title="Filtrer par campagne"
+          >
+            <option value="">Toutes les campagnes</option>
+            {drops.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        )}
         <div className="relative flex-1 sm:w-64">
           <svg
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"

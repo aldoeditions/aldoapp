@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ARTIST_PHASE } from "@/lib/constants";
 import { euros0, nombre, pourcent } from "@/lib/format";
-import type { ArtistWithStats } from "@/types/database";
+import type { ArtistListRow } from "@/lib/data/artists";
 
 /** Handle affiché : "@xxx" (gère les valeurs URL ou avec/sans @). */
 function instaHandle(v: string): string {
@@ -17,7 +17,7 @@ function instaUrl(v: string): string {
   return v.startsWith("http") ? v : `https://instagram.com/${v.replace(/^@/, "")}`;
 }
 
-export function ArtistsTable({ artists }: { artists: ArtistWithStats[] }) {
+export function ArtistsTable({ artists }: { artists: ArtistListRow[] }) {
   const router = useRouter();
 
   return (
@@ -29,6 +29,7 @@ export function ArtistsTable({ artists }: { artists: ArtistWithStats[] }) {
               <th className="px-5 py-2.5 font-semibold">Artiste</th>
               <th className="px-3 py-2.5 font-semibold">Type · Style</th>
               <th className="px-3 py-2.5 font-semibold">Instagram</th>
+              <th className="px-3 py-2.5 font-semibold">Drops</th>
               <th className="px-3 py-2.5 font-semibold">Phase</th>
               <th className="px-3 py-2.5 text-right font-semibold">Œuvres</th>
               <th className="px-3 py-2.5 text-right font-semibold">Ventes</th>
@@ -65,6 +66,23 @@ export function ArtistsTable({ artists }: { artists: ArtistWithStats[] }) {
                     </a>
                   ) : (
                     <span className="text-2xs text-faint">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5">
+                  {a.drops.length === 0 ? (
+                    <span className="text-2xs text-faint">—</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {a.drops.map((d) => (
+                        <span
+                          key={d.id}
+                          title={d.name}
+                          className="inline-block max-w-[9rem] truncate rounded-full bg-accentBg px-2 py-0.5 text-2xs font-medium text-accent"
+                        >
+                          {d.name}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </td>
                 <td className="px-3 py-2.5">
