@@ -70,6 +70,13 @@ export async function completeOnboarding(): Promise<{ error?: string }> {
   return {};
 }
 
+/** Mémorise l'étape courante du wizard d'onboarding (pour reprise). Non bloquant. */
+export async function setOnboardingStep(step: number): Promise<void> {
+  const user = await requireArtist();
+  const supabase = createClient();
+  await supabase.from("artists").update({ onboarding_step: step }).eq("id", user.artistId);
+}
+
 /**
  * L'artiste soumet/modifie la description d'UNE de ses œuvres → passe en
  * « à valider » (relecture équipe). Écriture via client admin (l'artiste n'a
