@@ -178,3 +178,26 @@ export async function deleteSocialPost(id: string) {
   revalidatePath("/social");
   revalidatePath("/projet");
 }
+
+/* --------------------- Événements artistes (Agenda) --------------------- */
+
+/** Change le statut d'un événement proposé par un artiste (tri pour l'Agenda). */
+export async function setEventStatus(id: string, status: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artist_events")
+    .update({ status })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/social/evenements");
+}
+
+/** Supprime un événement (équipe). */
+export async function deleteArtistEvent(id: string) {
+  await assertCanEdit();
+  const supabase = createClient();
+  const { error } = await supabase.from("artist_events").delete().eq("id", id);
+  if (error) throw error;
+  revalidatePath("/social/evenements");
+}

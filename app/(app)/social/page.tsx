@@ -50,7 +50,17 @@ export default async function SocialPage({
         eyebrow="Réseaux"
         title="Réseaux sociaux"
         description={`${counts.total} post(s) planifié(s) · ${counts.toPrepare} en préparation.`}
-        action={editable ? <SocialPostFormButton drops={drops} label="Nouveau post" /> : undefined}
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/social/evenements"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-text hover:bg-bg"
+            >
+              Agenda artistes
+            </Link>
+            {editable && <SocialPostFormButton drops={drops} label="Nouveau post" />}
+          </div>
+        }
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

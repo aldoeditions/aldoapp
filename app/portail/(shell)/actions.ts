@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireArtist } from "@/lib/auth/session";
-import { createFileReviewTask, notifyArtistProfileChange } from "@/app/(app)/projet/actions";
+import {
+  createFileReviewTask,
+  notifyArtistProfileChange,
+  notifyArtistEvent,
+} from "@/app/(app)/projet/actions";
 import { encryptSensitive, last4 } from "@/lib/crypto";
 import type { TablesInsert, TablesUpdate } from "@/types/database";
 
@@ -227,4 +231,71 @@ export async function updateMySocialStatus(
     };
   }
   return { error: null, ok: true };
+}
+
+/* --------------------- Événements (Agenda) --------------------- */
+
+/**
+ * Crée (id=null) ou met à jour un événement de l'artiste connecté.
+ * L'artiste n'édite que SES événements (garanti par RLS owner + le filtre id).
+ */
+export async function saveEvent(
+  id: string | null,
+  _prev: ProfileState,
+  fd: FormData,
+): Promise<ProfileState> {
+  const user = await requireArtist();
+  const supabase = createClient();
+
+  const title = str(fd, "title");
+  if (!title) return { error: "Donne un titre à ton événement." };
+
+  const row = {
+    title,
+    type: str(fd, "type"),
+    event_date: str(fd, "event_date"),
+    end_date: str(fd, "end_date"),
+    location: str(fd, "location"),
+    url: str(fd, "url"),
+    note: str(fd, "note"),
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await supabase
+      .from("artist_events")
+      .update(row)
+      .eq("id", id)
+      .eq("artist_id", user.artistId));
+  } else {
+    ({ error } = await supabase
+      .from("artist_events")
+      .insert({ ...row, artist_id: user.artistId }));
+  }
+  if (error) return { error: error.message };
+
+  // Nouvel événement → on prévient l'équipe (non bloquant, seulement à la création).
+  if (!id) {
+    try {
+      await notifyArtistEvent(user.artistId);
+    } catch {
+      /* non bloquant */
+    }
+  }
+
+  revalidatePath("/portail/evenements");
+  return { error: null, ok: true };
+}
+
+export async function deleteEvent(id: string): Promise<{ error?: string }> {
+  const user = await requireArtist();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("artist_events")
+    .delete()
+    .eq("id", id)
+    .eq("artist_id", user.artistId);
+  if (error) return { error: error.message };
+  revalidatePath("/portail/evenements");
+  return {};
 }

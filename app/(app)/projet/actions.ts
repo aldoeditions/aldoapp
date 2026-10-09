@@ -363,6 +363,37 @@ export async function notifyArtistProfileChange(artistId: string): Promise<void>
   revalidatePath("/");
 }
 
+/**
+ * Prévient l'équipe qu'un artiste a proposé un événement (pour l'Agenda).
+ * Idempotent : une seule tâche ouverte par artiste à la fois.
+ */
+export async function notifyArtistEvent(artistId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data: artist } = await admin
+    .from("artists")
+    .select("name")
+    .eq("id", artistId)
+    .maybeSingle();
+  const artistName = artist?.name ?? "artiste";
+  const title = `Événement proposé par ${artistName} — à trier pour l'Agenda`;
+
+  const { data: existing } = await admin
+    .from("tasks")
+    .select("id")
+    .eq("artist_id", artistId)
+    .eq("title", title)
+    .neq("status", "terminé")
+    .maybeSingle();
+  if (existing) return;
+
+  await admin
+    .from("tasks")
+    .insert({ title, priority: "normale", artist_id: artistId, status: "à faire" } as TablesInsert<"tasks">);
+
+  revalidatePath("/projet");
+  revalidatePath("/social/evenements");
+}
+
 const LAUNCH_TASKS = [
   "Valider les fichiers HD des artistes",
   "Générer et envoyer les contrats",
