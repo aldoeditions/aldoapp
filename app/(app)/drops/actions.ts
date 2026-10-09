@@ -425,10 +425,16 @@ export async function unprogramOeuvre(oeuvreId: string, dropId: string): Promise
   }
 }
 
-export async function deleteOeuvre(id: string, dropId: string) {
+export async function deleteOeuvre(id: string, dropId?: string | null) {
   await assertCanEdit();
   const supabase = createClient();
+  // Retire d'abord la programmation (drop_oeuvres) pour éviter un blocage FK.
+  await supabase.from("drop_oeuvres").delete().eq("oeuvre_id", id);
+  // La suppression échouera volontairement si l'œuvre a des ventes (order_items).
   const { error } = await supabase.from("oeuvres").delete().eq("id", id);
   if (error) throw error;
-  revalidatePath(`/drops/${dropId}`);
+  revalidatePath("/oeuvres");
+  revalidatePath("/artistes");
+  revalidatePath("/drops");
+  if (dropId) revalidatePath(`/drops/${dropId}`);
 }

@@ -130,6 +130,13 @@ export async function saveArtist(
     const fields = artistFieldsFrom(fd);
     if (!fields.name) return { error: "Le nom est obligatoire." };
 
+    // SKU obligatoire hors ajout rapide « prospect » (sert à générer les SKU
+    // des œuvres ; une œuvre sans SKU artiste casse la nomenclature).
+    const isProspectQuickAdd = str(fd, "redirect_to") === "/prospection";
+    if (!isProspectQuickAdd && !fields.sku_code) {
+      return { error: "Le code SKU est obligatoire (il génère les SKU des œuvres)." };
+    }
+
     // N° de sécurité sociale : chiffré au repos. Vide = on ne change rien.
     const ssnRaw = str(fd, "social_security_number");
     const ssnFields: Pick<TablesUpdate<"artists">, "social_security_number_enc" | "social_security_last4"> =

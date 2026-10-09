@@ -29,12 +29,14 @@ function Field({
   defaultValue,
   type = "text",
   placeholder,
+  required,
 }: {
   label: string;
   name: string;
   defaultValue?: string | number | null;
   type?: string;
   placeholder?: string;
+  required?: boolean;
 }) {
   return (
     <div>
@@ -45,6 +47,7 @@ function Field({
         id={name}
         name={name}
         type={type}
+        required={required}
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
         className={inputCls}
@@ -205,9 +208,15 @@ export function ArtistForm({
       </div>
 
       <div>
-        <Field label="Code SKU (catalogue)" name="sku_code" defaultValue={artist?.sku_code} placeholder="ex. DC — 2 à 4 lettres/chiffres" />
+        <Field
+          label={mode === "full" ? "Code SKU (catalogue) *" : "Code SKU (catalogue)"}
+          name="sku_code"
+          defaultValue={artist?.sku_code}
+          placeholder="ex. DC — 2 à 4 lettres/chiffres"
+          required={mode === "full"}
+        />
         <p className="mt-1 text-2xs text-faint">
-          Sert à générer les SKU de ses œuvres : <span className="font-mono">ALDO-{artist?.sku_code || "XX"}-001-A4</span>. Unique par artiste.
+          Sert à générer les SKU de ses œuvres : <span className="font-mono">ALDO-{artist?.sku_code || "XX"}-001-A4</span>. Unique par artiste. Obligatoire avant de créer des œuvres.
         </p>
       </div>
 

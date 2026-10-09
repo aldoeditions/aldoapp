@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useFormState } from "react-dom";
-import { saveOeuvre, type FormState } from "@/app/(app)/drops/actions";
+import { saveOeuvre, deleteOeuvre, type FormState } from "@/app/(app)/drops/actions";
 import { Select, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -45,6 +45,28 @@ export function OeuvreForm({
     saveOeuvre.bind(null, oeuvre?.id ?? null),
     initial,
   );
+  const [delPending, startDel] = useTransition();
+  const [delError, setDelError] = useState<string | null>(null);
+
+  function onDelete() {
+    if (!oeuvre?.id) return;
+    if (!window.confirm(`Supprimer définitivement l'œuvre « ${oeuvre.name} » ? Cette action est irréversible.`)) return;
+    startDel(async () => {
+      setDelError(null);
+      try {
+        await deleteOeuvre(oeuvre.id, oeuvre.drop_id ?? null);
+        onSuccess();
+      } catch (e) {
+        setDelError(
+          e instanceof Error && e.message.includes("foreign key")
+            ? "Impossible : cette œuvre a des ventes rattachées."
+            : e instanceof Error
+              ? e.message
+              : "Suppression impossible.",
+        );
+      }
+    });
+  }
 
   const initialFormat = (oeuvre?.format as FormatKey) ?? "A3";
   const [format, setFormat] = useState<FormatKey>(initialFormat);
@@ -237,6 +259,20 @@ export function OeuvreForm({
 
       <FormError error={state?.error ?? null} />
       <SubmitButton label={editing ? "Enregistrer" : "Ajouter l'œuvre"} />
+
+      {editing && (
+        <div className="border-t border-border pt-4">
+          {delError && <p className="mb-2 rounded-md bg-dangerBg px-3 py-2 text-2xs text-danger">{delError}</p>}
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={delPending}
+            className="w-full rounded-md border border-danger/30 bg-dangerBg/40 px-4 py-2.5 text-sm font-medium text-danger transition-colors hover:bg-dangerBg disabled:opacity-60"
+          >
+            {delPending ? "Suppression…" : "Supprimer cette œuvre"}
+          </button>
+        </div>
+      )}
     </form>
   );
 }
