@@ -68,7 +68,7 @@ export default async function ProfilPage() {
         {/* Mieux te connaître (10 questions) */}
         <div className="min-w-0 lg:col-span-2">
           <Card>
-            <CardHeader title="Mieux te connaître" subtitle="10 questions pour ta page artiste (site + réseaux)." />
+            <CardHeader title="Notre format entretien" subtitle="10 questions pour ta page artiste (site + réseaux)." />
             <CardBody>
               <QuestionnaireForm answers={answers} />
             </CardBody>

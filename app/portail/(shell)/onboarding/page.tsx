@@ -48,15 +48,16 @@ export default async function OnboardingPage() {
             <Mascotte className="mb-4 h-28 w-auto" />
             <h3 className="font-serif text-2xl text-text">Ravis de t&apos;accueillir, {prenom} 🎉</h3>
             <p className="mx-auto mt-3 max-w-md text-sm text-muted">
-              On va mettre en place ton espace Aldo en quelques minutes. On avance pas à pas, et tu peux
-              t&apos;arrêter puis reprendre quand tu veux.
+              On met en place ton espace Aldo en quelques minutes : d&apos;abord l&apos;essentiel
+              (profil, paiement, œuvres), puis on apprend à te connaître. Tu peux t&apos;arrêter et
+              reprendre quand tu veux.
             </p>
             <ul className="mx-auto mt-5 w-full max-w-sm space-y-2 text-left text-sm">
               {[
-                "Ton profil & des photos de ton atelier",
-                "10 questions pour ta page artiste",
+                "Ton profil (identité, coordonnées)",
                 "Tes infos de paiement & ton statut",
                 "La description de tes œuvres & tes fichiers",
+                "Notre format entretien + des photos de ton atelier",
                 "Tes événements à venir",
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2.5 text-muted">
@@ -71,26 +72,9 @@ export default async function OnboardingPage() {
     },
     {
       key: "profil",
-      title: "Profil & atelier",
-      subtitle: "Ta photo, ta bio, tes liens, ton adresse — et quelques photos de ton atelier.",
-      node: (
-        <div className="space-y-6">
-          <Card><CardBody><ProfileForm artist={artist} /></CardBody></Card>
-          <Card>
-            <div className="border-b border-border px-5 py-3.5">
-              <p className="eyebrow">Mon atelier</p>
-              <h4 className="font-serif text-lg text-text">Photos</h4>
-            </div>
-            <CardBody><StudioPhotos photos={studioPhotos} /></CardBody>
-          </Card>
-        </div>
-      ),
-    },
-    {
-      key: "questions",
-      title: "Mieux te connaître",
-      subtitle: "10 questions qui serviront ta page artiste sur le site et les réseaux.",
-      node: <Card><CardBody><QuestionnaireForm answers={answers} /></CardBody></Card>,
+      title: "Profil",
+      subtitle: "Ta photo, ta bio, tes liens et ton adresse.",
+      node: <Card><CardBody><ProfileForm artist={artist} /></CardBody></Card>,
     },
     {
       key: "statut",
@@ -131,9 +115,26 @@ export default async function OnboardingPage() {
         ),
     },
     {
+      key: "entretien",
+      title: "Notre format entretien",
+      subtitle: "10 questions pour raconter ton univers — et, si tu veux, des photos de tes outils et de ton atelier. Rien d'obligatoire, prends ton temps.",
+      node: (
+        <div className="space-y-6">
+          <Card><CardBody><QuestionnaireForm answers={answers} /></CardBody></Card>
+          <Card>
+            <div className="border-b border-border px-5 py-3.5">
+              <p className="eyebrow">Mon atelier</p>
+              <h4 className="font-serif text-lg text-text">Photos (outils, atelier…)</h4>
+            </div>
+            <CardBody><StudioPhotos photos={studioPhotos} /></CardBody>
+          </Card>
+        </div>
+      ),
+    },
+    {
       key: "evenements",
       title: "Tes événements",
-      subtitle: "Optionnel — partage tes expos, sorties ou salons pour qu'Aldo les relaie.",
+      subtitle: "Tu participes à une expo, une sortie, un salon ? Partage-les ici pour qu'Aldo les relaie. Rien de prévu pour l'instant ? Pas de souci — tu pourras le faire à tout moment depuis ton espace « Événements ».",
       node: <EventsManager events={events} />,
     },
     {
