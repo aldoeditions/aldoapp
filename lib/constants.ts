@@ -286,3 +286,22 @@ export const SOCIAL_REGIME = dict(SOCIAL_REGIMES);
 
 /** Régimes pour lesquels Aldo précompte les cotisations (retenue sur la rému). */
 export const PRECOMPTE_REGIMES = new Set(["artiste_auteur_precompte"]);
+
+/* ------------------------------------------------------------------ */
+/* Événements artistes (post « Agenda » mensuel) — CHECK 0031         */
+/* ------------------------------------------------------------------ */
+export const EVENT_TYPES: StatusOption[] = [
+  { value: "expo", label: "Exposition", variant: "blue" },
+  { value: "sortie", label: "Sortie / édition", variant: "green" },
+  { value: "salon", label: "Salon / foire", variant: "blue" },
+  { value: "atelier", label: "Atelier / workshop", variant: "orange" },
+  { value: "autre", label: "Autre", variant: "gray" },
+];
+export const EVENT_TYPE = dict(EVENT_TYPES);
+
+export const EVENT_STATUSES: StatusOption[] = [
+  { value: "proposé", label: "Proposé", variant: "orange" },
+  { value: "retenu", label: "Retenu", variant: "green" },
+  { value: "passé", label: "Passé", variant: "gray" },
+];
+export const EVENT_STATUS = dict(EVENT_STATUSES);

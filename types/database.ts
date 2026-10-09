@@ -74,6 +74,9 @@ export type Database = {
           iban: string | null;
           bic: string | null;
           onboarded_at: string | null;
+          questionnaire: Json | null;
+          studio_photos: Json | null;
+          onboarding_step: number | null;
         };
         Insert: {
           id?: string;
@@ -123,6 +126,9 @@ export type Database = {
           drive_link?: string | null;
           dans_le_pipe?: boolean | null;
           onboarded_at?: string | null;
+          questionnaire?: Json | null;
+          studio_photos?: Json | null;
+          onboarding_step?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["artists"]["Insert"]>;
         Relationships: [];
@@ -575,6 +581,36 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["artist_precompte_exemptions"]["Insert"]>;
         Relationships: [];
       };
+      artist_events: {
+        Row: {
+          id: string;
+          artist_id: string;
+          title: string;
+          type: string | null;
+          event_date: string | null;
+          end_date: string | null;
+          location: string | null;
+          url: string | null;
+          note: string | null;
+          status: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          title: string;
+          type?: string | null;
+          event_date?: string | null;
+          end_date?: string | null;
+          location?: string | null;
+          url?: string | null;
+          note?: string | null;
+          status?: string;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["artist_events"]["Insert"]>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -817,6 +853,7 @@ export type Contract = Tables<"contracts">;
 export type Payment = Tables<"payments">;
 export type SocialRateRow = Tables<"social_rates">;
 export type PrecompteExemption = Tables<"artist_precompte_exemptions">;
+export type ArtistEvent = Tables<"artist_events">;
 export type Profile = Tables<"profiles">;
 export type Task = Tables<"tasks">;
 export type TaskComment = Tables<"task_comments">;
