@@ -37,6 +37,7 @@ import {
   TASK_STATUS,
   SOCIAL_REGIME,
   PRECOMPTE_REGIMES,
+  ARTIST_QUESTIONS,
 } from "@/lib/constants";
 import { euros, euros0, eurosCents, nombre, dateCourte, pourcent } from "@/lib/format";
 
@@ -273,6 +274,43 @@ export default async function ArtistDetailPage({
               )}
             </CardBody>
           </Card>
+
+          {/* Portrait de l'artiste (questionnaire + atelier) */}
+          {(() => {
+            const answers =
+              row.questionnaire && typeof row.questionnaire === "object" && !Array.isArray(row.questionnaire)
+                ? (row.questionnaire as Record<string, string>)
+                : {};
+            const photos = Array.isArray(row.studio_photos) ? (row.studio_photos as string[]) : [];
+            const answered = ARTIST_QUESTIONS.filter((q) => answers[q.id]?.trim());
+            if (answered.length === 0 && photos.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader
+                  title="Portrait de l'artiste"
+                  subtitle={`Questionnaire ${answered.length}/${ARTIST_QUESTIONS.length} · ${photos.length} photo(s) d'atelier`}
+                />
+                <CardBody className="space-y-4">
+                  {photos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {photos.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg border border-border bg-bg">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt="Atelier" className="h-full w-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {answered.map((q) => (
+                    <div key={q.id} className="border-t border-border pt-3 first:border-0 first:pt-0">
+                      <p className="text-2xs font-medium text-faint">{q.label}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-text">{answers[q.id]}</p>
+                    </div>
+                  ))}
+                </CardBody>
+              </Card>
+            );
+          })()}
 
           {/* Paiements */}
           <Card>

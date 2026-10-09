@@ -10,9 +10,11 @@ import {
   notifyArtistEvent,
 } from "@/app/(app)/projet/actions";
 import { encryptSensitive, last4 } from "@/lib/crypto";
+import { ARTIST_QUESTIONS } from "@/lib/constants";
 import type { TablesInsert, TablesUpdate } from "@/types/database";
 
 const DOCS_BUCKET = "artist-documents";
+const ASSETS_BUCKET = "artist-assets";
 
 /** Enregistre en base un fichier déjà uploadé sur le Storage (statut en attente). */
 export async function registerFile(input: {
@@ -231,6 +233,110 @@ export async function updateMySocialStatus(
     };
   }
   return { error: null, ok: true };
+}
+
+/* --------------------- Questionnaire « mieux te connaître » --------------------- */
+
+export async function updateMyQuestionnaire(
+  _prev: ProfileState,
+  fd: FormData,
+): Promise<ProfileState> {
+  const user = await requireArtist();
+  const supabase = createClient();
+
+  const answers: Record<string, string> = {};
+  for (const q of ARTIST_QUESTIONS) {
+    const v = str(fd, q.id);
+    if (v) answers[q.id] = v;
+  }
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ questionnaire: answers })
+    .eq("id", user.artistId);
+  if (error) return { error: error.message };
+
+  try {
+    await notifyArtistProfileChange(user.artistId);
+  } catch {
+    /* non bloquant */
+  }
+  revalidatePath("/portail/profil");
+  return { error: null, ok: true };
+}
+
+/* --------------------- Photos d'atelier (bucket public) --------------------- */
+
+export async function addStudioPhoto(fd: FormData): Promise<{ error?: string; url?: string }> {
+  const user = await requireArtist();
+  const file = fd.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Aucun fichier." };
+  if (file.size > 8 * 1024 * 1024) return { error: "Photo trop lourde (8 Mo max)." };
+
+  try {
+    const admin = createAdminClient();
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `studio/${user.artistId}/${Date.now()}.${ext}`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { error: upErr } = await admin.storage
+      .from(ASSETS_BUCKET)
+      .upload(path, bytes, { contentType: file.type, upsert: true });
+    if (upErr) throw upErr;
+    const url = admin.storage.from(ASSETS_BUCKET).getPublicUrl(path).data.publicUrl;
+
+    const supabase = createClient();
+    const { data: artist } = await supabase
+      .from("artists")
+      .select("studio_photos")
+      .eq("id", user.artistId)
+      .maybeSingle();
+    const current = Array.isArray(artist?.studio_photos)
+      ? (artist!.studio_photos as string[])
+      : [];
+    const { error } = await supabase
+      .from("artists")
+      .update({ studio_photos: [...current, url] })
+      .eq("id", user.artistId);
+    if (error) throw error;
+
+    revalidatePath("/portail/profil");
+    return { url };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Échec de l'envoi de la photo." };
+  }
+}
+
+export async function removeStudioPhoto(url: string): Promise<{ error?: string }> {
+  const user = await requireArtist();
+  const supabase = createClient();
+
+  const { data: artist } = await supabase
+    .from("artists")
+    .select("studio_photos")
+    .eq("id", user.artistId)
+    .maybeSingle();
+  const current = Array.isArray(artist?.studio_photos)
+    ? (artist!.studio_photos as string[])
+    : [];
+  const next = current.filter((u) => u !== url);
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ studio_photos: next })
+    .eq("id", user.artistId);
+  if (error) return { error: error.message };
+
+  // Suppression du fichier dans le Storage (non bloquant).
+  try {
+    const admin = createAdminClient();
+    const marker = `/${ASSETS_BUCKET}/`;
+    const idx = url.indexOf(marker);
+    if (idx !== -1) await admin.storage.from(ASSETS_BUCKET).remove([url.slice(idx + marker.length)]);
+  } catch {
+    /* non bloquant */
+  }
+  revalidatePath("/portail/profil");
+  return {};
 }
 
 /* --------------------- Événements (Agenda) --------------------- */

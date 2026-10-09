@@ -274,6 +274,24 @@ export const DESCRIPTION_STATUS = dict(DESCRIPTION_STATUSES);
 export const ARTIST_TYPES = ["Artiste", "Collectif", "Studio"] as const;
 
 /* ------------------------------------------------------------------ */
+/* Questionnaire « mieux te connaître » (remplace le Google Form)      */
+/* Réponses stockées dans artists.questionnaire (jsonb) : { q1:…, … }. */
+/* Les `id` sont STABLES : ne jamais les réordonner/renommer.          */
+/* ------------------------------------------------------------------ */
+export const ARTIST_QUESTIONS: { id: string; label: string }[] = [
+  { id: "q1", label: "On va commencer en remontant le temps : c'est quoi ton premier contact avec une œuvre artistique ?" },
+  { id: "q2", label: "On se souvient tous d'un dessin qu'on a fait étant enfant, t'en as un en tête ?" },
+  { id: "q3", label: "As-tu une routine ou des rituels lorsque tu crées ?" },
+  { id: "q4", label: "Est-ce que tu as un médium de prédilection, un rapport particulier à une technique ?" },
+  { id: "q5", label: "Illustrer, c'est poser un point de vue, raconter une histoire ou véhiculer un message. D'où viennent tes idées ?" },
+  { id: "q6", label: "Des artistes, des lieux, des livres qui t'accompagnent ?" },
+  { id: "q7", label: "Raconte-nous une des œuvres qu'on édite : d'où elle vient, ce qu'elle représente pour toi." },
+  { id: "q8", label: "Un détail qu'on ne remarque pas au premier regard ?" },
+  { id: "q9", label: "Où l'imagines-tu accrochée ?" },
+  { id: "q10", label: "Pour finir, as-tu un·e artiste que tu aimerais voir rejoindre Aldo ?" },
+];
+
+/* ------------------------------------------------------------------ */
 /* Régime social de l'artiste (pilote le précompte) — CHECK 0025      */
 /* ------------------------------------------------------------------ */
 export const SOCIAL_REGIMES: StatusOption[] = [

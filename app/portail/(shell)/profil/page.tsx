@@ -7,6 +7,8 @@ import { CONTRACT_STATUS } from "@/lib/constants";
 import { dateCourte, pourcent } from "@/lib/format";
 import { ProfileForm } from "@/components/portail/ProfileForm";
 import { SocialStatusForm } from "@/components/portail/SocialStatusForm";
+import { QuestionnaireForm } from "@/components/portail/QuestionnaireForm";
+import { StudioPhotos } from "@/components/portail/StudioPhotos";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
 import { PortalHeader } from "@/components/portail/PortalHeader";
 
@@ -19,6 +21,12 @@ export default async function ProfilPage() {
   ]);
 
   if (!artist) return null;
+
+  const answers =
+    artist.questionnaire && typeof artist.questionnaire === "object" && !Array.isArray(artist.questionnaire)
+      ? (artist.questionnaire as Record<string, string>)
+      : {};
+  const studioPhotos = Array.isArray(artist.studio_photos) ? (artist.studio_photos as string[]) : [];
 
   return (
     <div className="space-y-7">
@@ -43,6 +51,26 @@ export default async function ProfilPage() {
             <CardHeader title="Statut social & Urssaf" subtitle="Ton régime d'artiste-auteur et tes justificatifs." />
             <CardBody>
               <SocialStatusForm artist={artist} documents={documents} />
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Mon atelier (photos) */}
+        <div className="min-w-0 lg:col-span-2">
+          <Card>
+            <CardHeader title="Mon atelier" subtitle="Des photos pour illustrer ta page artiste." />
+            <CardBody>
+              <StudioPhotos photos={studioPhotos} />
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Mieux te connaître (10 questions) */}
+        <div className="min-w-0 lg:col-span-2">
+          <Card>
+            <CardHeader title="Mieux te connaître" subtitle="10 questions pour ta page artiste (site + réseaux)." />
+            <CardBody>
+              <QuestionnaireForm answers={answers} />
             </CardBody>
           </Card>
         </div>
