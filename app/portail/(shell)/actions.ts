@@ -112,6 +112,44 @@ export async function submitOeuvreDescription(
   return {};
 }
 
+/**
+ * L'artiste renomme UNE de ses œuvres (il valide/corrige le nom donné par
+ * l'équipe). Écriture via client admin + vérification de propriété. Le nom est
+ * un libellé d'affichage (n'affecte pas le SKU) ; l'équipe est prévenue pour
+ * répercuter si besoin sur Shopify.
+ */
+export async function submitOeuvreName(
+  oeuvreId: string,
+  name: string,
+): Promise<{ error?: string }> {
+  const user = await requireArtist();
+  const admin = createAdminClient();
+
+  const { data: oeuvre } = await admin
+    .from("oeuvres")
+    .select("id, artist_id")
+    .eq("id", oeuvreId)
+    .maybeSingle();
+  if (!oeuvre || oeuvre.artist_id !== user.artistId) {
+    return { error: "Œuvre introuvable." };
+  }
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Le nom ne peut pas être vide." };
+
+  const { error } = await admin.from("oeuvres").update({ name: trimmed }).eq("id", oeuvreId);
+  if (error) return { error: error.message };
+
+  try {
+    await notifyArtistProfileChange(user.artistId);
+  } catch {
+    /* non bloquant */
+  }
+  revalidatePath("/portail/oeuvres");
+  revalidatePath("/portail");
+  return {};
+}
+
 export type ProfileState = { error: string | null; ok?: boolean };
 
 /** Met à jour le profil de l'artiste connecté (+ avatar optionnel). */

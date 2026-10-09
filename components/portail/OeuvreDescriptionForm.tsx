@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer } from "@/components/ui/Drawer";
-import { submitOeuvreDescription } from "@/app/portail/(shell)/actions";
+import { submitOeuvreDescription, submitOeuvreName } from "@/app/portail/(shell)/actions";
 
 export function OeuvreDescriptionForm({
   oeuvreId,
@@ -20,7 +20,13 @@ export function OeuvreDescriptionForm({
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [value, setValue] = useState(description ?? "");
+  const [name, setName] = useState(oeuvreName);
   const [error, setError] = useState<string | null>(null);
+
+  const nameChanged = name.trim().length > 0 && name.trim() !== oeuvreName.trim();
+  const descChanged = value.trim() !== (description ?? "").trim();
+  const descToSend = value.trim().length > 0 && descChanged;
+  const canSubmit = nameChanged || descToSend;
 
   const trigger =
     status === "validée"
@@ -33,12 +39,22 @@ export function OeuvreDescriptionForm({
     e.preventDefault();
     start(async () => {
       setError(null);
-      const res = await submitOeuvreDescription(oeuvreId, value);
-      if (res.error) setError(res.error);
-      else {
-        setOpen(false);
-        router.refresh();
+      if (nameChanged) {
+        const r = await submitOeuvreName(oeuvreId, name);
+        if (r.error) {
+          setError(r.error);
+          return;
+        }
       }
+      if (descToSend) {
+        const r = await submitOeuvreDescription(oeuvreId, value);
+        if (r.error) {
+          setError(r.error);
+          return;
+        }
+      }
+      setOpen(false);
+      router.refresh();
     });
   }
 
@@ -52,24 +68,42 @@ export function OeuvreDescriptionForm({
         {trigger.label}
       </button>
 
-      <Drawer open={open} onClose={() => setOpen(false)} title="Description de l'œuvre">
+      <Drawer open={open} onClose={() => setOpen(false)} title="Ton œuvre">
         {open && (
           <form onSubmit={submit} className="space-y-4 px-5 py-5">
             <div>
-              <p className="font-serif text-lg text-text">{oeuvreName}</p>
-              <p className="mt-1 text-2xs text-muted">
-                Raconte cette œuvre : l&apos;intention, la technique, l&apos;histoire… Ce texte sera relu par Aldo avant
-                d&apos;être publié sur la boutique.
+              <label htmlFor={`name-${oeuvreId}`} className="mb-1 block text-2xs font-semibold uppercase tracking-wide text-muted">
+                Nom du visuel — est-ce qu&apos;il te convient ?
+              </label>
+              <input
+                id={`name-${oeuvreId}`}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+                placeholder="Nom de l'œuvre"
+              />
+              <p className="mt-1 text-2xs text-faint">
+                C&apos;est le titre donné par l&apos;équipe — tu peux le corriger librement.
               </p>
             </div>
 
-            <textarea
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              rows={7}
-              placeholder="Ex. Cette affiche s'inspire de…"
-              className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
-            />
+            <div>
+              <label htmlFor={`desc-${oeuvreId}`} className="mb-1 block text-2xs font-semibold uppercase tracking-wide text-muted">
+                Description
+              </label>
+              <p className="mb-1.5 text-2xs text-muted">
+                Raconte cette œuvre : l&apos;intention, la technique, l&apos;histoire… Ce texte sera relu par Aldo avant
+                d&apos;être publié sur la boutique.
+              </p>
+              <textarea
+                id={`desc-${oeuvreId}`}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                rows={7}
+                placeholder="Ex. Cette affiche s'inspire de…"
+                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+              />
+            </div>
 
             {status === "validée" && (
               <p className="rounded-md bg-bg px-3 py-2 text-2xs text-muted">
@@ -80,7 +114,7 @@ export function OeuvreDescriptionForm({
 
             <button
               type="submit"
-              disabled={pending || !value.trim()}
+              disabled={pending || !canSubmit}
               className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accentHover disabled:opacity-60"
             >
               {pending ? "Envoi…" : "Envoyer à Aldo"}
