@@ -90,14 +90,8 @@ export function OnboardingWizard({
         )}
       </div>
 
-      {/* Contenu (toutes les étapes montées, seule l'active est visible) */}
-      <div>
-        {steps.map((s, i) => (
-          <div key={s.key} className={i === current ? "" : "hidden"}>
-            {s.node}
-          </div>
-        ))}
-      </div>
+      {/* Contenu : seule l'étape active est montée (plus léger et robuste). */}
+      <div key={steps[current].key}>{steps[current].node}</div>
 
       {/* Navigation */}
       <div className="mt-8 flex items-center justify-between border-t border-border pt-5">
