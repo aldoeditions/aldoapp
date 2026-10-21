@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useFormState } from "react-dom";
 import { updateMyProfile, type ProfileState } from "@/app/portail/(shell)/actions";
-import { Field, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
+import { Field, Select, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
 import { Avatar } from "@/components/ui/Avatar";
+import { CIVILITIES } from "@/lib/constants";
 import type { Artist } from "@/types/database";
 
 const initial: ProfileState = { error: null };
@@ -50,9 +51,29 @@ export function ProfileForm({ artist }: { artist: Artist }) {
         <Field label="Portfolio" name="portfolio_url" defaultValue={artist.portfolio_url} placeholder="https://" />
       </div>
 
+      {/* Identité (pour ton contrat) */}
+      <div className="rounded-xl border border-border bg-bg/60 p-4">
+        <p className="eyebrow mb-1">Mon identité</p>
+        <p className="mb-3 text-2xs text-faint">
+          Ton nom, prénom et ta naissance servent à établir ton contrat (jamais ton pseudo).
+        </p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Select label="Civilité" name="civility" defaultValue={artist.civility} options={CIVILITIES} placeholder="—" />
+            <Field label="Prénom" name="first_name" defaultValue={artist.first_name} />
+            <Field label="Nom" name="last_name" defaultValue={artist.last_name} />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Date de naissance" name="birth_date" type="date" defaultValue={artist.birth_date} />
+            <Field label="Lieu de naissance" name="birth_place" defaultValue={artist.birth_place} placeholder="Ville" />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-3">
         <Field label="Adresse postale" name="address" defaultValue={artist.address} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label="Code postal" name="postal_code" defaultValue={artist.postal_code} placeholder="33000" />
           <Field label="Ville" name="city" defaultValue={artist.city} />
           <Field label="Pays" name="country" defaultValue={artist.country} />
         </div>

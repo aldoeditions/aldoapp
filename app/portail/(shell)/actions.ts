@@ -167,8 +167,15 @@ export async function updateMyProfile(
     instagram: str(fd, "instagram"),
     portfolio_url: str(fd, "portfolio_url"),
     address: str(fd, "address"),
+    postal_code: str(fd, "postal_code"),
     city: str(fd, "city"),
     country: str(fd, "country"),
+    // Identité (pour le contrat) : civilité, prénom, nom, naissance.
+    civility: str(fd, "civility"),
+    first_name: str(fd, "first_name"),
+    last_name: str(fd, "last_name"),
+    birth_date: str(fd, "birth_date"),
+    birth_place: str(fd, "birth_place"),
     iban: str(fd, "iban"),
     bic: str(fd, "bic"),
   };
@@ -196,6 +203,18 @@ export async function updateMyProfile(
     .update(update)
     .eq("id", user.artistId);
   if (error) return { error: error.message };
+
+  // IBAN : miroir dans artist_banking (table sensible lue par l'admin + le
+  // contrat). La policy RLS autorise l'artiste à écrire SA ligne. iban est
+  // NOT NULL → on n'upsert que si un IBAN est fourni.
+  const ibanVal = str(fd, "iban");
+  if (ibanVal) {
+    const { error: bankErr } = await supabase.from("artist_banking").upsert(
+      { artist_id: user.artistId, iban: ibanVal, bic: str(fd, "bic"), updated_at: new Date().toISOString() },
+      { onConflict: "artist_id" },
+    );
+    if (bankErr) return { error: `IBAN non enregistré : ${bankErr.message}` };
+  }
 
   // Prévient l'équipe (tâche à vérifier), sans bloquer l'enregistrement.
   try {
