@@ -71,7 +71,8 @@ export function ProfileForm({ artist }: { artist: Artist }) {
       </div>
 
       <div className="space-y-3">
-        <Field label="Adresse postale" name="address" defaultValue={artist.address} />
+        <p className="eyebrow">Mon adresse</p>
+        <Field label="N° et rue" name="address" defaultValue={artist.address} placeholder="12 rue des Arts" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Code postal" name="postal_code" defaultValue={artist.postal_code} placeholder="33000" />
           <Field label="Ville" name="city" defaultValue={artist.city} />
