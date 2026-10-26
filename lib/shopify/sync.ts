@@ -94,10 +94,13 @@ export function mapShopifyOrder(payload: ShopifyOrder): MappedOrder {
       ? nz(payload.subtotal_price)
       : lines.reduce((s, l) => s + l.total_price, 0);
 
+  // Le VRAI client = compte client puis adresse de facturation. L'adresse de
+  // LIVRAISON est reléguée en dernier : en point relais, shipping_address.name
+  // porte le nom du relais (« LOCKER GROUPE… »), pas celui du client.
   const clientName =
-    payload.shipping_address?.name ||
+    [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(" ").trim() ||
     payload.billing_address?.name ||
-    [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(" ") ||
+    payload.shipping_address?.name ||
     "Client Shopify";
 
   return {
