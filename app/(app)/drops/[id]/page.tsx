@@ -114,13 +114,22 @@ export default async function DropDetailPage({
           action={
             <div className="flex items-center gap-2">
               {oeuvres.length > 0 && (
-                <a
-                  href={`/drops/${drop.id}/export`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-text hover:bg-bg"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
-                  Export CSV
-                </a>
+                <>
+                  <a
+                    href={`/drops/${drop.id}/export`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-text hover:bg-bg"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
+                    Export CSV
+                  </a>
+                  <a
+                    href={`/drops/${drop.id}/export-shopify`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-text hover:bg-bg"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
+                    Export Shopify
+                  </a>
+                </>
               )}
               {editable && (
                 <AddOeuvreButton dropId={drop.id} artists={artists} drops={drops} costs={costs} attachable={attachable} />
