@@ -57,8 +57,8 @@ function ContactRow({
 }) {
   if (!value) return null;
   return (
-    <div className="flex items-center justify-between gap-4 py-2 text-sm">
-      <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
+    <div className="flex items-start justify-between gap-4 py-2 text-sm">
+      <span className="shrink-0 pt-0.5 text-2xs font-semibold uppercase tracking-wide text-faint">
         {label}
       </span>
       {href ? (
@@ -66,12 +66,12 @@ function ContactRow({
           href={href}
           target="_blank"
           rel="noreferrer"
-          className="truncate text-accent hover:underline"
+          className="min-w-0 break-all text-right text-accent hover:underline"
         >
           {value}
         </a>
       ) : (
-        <span className="truncate text-text">{value}</span>
+        <span className="min-w-0 break-all text-right text-text">{value}</span>
       )}
     </div>
   );
