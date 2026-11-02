@@ -6,6 +6,7 @@ import { getPendingDescriptions } from "@/lib/data/oeuvres";
 import { getMyOpenTasks } from "@/lib/data/tasks";
 import { DescriptionReview } from "@/components/artists/DescriptionReview";
 import { getUpcomingSocialPosts } from "@/lib/data/social";
+import { getProposedEvents } from "@/lib/data/events";
 import { socialUrgency } from "@/lib/social";
 import { SOCIAL_STATUS } from "@/lib/constants";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -43,11 +44,12 @@ export default async function DashboardPage() {
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
-  const [pendingFiles, myTasks, upcomingPosts, pendingDescriptions] = await Promise.all([
+  const [pendingFiles, myTasks, upcomingPosts, pendingDescriptions, proposedEvents] = await Promise.all([
     getPendingFiles(),
     getMyOpenTasks(user.id),
     getUpcomingSocialPosts(5),
     getPendingDescriptions(),
+    getProposedEvents(),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -167,6 +169,42 @@ export default async function DashboardPage() {
           )}
         </CardBody>
       </Card>
+
+      {/* Événements proposés par les artistes (pour l'Agenda) */}
+      {proposedEvents.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Événements proposés"
+            subtitle="Événements partagés par les artistes — à retenir pour le post Agenda."
+            action={
+              <Link href="/social/evenements" className="text-2xs font-medium text-accent hover:underline">
+                Gérer l&apos;Agenda →
+              </Link>
+            }
+          />
+          <CardBody className="p-0">
+            <ul>
+              {proposedEvents.map((e) => (
+                <li key={e.id}>
+                  <Link href="/social/evenements" className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm transition-colors last:border-0 hover:bg-bg">
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-text">{e.title}</span>
+                      <span className="text-2xs text-faint">
+                        {e.artist_name ?? "—"}
+                        {e.event_date ? ` · ${dateCourte(e.event_date)}` : ""}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </span>
+                    </span>
+                    <span className="rounded-full bg-warningBg px-2.5 py-0.5 text-2xs font-semibold text-warning">
+                      À trier
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Descriptions d'œuvres à valider */}
       {pendingDescriptions.length > 0 && (

@@ -29,6 +29,22 @@ export async function getAllArtistEvents(): Promise<AdminEvent[]> {
   });
 }
 
+/** Événements « proposés » par les artistes, à trier pour l'Agenda (dashboard). */
+export async function getProposedEvents(limit = 10): Promise<AdminEvent[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("artist_events")
+    .select("*, artists(name)")
+    .eq("status", "proposé")
+    .order("event_date", { ascending: true, nullsFirst: false })
+    .limit(limit)
+    .returns<(ArtistEvent & { artists: { name: string } | null })[]>();
+  return (data ?? []).map((e) => {
+    const { artists, ...rest } = e;
+    return { ...rest, artist_name: artists?.name ?? null };
+  });
+}
+
 /** Nombre d'événements « proposés » (à trier pour l'Agenda) — badge admin. */
 export async function getProposedEventsCount(): Promise<number> {
   const supabase = createClient();
