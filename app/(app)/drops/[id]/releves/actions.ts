@@ -2,10 +2,29 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
-import { getCampaignRoyalties, type CampaignRoyaltyRow } from "@/lib/data/royalties";
+import { getCampaignRoyalties, getStatementForPdf, type CampaignRoyaltyRow } from "@/lib/data/royalties";
+import { renderStatementPdf } from "@/lib/royalties/generateStatementPdf";
 import type { TablesInsert, TablesUpdate } from "@/types/database";
+
+const PDF_BUCKET = "royalty-statements";
+
+/** Génère + stocke le PDF d'un relevé émis. Non bloquant. */
+async function generateAndStorePdf(statementId: string, artistId: string): Promise<string | null> {
+  const data = await getStatementForPdf(statementId);
+  if (!data) return null;
+  const pdf = await renderStatementPdf(data);
+  const path = `${artistId}/${statementId}.pdf`;
+  const admin = createAdminClient();
+  const { error } = await admin.storage.from(PDF_BUCKET).upload(path, new Uint8Array(pdf), {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (error) throw error;
+  return path;
+}
 
 async function assertCanEdit() {
   const user = await requireUser();
@@ -70,7 +89,7 @@ export async function emitStatement(statementId: string, dropId: string): Promis
 
   const { data: st } = await supabase
     .from("royalty_statements")
-    .select("id, status, non_resident, non_resident_treatment")
+    .select("id, status, non_resident, non_resident_treatment, artist_id")
     .eq("id", statementId)
     .maybeSingle();
   if (!st) return { error: "Relevé introuvable." };
@@ -98,6 +117,14 @@ export async function emitStatement(statementId: string, dropId: string): Promis
   };
   const { error } = await supabase.from("royalty_statements").update(update).eq("id", statementId);
   if (error) return { error: error.message };
+
+  // Génère et stocke le PDF (non bloquant : le relevé reste émis même si échec).
+  try {
+    const path = await generateAndStorePdf(statementId, st.artist_id);
+    if (path) await supabase.from("royalty_statements").update({ pdf_path: path }).eq("id", statementId);
+  } catch {
+    /* PDF régénérable ultérieurement */
+  }
 
   revalidatePath(`/drops/${dropId}/releves`);
   return {};

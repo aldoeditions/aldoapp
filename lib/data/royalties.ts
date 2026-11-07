@@ -9,6 +9,11 @@ import {
   type StatementResult,
 } from "@/lib/royalties/computeStatement";
 import type { SocialRate } from "@/lib/fiscal";
+import type {
+  StatementPdfData,
+  StatementPdfLine,
+  StatementPdfBreakdown,
+} from "@/lib/royalties/generateStatementPdf";
 import type { RoyaltyStatement } from "@/types/database";
 
 export type CampaignRoyaltyRow = {
@@ -167,4 +172,88 @@ export async function getArtistStatements(artistId: string): Promise<
     const { drops, ...rest } = s;
     return { ...rest, drop_name: drops?.name ?? null };
   });
+}
+
+/** Assemble les données d'un relevé pour générer son PDF (snapshot figé). */
+export async function getStatementForPdf(statementId: string): Promise<StatementPdfData | null> {
+  const supabase = createClient();
+  const admin = createAdminClient();
+
+  const { data: st } = await supabase
+    .from("royalty_statements")
+    .select("*")
+    .eq("id", statementId)
+    .maybeSingle<RoyaltyStatement>();
+  if (!st) return null;
+
+  const [{ data: artist }, { data: company }, { data: drop }, bankingRes, contractRes, exemptionRes] =
+    await Promise.all([
+      supabase.from("artists").select("name, first_name, last_name, address, postal_code, city, country, siret, is_artiste_auteur").eq("id", st.artist_id).maybeSingle(),
+      supabase.from("company_settings").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("drops").select("name, start_date, end_date").eq("id", st.drop_id).maybeSingle(),
+      admin.from("artist_banking").select("iban").eq("artist_id", st.artist_id).maybeSingle(),
+      supabase.from("contracts").select("generated_at, created_at, status").eq("artist_id", st.artist_id).eq("drop_id", st.drop_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("artist_precompte_exemptions").select("motif, valid_to").eq("artist_id", st.artist_id).order("valid_from", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+  const iban = (bankingRes.data?.iban ?? "").replace(/\s/g, "");
+  const iban_last4 = iban.length >= 4 ? iban.slice(-4) : null;
+
+  const civil_name = [artist?.first_name, artist?.last_name].filter(Boolean).join(" ").trim() || null;
+  const period =
+    drop?.start_date && drop?.end_date
+      ? `${new Date(drop.start_date).toLocaleDateString("fr-FR")} – ${new Date(drop.end_date).toLocaleDateString("fr-FR")}`
+      : null;
+  const contract_ref = contractRes.data
+    ? `Contrat du ${new Date(contractRes.data.generated_at ?? contractRes.data.created_at ?? Date.now()).toLocaleDateString("fr-FR")}`
+    : null;
+
+  // Note de dispense (si exempté).
+  let dispense_note: string | null = null;
+  if (st.exempt) {
+    if (st.non_resident) dispense_note = st.non_resident_treatment ?? "Artiste non-résident — traitement spécifique.";
+    else if (exemptionRes.data) dispense_note = `Dispense de précompte — ${exemptionRes.data.motif}${exemptionRes.data.valid_to ? ` (valable jusqu'au ${new Date(exemptionRes.data.valid_to).toLocaleDateString("fr-FR")})` : ""}.`;
+    else dispense_note = "Artiste déclarant lui-même ses cotisations (SIRET / BNC) — pas de précompte.";
+  }
+
+  return {
+    number: st.number ?? "—",
+    issued_at: st.issued_at,
+    company: {
+      name: company?.name ?? "Aldo Éditions",
+      legal_form: company?.legal_form ?? null,
+      capital_cents: company?.capital_cents ?? null,
+      siren: company?.siren ?? null,
+      siret: company?.siret ?? null,
+      rcs_city: company?.rcs_city ?? null,
+      address_line: company?.address_line ?? null,
+      postal_code: company?.postal_code ?? null,
+      city: company?.city ?? null,
+      email: company?.email ?? null,
+    },
+    artist: {
+      display_name: artist?.name ?? "—",
+      civil_name,
+      address: artist?.address ?? null,
+      postal_code: artist?.postal_code ?? null,
+      city: artist?.city ?? null,
+      country: artist?.country ?? null,
+      siret: artist?.siret ?? null,
+      artiste_auteur: artist?.is_artiste_auteur !== false,
+    },
+    campaign_name: drop?.name ?? "Campagne",
+    period,
+    contract_ref,
+    lines: (Array.isArray(st.lines) ? st.lines : []) as unknown as StatementPdfLine[],
+    total_ht_cents: st.total_ht_cents ?? 0,
+    commission_pct: Number(st.commission_pct ?? 30),
+    brut_cents: st.brut_cents ?? 0,
+    exempt: Boolean(st.exempt),
+    dispense_note,
+    breakdown: (st.breakdown ?? null) as unknown as StatementPdfBreakdown | null,
+    precompte_cents: st.precompte_cents ?? 0,
+    net_cents: st.net_cents ?? 0,
+    iban_last4,
+    paid_at: st.paid_at,
+  };
 }
