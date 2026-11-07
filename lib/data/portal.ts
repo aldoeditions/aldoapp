@@ -390,6 +390,57 @@ export async function getMyPayments(): Promise<MyPayment[]> {
   });
 }
 
+/* --------------------- Relevés de droits d'auteur --------------------- */
+
+export type MyStatement = {
+  id: string;
+  number: string | null;
+  status: string;
+  drop_name: string | null;
+  issued_at: string | null;
+  paid_at: string | null;
+  brut_cents: number | null;
+  precompte_cents: number | null;
+  net_cents: number | null;
+  has_pdf: boolean;
+};
+
+/** Relevés ÉMIS/PAYÉS de l'artiste connecté (RLS : brouillons jamais visibles). */
+export async function getMyStatements(): Promise<MyStatement[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("royalty_statements")
+    .select("id, number, status, issued_at, paid_at, brut_cents, precompte_cents, net_cents, pdf_path, drops(name)")
+    .in("status", ["émis", "payé"])
+    .order("issued_at", { ascending: false })
+    .returns<
+      {
+        id: string;
+        number: string | null;
+        status: string;
+        issued_at: string | null;
+        paid_at: string | null;
+        brut_cents: number | null;
+        precompte_cents: number | null;
+        net_cents: number | null;
+        pdf_path: string | null;
+        drops: { name: string } | null;
+      }[]
+    >();
+  return (data ?? []).map((s) => ({
+    id: s.id,
+    number: s.number,
+    status: s.status,
+    drop_name: s.drops?.name ?? null,
+    issued_at: s.issued_at,
+    paid_at: s.paid_at,
+    brut_cents: s.brut_cents,
+    precompte_cents: s.precompte_cents,
+    net_cents: s.net_cents,
+    has_pdf: Boolean(s.pdf_path),
+  }));
+}
+
 /* --------------------- Fichiers & contrat --------------------- */
 
 /** Fichiers déposés par l'artiste. */

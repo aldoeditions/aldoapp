@@ -21,6 +21,7 @@ import { OnboardingButton } from "@/components/tasks/OnboardingButton";
 import { getTasks } from "@/lib/data/tasks";
 import { getContractContext } from "@/lib/data/contracts";
 import { getDropsForSelect } from "@/lib/data/drops";
+import { getArtistStatements } from "@/lib/data/royalties";
 import {
   getCurrentRate,
   getPriorYearGrossCents,
@@ -99,13 +100,14 @@ export default async function ArtistDetailPage({
   const today = new Date().toISOString().slice(0, 10);
   const year = new Date().getFullYear();
   const regime = row.social_regime ?? "artiste_auteur_precompte";
-  const [rate, exemptByRow, priorYearGrossCents, drops, exemptions, statusDocs] = await Promise.all([
+  const [rate, exemptByRow, priorYearGrossCents, drops, exemptions, statusDocs, statements] = await Promise.all([
     getCurrentRate(),
     hasActiveExemption(row.id, today),
     getPriorYearGrossCents(row.id, year),
     getDropsForSelect(),
     getArtistExemptions(row.id),
     listArtistDocuments(row.id),
+    getArtistStatements(row.id),
   ]);
   const exempt = !PRECOMPTE_REGIMES.has(regime) || exemptByRow;
 
@@ -311,6 +313,41 @@ export default async function ArtistDetailPage({
               </Card>
             );
           })()}
+
+          {/* Relevés de droits d'auteur */}
+          {statements.length > 0 && (
+            <Card>
+              <CardHeader title="Relevés de droits" subtitle={`${statements.length} relevé(s)`} />
+              <CardBody className="p-0">
+                <ul>
+                  {statements.map((s) => (
+                    <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm last:border-0">
+                      <div className="min-w-0">
+                        <p className="font-medium text-text">
+                          {s.drop_name ?? "Campagne"}
+                          {s.number && <span className="ml-2 font-mono text-2xs text-faint">{s.number}</span>}
+                        </p>
+                        <p className="text-2xs text-faint">
+                          {s.status === "brouillon" ? "Brouillon" : `Émis le ${dateCourte(s.issued_at)}`}
+                          {" · net "}{eurosCents(s.net_cents ?? 0)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={"rounded-full px-2.5 py-0.5 text-2xs font-semibold " + (s.status === "payé" ? "bg-successBg text-success" : s.status === "émis" ? "bg-accentBg text-accent" : "bg-bg text-muted")}>
+                          {s.status}
+                        </span>
+                        {s.status !== "brouillon" && (
+                          <a href={`/drops/${s.drop_id}/releves/${s.id}/pdf`} target="_blank" rel="noreferrer" className="text-2xs font-medium text-accent hover:underline">
+                            PDF
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Paiements */}
           <Card>

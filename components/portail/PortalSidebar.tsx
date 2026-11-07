@@ -24,6 +24,7 @@ const Icons = {
   contrats: (p: IconProps) => (<svg {...base} className={p.className}><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2" /><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M8 12h8M8 16h5" /></svg>),
   calendrier: (p: IconProps) => (<svg {...base} className={p.className}><rect x="3" y="4.5" width="18" height="16.5" rx="2" /><path d="M3 9h18M8 2.5v4M16 2.5v4" /></svg>),
   evenements: (p: IconProps) => (<svg {...base} className={p.className}><path d="M12 2l2.4 6.9H21l-5.5 4.1 2.1 6.8L12 15.8 6.4 19.8l2.1-6.8L3 8.9h6.6z" /></svg>),
+  releves: (p: IconProps) => (<svg {...base} className={p.className}><path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></svg>),
   logout: (p: IconProps) => (<svg {...base} className={p.className}><path d="M15 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3" /><path d="M10 12H3m0 0 3-3m-3 3 3 3" /></svg>),
 };
 
@@ -34,6 +35,7 @@ const LINKS = [
   { href: "/portail/fichiers", label: "Fichiers", Icon: Icons.fichiers },
   { href: "/portail/profil", label: "Profil", Icon: Icons.profil },
   { href: "/portail/contrats", label: "Contrats", Icon: Icons.contrats },
+  { href: "/portail/releves", label: "Relevés", Icon: Icons.releves },
   { href: "/portail/calendrier", label: "Calendrier", Icon: Icons.calendrier },
   { href: "/portail/evenements", label: "Événements", Icon: Icons.evenements },
 ];
