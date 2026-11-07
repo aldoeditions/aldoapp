@@ -38,8 +38,8 @@ create policy company_settings_team_write on public.company_settings
   for all using (public.is_team()) with check (public.is_team());
 
 insert into public.company_settings
-  (id, name, legal_form, capital_cents, siren, siret, tva_intra, ape, address_line, postal_code, city, email)
+  (id, name, legal_form, capital_cents, siren, siret, tva_intra, ape, rcs_city, address_line, postal_code, city, email)
 values
-  (1, 'Aldo Éditions', 'SAS', 1000, '992745844', '99274584400017', 'FR81992745844', '47.91A',
+  (1, 'Aldo Éditions', 'SAS', 1000, '992745844', '99274584400017', 'FR81992745844', '47.91A', 'Bordeaux',
    '4 rue Henri Lebrun', '37540', 'Saint-Cyr-sur-Loire', 'contact@aldo-editions.com')
 on conflict (id) do nothing;
