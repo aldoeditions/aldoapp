@@ -83,6 +83,12 @@ export default async function DropDetailPage({
           </div>
           {editable && (
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/drops/${drop.id}/releves`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-text hover:bg-bg"
+              >
+                Relevés de droits
+              </Link>
               {drop.status !== "terminé" && oeuvres.length > 0 && (
                 <ReapplyCostsButton dropId={drop.id} />
               )}

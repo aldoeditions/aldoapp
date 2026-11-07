@@ -201,7 +201,7 @@ export async function createDropCompletionTasks(
 
     const artistsMap = new Map<string, string>();
     for (const o of oeuvres ?? []) {
-      const row = o as { artist_id: string | null; artists: { name: string } | null };
+      const row = o as unknown as { artist_id: string | null; artists: { name: string } | null };
       if (row.artist_id) artistsMap.set(row.artist_id, row.artists?.name ?? "artiste");
     }
     if (artistsMap.size === 0) return { created: 0 };

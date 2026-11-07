@@ -429,11 +429,9 @@ export async function getMyContracts(): Promise<MyContract[]> {
     .from("contracts")
     .select("id, status, generated_at, created_at, pdf_path, file_path, drops(name)")
     .in("status", ["envoyé", "signé"])
-    .order("created_at", { ascending: false })
-    .returns<
-      (MyContract & { drops: { name: string } | null })[]
-    >();
-  return (data ?? []).map((c) => {
+    .order("created_at", { ascending: false });
+  const rows = (data ?? []) as unknown as (MyContract & { drops: { name: string } | null })[];
+  return rows.map((c) => {
     const { drops, ...rest } = c;
     return { ...rest, drop_name: drops?.name ?? null };
   });
