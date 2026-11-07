@@ -155,6 +155,64 @@ export async function emitAll(dropId: string): Promise<{ emitted: number; skippe
   return { emitted, skipped };
 }
 
+/**
+ * Marque un relevé émis comme PAYÉ : crée le versement (payments) depuis le
+ * snapshot figé, le rattache, régénère le PDF (avec la date de versement).
+ */
+export async function markPaid(
+  statementId: string,
+  dropId: string,
+  paidAt: string,
+  reference: string | null,
+): Promise<{ error?: string }> {
+  await assertCanEdit();
+  const supabase = createClient();
+
+  const { data: st } = await supabase.from("royalty_statements").select("*").eq("id", statementId).maybeSingle();
+  if (!st) return { error: "Relevé introuvable." };
+  if (st.status !== "émis") return { error: "Seul un relevé émis peut être marqué payé." };
+
+  const date = paidAt || new Date().toISOString().slice(0, 10);
+  const year = new Date(date).getFullYear();
+
+  const { data: pay, error: payErr } = await supabase
+    .from("payments")
+    .insert({
+      artist_id: st.artist_id,
+      drop_id: st.drop_id,
+      status: "paye",
+      paid_at: date,
+      reference: reference || null,
+      amount: (st.brut_cents ?? 0) / 100,
+      gross_cents: st.brut_cents,
+      precompte_cents: st.precompte_cents ?? 0,
+      net_cents: st.net_cents,
+      contribution_diffuseur_cents: st.contribution_diffuseur_cents ?? 0,
+      social_rate_id: st.social_rate_id,
+      period_year: year,
+      notes: st.number ? `Relevé ${st.number}` : null,
+    })
+    .select("id")
+    .single();
+  if (payErr) return { error: payErr.message };
+
+  const { error } = await supabase
+    .from("royalty_statements")
+    .update({ status: "payé", payment_id: pay.id, paid_at: date })
+    .eq("id", statementId);
+  if (error) return { error: error.message };
+
+  try {
+    const path = await generateAndStorePdf(statementId, st.artist_id);
+    if (path) await supabase.from("royalty_statements").update({ pdf_path: path }).eq("id", statementId);
+  } catch {
+    /* non bloquant */
+  }
+
+  revalidatePath(`/drops/${dropId}/releves`);
+  return {};
+}
+
 export async function deleteDraft(statementId: string, dropId: string): Promise<void> {
   await assertCanEdit();
   const supabase = createClient();
