@@ -48,9 +48,13 @@ export type Versement = {
   exempt: boolean;
 };
 
-/** Arrondi commercial au centime, demi-supérieur (0,5 → 1). Montants positifs. */
+/**
+ * Arrondi commercial au centime, demi-supérieur (0,5 → 1). Montants positifs.
+ * L'epsilon corrige les dérives de flottants (ex. 1000×0,0615 = 61,499999… qui
+ * doit donner 62), sans impacter les valeurs légitimement sous la demie.
+ */
 export function roundHalfUp(x: number): number {
-  return Math.floor(x + 0.5);
+  return Math.floor(x + 0.5 + 1e-6);
 }
 
 /** Applique un taux et une assiette (en %) à une base en centimes (résultat flottant). */
@@ -81,12 +85,15 @@ export function computePrecompte(
   const plafondRestant = Math.max(0, rate.plafond_ss_annuel_cents - prior);
   const baseVieillessePlaf = Math.min(grossCents, plafondRestant);
 
+  // Arrondi commercial au centime PAR LIGNE de cotisation (règle Urssaf /
+  // expert-comptable), puis somme. Les valeurs du breakdown sont en centimes
+  // entiers. (0,615 € → 0,62 € ; attention : diffère d'un arrondi du total.)
   const breakdown: PrecompteBreakdown = {
-    vieillesse_plaf: ligne(baseVieillessePlaf, rate.vieillesse_plaf_assiette, rate.vieillesse_plaf_taux),
-    vieillesse_deplaf: ligne(grossCents, rate.vieillesse_deplaf_assiette, rate.vieillesse_deplaf_taux),
-    csg: ligne(grossCents, rate.csg_assiette, rate.csg_taux),
-    crds: ligne(grossCents, rate.crds_assiette, rate.crds_taux),
-    cfp: ligne(grossCents, rate.cfp_assiette, rate.cfp_taux),
+    vieillesse_plaf: roundHalfUp(ligne(baseVieillessePlaf, rate.vieillesse_plaf_assiette, rate.vieillesse_plaf_taux)),
+    vieillesse_deplaf: roundHalfUp(ligne(grossCents, rate.vieillesse_deplaf_assiette, rate.vieillesse_deplaf_taux)),
+    csg: roundHalfUp(ligne(grossCents, rate.csg_assiette, rate.csg_taux)),
+    crds: roundHalfUp(ligne(grossCents, rate.crds_assiette, rate.crds_taux)),
+    cfp: roundHalfUp(ligne(grossCents, rate.cfp_assiette, rate.cfp_taux)),
   };
 
   const total =
@@ -116,7 +123,7 @@ export function computeVersement(
 ): Versement {
   const g = Math.max(0, Math.round(grossCents));
   const { total, breakdown } = computePrecompte(g, rate, opts);
-  const precompte_cents = roundHalfUp(total);
+  const precompte_cents = total; // déjà somme de lignes arrondies (entier)
   return {
     gross_cents: g,
     precompte_cents,

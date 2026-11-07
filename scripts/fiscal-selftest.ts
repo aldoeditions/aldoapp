@@ -36,15 +36,17 @@ function eq(name: string, got: number, want: number) {
 
 // --- A3 : rémunération artiste 10,00 € (30 % du HT) ---
 const a3 = computeVersement(1000, RATE_2026);
-eq("A3 précompte = 160 c (1,60 €)", a3.precompte_cents, 160);
-eq("A3 net = 840 c (8,40 €)", a3.net_cents, 840);
+// Arrondi par ligne : VP 62 + CSG 90 + CRDS 5 + CFP 4 = 161 c.
+eq("A3 précompte = 161 c (1,61 €)", a3.precompte_cents, 161);
+eq("A3 net = 839 c (8,39 €)", a3.net_cents, 839);
 eq("A3 contribution diffuseur = 11 c (0,11 €)", a3.contribution_diffuseur_cents, 11);
 eq("A3 net = brut - précompte", a3.net_cents, a3.gross_cents - a3.precompte_cents);
 
 // --- A4 : rémunération artiste 6,25 € ---
 const a4 = computeVersement(625, RATE_2026);
-eq("A4 précompte = 100 c (1,00 €)", a4.precompte_cents, 100);
-eq("A4 net = 525 c (5,25 €)", a4.net_cents, 525);
+// Arrondi par ligne : VP 38 + CSG 56 + CRDS 3 + CFP 2 = 99 c.
+eq("A4 précompte = 99 c (0,99 €)", a4.precompte_cents, 99);
+eq("A4 net = 526 c (5,26 €)", a4.net_cents, 526);
 eq("A4 contribution diffuseur = 7 c (0,07 €)", a4.contribution_diffuseur_cents, 7);
 
 // --- Dispense de précompte : 0 retenu, diffuseur toujours dû ---
