@@ -21,7 +21,7 @@ import { OnboardingButton } from "@/components/tasks/OnboardingButton";
 import { getTasks } from "@/lib/data/tasks";
 import { getContractContext } from "@/lib/data/contracts";
 import { getDropsForSelect } from "@/lib/data/drops";
-import { getArtistStatements } from "@/lib/data/royalties";
+import { getArtistStatements, getCertificateYears } from "@/lib/data/royalties";
 import {
   getCurrentRate,
   getPriorYearGrossCents,
@@ -109,6 +109,7 @@ export default async function ArtistDetailPage({
     listArtistDocuments(row.id),
     getArtistStatements(row.id),
   ]);
+  const certYears = await getCertificateYears(row.id);
   const exempt = !PRECOMPTE_REGIMES.has(regime) || exemptByRow;
 
   // Totaux versements (en centimes) + suggestion de rému restant à verser.
@@ -317,7 +318,21 @@ export default async function ArtistDetailPage({
           {/* Relevés de droits d'auteur */}
           {statements.length > 0 && (
             <Card>
-              <CardHeader title="Relevés de droits" subtitle={`${statements.length} relevé(s)`} />
+              <CardHeader
+                title="Relevés de droits"
+                subtitle={`${statements.length} relevé(s)`}
+                action={
+                  certYears.length > 0 ? (
+                    <span className="flex items-center gap-2">
+                      {certYears.map((y) => (
+                        <a key={y} href={`/artistes/${row.id}/certificat?year=${y}`} target="_blank" rel="noreferrer" className="text-2xs font-medium text-accent hover:underline">
+                          Certificat {y}
+                        </a>
+                      ))}
+                    </span>
+                  ) : undefined
+                }
+              />
               <CardBody className="p-0">
                 <ul>
                   {statements.map((s) => (

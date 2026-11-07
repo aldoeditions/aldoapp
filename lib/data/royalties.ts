@@ -14,6 +14,7 @@ import type {
   StatementPdfLine,
   StatementPdfBreakdown,
 } from "@/lib/royalties/generateStatementPdf";
+import type { CertificatePdfData } from "@/lib/royalties/generateCertificatePdf";
 import type { RoyaltyStatement } from "@/types/database";
 
 export type CampaignRoyaltyRow = {
@@ -255,5 +256,90 @@ export async function getStatementForPdf(statementId: string): Promise<Statement
     net_cents: st.net_cents ?? 0,
     iban_last4,
     paid_at: st.paid_at,
+  };
+}
+
+type CertRow = {
+  number: string | null;
+  issued_at: string | null;
+  brut_cents: number | null;
+  precompte_cents: number | null;
+  breakdown: { vieillesse_plaf?: number; vieillesse_deplaf?: number; csg?: number; crds?: number; cfp?: number } | null;
+};
+
+/** Années pour lesquelles l'artiste a subi un précompte (relevés émis/payés). */
+export async function getCertificateYears(artistId: string): Promise<number[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("royalty_statements")
+    .select("issued_at, precompte_cents")
+    .eq("artist_id", artistId)
+    .in("status", ["émis", "payé"]);
+  const years = new Set<number>();
+  for (const s of data ?? []) {
+    if ((s.precompte_cents ?? 0) > 0 && s.issued_at) years.add(new Date(s.issued_at).getFullYear());
+  }
+  return Array.from(years).sort((a, b) => b - a);
+}
+
+/** Certificat de précompte annuel : agrège les relevés précomptés de l'année. */
+export async function getPrecompteCertificate(artistId: string, year: number): Promise<CertificatePdfData | null> {
+  const admin = createAdminClient();
+  const [{ data: artist }, { data: company }, { data: sts }] = await Promise.all([
+    admin.from("artists").select("name, first_name, last_name, address, postal_code, city, siret").eq("id", artistId).maybeSingle(),
+    admin.from("company_settings").select("*").eq("id", 1).maybeSingle(),
+    admin.from("royalty_statements").select("number, issued_at, brut_cents, precompte_cents, breakdown, status").eq("artist_id", artistId).in("status", ["émis", "payé"]).returns<(CertRow & { status: string })[]>(),
+  ]);
+
+  const inYear = (sts ?? []).filter(
+    (s) => s.issued_at && new Date(s.issued_at).getFullYear() === year && (s.precompte_cents ?? 0) > 0,
+  );
+  if (inYear.length === 0) return null;
+
+  let brut = 0, vie = 0, csg = 0, crds = 0, cfp = 0, prec = 0;
+  const statements = inYear
+    .map((s) => {
+      const bd = s.breakdown ?? {};
+      brut += s.brut_cents ?? 0;
+      prec += s.precompte_cents ?? 0;
+      vie += (bd.vieillesse_plaf ?? 0) + (bd.vieillesse_deplaf ?? 0);
+      csg += bd.csg ?? 0;
+      crds += bd.crds ?? 0;
+      cfp += bd.cfp ?? 0;
+      return { number: s.number, date: s.issued_at, brut_cents: s.brut_cents ?? 0, precompte_cents: s.precompte_cents ?? 0 };
+    })
+    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+
+  const civil_name = [artist?.first_name, artist?.last_name].filter(Boolean).join(" ").trim() || null;
+
+  return {
+    year,
+    company: {
+      name: company?.name ?? "Aldo Éditions",
+      legal_form: company?.legal_form ?? null,
+      capital_cents: company?.capital_cents ?? null,
+      siren: company?.siren ?? null,
+      siret: company?.siret ?? null,
+      rcs_city: company?.rcs_city ?? null,
+      address_line: company?.address_line ?? null,
+      postal_code: company?.postal_code ?? null,
+      city: company?.city ?? null,
+    },
+    artist: {
+      display_name: artist?.name ?? "—",
+      civil_name,
+      address: artist?.address ?? null,
+      postal_code: artist?.postal_code ?? null,
+      city: artist?.city ?? null,
+      siret: artist?.siret ?? null,
+    },
+    brut_cents: brut,
+    vieillesse_cents: vie,
+    csg_cents: csg,
+    crds_cents: crds,
+    cfp_cents: cfp,
+    precompte_cents: prec,
+    statements,
+    generated_at: new Date(),
   };
 }

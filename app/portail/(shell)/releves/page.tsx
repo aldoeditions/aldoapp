@@ -1,12 +1,16 @@
 import { requireArtist } from "@/lib/auth/session";
 import { getMyStatements } from "@/lib/data/portal";
+import { getCertificateYears } from "@/lib/data/royalties";
 import { Card, CardBody } from "@/components/ui/Card";
 import { PortalHeader } from "@/components/portail/PortalHeader";
 import { eurosCents, dateCourte } from "@/lib/format";
 
 export default async function RelevesPage() {
-  await requireArtist();
-  const statements = await getMyStatements();
+  const user = await requireArtist();
+  const [statements, certYears] = await Promise.all([
+    getMyStatements(),
+    getCertificateYears(user.artistId),
+  ]);
 
   return (
     <div className="space-y-7">
@@ -15,6 +19,30 @@ export default async function RelevesPage() {
         title="Mes relevés de droits d'auteur"
         description="Un relevé par campagne : tes ventes, le précompte éventuel et le net versé. Ils tiennent lieu de justificatif — tu n'as pas de facture à émettre."
       />
+
+      {certYears.length > 0 && (
+        <Card>
+          <CardBody className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-medium text-text">Certificat de précompte annuel</p>
+              <p className="text-2xs text-faint">Récapitulatif des cotisations précomptées sur l&apos;année — utile pour ta déclaration de revenus.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {certYears.map((y) => (
+                <a
+                  key={y}
+                  href={`/portail/certificat?year=${y}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text hover:bg-bg"
+                >
+                  Certificat {y}
+                </a>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {statements.length === 0 ? (
         <Card>
