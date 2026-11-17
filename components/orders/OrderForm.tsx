@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { saveOrder, type FormState } from "@/app/(app)/commandes/actions";
-import { Field, Select, SubmitButton, FormError, inputCls, labelCls } from "@/components/ui/form";
+import { Field, Select, SubmitButton, FormError } from "@/components/ui/form";
 import { ORDER_STATUSES } from "@/lib/constants";
 import { euros } from "@/lib/format";
 import type { Order } from "@/types/database";
@@ -24,14 +24,12 @@ export function OrderForm({
   items: initialItems,
   oeuvres,
   drops,
-  waveNames,
   onSuccess,
 }: {
   order?: Order | null;
   items?: ItemRow[];
   oeuvres: OeuvreOpt[];
   drops: { id: string; name: string }[];
-  waveNames: string[];
   onSuccess: () => void;
 }) {
   const editing = Boolean(order);
@@ -82,22 +80,13 @@ export function OrderForm({
       </div>
       <Field label="Adresse" name="client_address" defaultValue={order?.client_address} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          label="Drop"
-          name="drop_id"
-          defaultValue={order?.drop_id}
-          placeholder="—"
-          options={drops.map((d) => ({ value: d.id, label: d.name }))}
-        />
-        <div>
-          <label className={labelCls} htmlFor="wave">Vague d&apos;impression</label>
-          <input id="wave" name="wave" list="waves" defaultValue={order?.wave ?? ""} placeholder="2026-03-A" className={inputCls} />
-          <datalist id="waves">
-            {waveNames.map((w) => <option key={w} value={w} />)}
-          </datalist>
-        </div>
-      </div>
+      <Select
+        label="Drop"
+        name="drop_id"
+        defaultValue={order?.drop_id}
+        placeholder="—"
+        options={drops.map((d) => ({ value: d.id, label: d.name }))}
+      />
 
       {/* Articles */}
       <div className="border-t border-border pt-4">

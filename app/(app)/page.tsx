@@ -3,7 +3,6 @@ import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPendingFiles } from "@/lib/data/artists";
 import { getPendingDescriptions } from "@/lib/data/oeuvres";
-import { getMyOpenTasks } from "@/lib/data/tasks";
 import { DescriptionReview } from "@/components/artists/DescriptionReview";
 import { getUpcomingSocialPosts } from "@/lib/data/social";
 import { getProposedEvents } from "@/lib/data/events";
@@ -16,8 +15,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ButtonLink } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
 import { FilesReview } from "@/components/artists/FilesReview";
-import { MissingDataButton } from "@/components/tasks/MissingDataButton";
-import { TASK_STATUS } from "@/lib/constants";
 import { euros0, nombre, dateCourte } from "@/lib/format";
 
 export default async function DashboardPage() {
@@ -44,17 +41,12 @@ export default async function DashboardPage() {
   const netTotal = (pnl ?? []).reduce((s, d) => s + (d.resultat_net ?? 0), 0);
   const ventesTotal = (pnl ?? []).reduce((s, d) => s + (d.nb_ventes ?? 0), 0);
 
-  const [pendingFiles, myTasks, upcomingPosts, pendingDescriptions, proposedEvents] = await Promise.all([
+  const [pendingFiles, upcomingPosts, pendingDescriptions, proposedEvents] = await Promise.all([
     getPendingFiles(),
-    getMyOpenTasks(user.id),
     getUpcomingSocialPosts(5),
     getPendingDescriptions(),
     getProposedEvents(),
   ]);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const isOverdue = (due: string | null) => !!due && due < today;
-  const nbOverdue = myTasks.filter((t) => isOverdue(t.due_date)).length;
 
   return (
     <div className="space-y-8">
@@ -74,57 +66,6 @@ export default async function DashboardPage() {
           hint={`${nombre(nbDrops ?? 0)} drop(s)`}
         />
       </div>
-
-      {/* Actions requises — mes tâches ouvertes */}
-      <Card>
-        <CardHeader
-          title="Actions requises"
-          subtitle={
-            nbOverdue > 0
-              ? `${nombre(nbOverdue)} tâche(s) en retard.`
-              : "Les tâches qui te sont assignées."
-          }
-          action={
-            <span className="flex items-center gap-3">
-              <MissingDataButton />
-              <Link href="/projet" className="text-2xs font-medium text-accent hover:underline">
-                Tout le projet →
-              </Link>
-            </span>
-          }
-        />
-        <CardBody className={myTasks.length > 0 ? "p-0" : undefined}>
-          {myTasks.length === 0 ? (
-            <p className="py-4 text-center text-sm text-faint">Aucune tâche assignée. 🎉</p>
-          ) : (
-            <ul>
-              {myTasks.map((t) => {
-                const overdue = isOverdue(t.due_date);
-                return (
-                  <li key={t.id}>
-                    <Link
-                      href="/projet"
-                      className={
-                        "flex items-center justify-between gap-3 border-b border-border px-5 py-3 text-sm transition-colors last:border-0 hover:bg-bg" +
-                        (overdue ? " bg-dangerBg/40" : "")
-                      }
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium text-text">{t.title}</span>
-                        <span className={"text-2xs " + (overdue ? "font-semibold text-danger" : "text-faint")}>
-                          {t.drop_name ?? "—"}
-                          {t.due_date ? `${overdue ? " · en retard depuis le " : " · échéance "}${dateCourte(t.due_date)}` : ""}
-                        </span>
-                      </span>
-                      <StatusBadge value={t.status} dict={TASK_STATUS} />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
 
       {/* Posts à venir (réseaux sociaux) */}
       <Card>

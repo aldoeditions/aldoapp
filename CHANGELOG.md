@@ -6,6 +6,10 @@ Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-
 ## 2026-11-17
 
 - Relevés droits d'auteur — attribution des ventes par campagne de la commande (gère les rééditions)
+- Commandes — fiabilisation des lignes Shopify : upsert idempotent + contrainte d'unicité anti-doublon (migration 0034)
+- Commandes — suppression de la notion de « vagues d'impression » (onglet, colonne, champ)
+- Campagnes — export PDF « liste d'impression » (aperçu des visuels + quantités à imprimer)
+- Masque le module Tâches (menu, dashboard, fiche artiste) en attendant une refonte
 
 ## 2026-11-07
 

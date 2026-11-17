@@ -6,7 +6,6 @@ import {
   getOrderDetail,
   getDropsForSelect,
   getOeuvresForSelect,
-  getWaveNames,
 } from "@/lib/data/orders";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -42,12 +41,10 @@ export default async function OrderDetailPage({
 
   let drops: { id: string; name: string }[] = [];
   let oeuvres: Awaited<ReturnType<typeof getOeuvresForSelect>> = [];
-  let waveNames: string[] = [];
   if (editable) {
-    [drops, oeuvres, waveNames] = await Promise.all([
+    [drops, oeuvres] = await Promise.all([
       getDropsForSelect(),
       getOeuvresForSelect(),
-      getWaveNames(),
     ]);
   }
 
@@ -71,7 +68,6 @@ export default async function OrderDetailPage({
             <p className="mt-1 text-sm text-muted">
               {order.client_name}
               {order.drop_name ? ` · ${order.drop_name}` : ""}
-              {order.wave ? ` · Vague ${order.wave}` : ""}
             </p>
             {order.shipped_at && (
               <p className="mt-1 text-2xs text-faint">Expédié le {dateCourte(order.shipped_at)}</p>
@@ -83,7 +79,6 @@ export default async function OrderDetailPage({
               <OrderFormButton
                 oeuvres={oeuvres}
                 drops={drops}
-                waveNames={waveNames}
                 order={order}
                 items={items.map((i) => ({ oeuvre_id: i.oeuvre_id ?? "", quantity: i.quantity, unit_price: i.unit_price }))}
                 variant="secondary"
@@ -146,7 +141,6 @@ export default async function OrderDetailPage({
                 <Info label="Nom" value={order.client_name} />
                 <Info label="Email" value={order.client_email} />
                 <Info label="Adresse" value={order.client_address} />
-                <Info label="Vague" value={order.wave} />
                 <Info label="Tracking" value={order.tracking_number} />
               </div>
             </CardBody>

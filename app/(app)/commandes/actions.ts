@@ -66,7 +66,6 @@ export async function saveOrder(
       client_email: str(fd, "client_email"),
       client_address: str(fd, "client_address"),
       drop_id: str(fd, "drop_id"),
-      wave: str(fd, "wave"),
       status: str(fd, "status") ?? "en attente",
       tracking_number: str(fd, "tracking_number"),
       total_amount: total,
@@ -134,17 +133,4 @@ export async function updateOrderStatus(id: string, status: string) {
   if (error) throw error;
   revalidatePath("/commandes");
   revalidatePath(`/commandes/${id}`);
-}
-
-/** Passe toutes les commandes d'une vague à un statut donné. */
-export async function markWaveStatus(wave: string, status: string) {
-  await assertCanEdit();
-  if (!ORDER_STATUS[status]) throw new Error("Statut invalide.");
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ status } as TablesUpdate<"orders">)
-    .eq("wave", wave);
-  if (error) throw error;
-  revalidatePath("/commandes");
 }

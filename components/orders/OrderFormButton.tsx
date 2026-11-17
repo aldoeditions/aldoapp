@@ -12,7 +12,6 @@ type ItemRow = { oeuvre_id: string; quantity: number; unit_price: number };
 export function OrderFormButton({
   oeuvres,
   drops,
-  waveNames,
   order,
   items,
   variant = "primary",
@@ -20,7 +19,6 @@ export function OrderFormButton({
 }: {
   oeuvres: OeuvreOpt[];
   drops: { id: string; name: string }[];
-  waveNames: string[];
   order?: Order | null;
   items?: ItemRow[];
   variant?: "primary" | "secondary";
@@ -54,7 +52,6 @@ export function OrderFormButton({
             items={items}
             oeuvres={oeuvres}
             drops={drops}
-            waveNames={waveNames}
             onSuccess={() => setOpen(false)}
           />
         )}

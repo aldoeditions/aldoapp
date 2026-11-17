@@ -134,29 +134,6 @@ export async function assignOrderToDrop(supabase: SB, orderDateIso: string): Pro
   return data?.id ?? null;
 }
 
-/**
- * Vague d'impression (impressions 2×/mois). Si la campagne porte ses dates
- * d'impression, on les utilise ; sinon repli sur le jour du mois (≤15 → "1").
- */
-export async function assignOrderToWave(
-  supabase: SB,
-  orderDateIso: string,
-  dropId: string | null,
-): Promise<string | null> {
-  const day = orderDateIso.slice(0, 10);
-  if (dropId) {
-    const { data: d } = await supabase
-      .from("drops")
-      .select("date_impression_1, date_impression_2")
-      .eq("id", dropId)
-      .maybeSingle();
-    if (d?.date_impression_1 && day <= d.date_impression_1) return "1";
-    if (d?.date_impression_2 && day <= d.date_impression_2) return "2";
-    if (d?.date_impression_1 || d?.date_impression_2) return "2";
-  }
-  return Number(day.slice(8, 10)) <= 15 ? "1" : "2";
-}
-
 /* ------------------------------------------------------------------ */
 /* Écriture (upsert idempotent par shopify_order_id)                  */
 /* ------------------------------------------------------------------ */
@@ -173,7 +150,6 @@ export type UpsertResult = { orderId: string; unresolved: number };
 export async function upsertOrderFromShopify(supabase: SB, payload: ShopifyOrder): Promise<UpsertResult> {
   const m = mapShopifyOrder(payload);
   const dropId = await assignOrderToDrop(supabase, m.order_date);
-  const wave = await assignOrderToWave(supabase, m.order_date, dropId);
 
   // Commande existante ?
   let orderId: string | null = null;
@@ -200,7 +176,6 @@ export async function upsertOrderFromShopify(supabase: SB, payload: ShopifyOrder
     financial_status: m.financial_status,
     fulfillment_status: m.fulfillment_status,
     status: "en attente",
-    wave,
     drop_id: dropId,
     raw_payload: payload as unknown as Database["public"]["Tables"]["orders"]["Insert"]["raw_payload"],
     synced_at: new Date().toISOString(),
@@ -212,7 +187,6 @@ export async function upsertOrderFromShopify(supabase: SB, payload: ShopifyOrder
     void _s;
     const { error } = await supabase.from("orders").update(rest).eq("id", orderId);
     if (error) throw error;
-    await supabase.from("order_items").delete().eq("order_id", orderId);
   } else {
     const { data, error } = await supabase.from("orders").insert(orderRow).select("id").single();
     if (error) throw error;
@@ -236,10 +210,25 @@ export async function upsertOrderFromShopify(supabase: SB, payload: ShopifyOrder
       total_price: l.total_price,
     });
   }
+
+  // Écriture idempotente des lignes. On NE fait plus delete-then-insert :
+  // deux webhooks quasi simultanés (orders/create + orders/paid) pouvaient
+  // s'intercaler et dupliquer les lignes. L'upsert par shopify_line_item_id
+  // (contrainte unique, migration 0034) garantit une ligne par article Shopify.
   if (rows.length) {
-    const { error } = await supabase.from("order_items").insert(rows);
+    const { error } = await supabase
+      .from("order_items")
+      .upsert(rows, { onConflict: "shopify_line_item_id" });
     if (error) throw error;
   }
+
+  // Retire les lignes qui ne sont plus présentes dans la commande Shopify
+  // (article retiré). Les lignes sans shopify_line_item_id (NULL) sont
+  // préservées (NOT IN exclut déjà les NULL).
+  const keepIds = rows.map((r) => r.shopify_line_item_id).filter(Boolean) as string[];
+  let stale = supabase.from("order_items").delete().eq("order_id", orderId);
+  if (keepIds.length) stale = stale.not("shopify_line_item_id", "in", `(${keepIds.join(",")})`);
+  await stale;
 
   return { orderId, unresolved };
 }

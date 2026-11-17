@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { deleteOrder, updateOrderStatus, markWaveStatus } from "@/app/(app)/commandes/actions";
+import { deleteOrder, updateOrderStatus } from "@/app/(app)/commandes/actions";
 import { ORDER_STATUSES } from "@/lib/constants";
 
 export function DeleteOrderButton({ id, label }: { id: string; label: string }) {
@@ -35,30 +35,5 @@ export function OrderStatusSelect({ id, status }: { id: string; status: string }
         <option key={s.value} value={s.value}>{s.label}</option>
       ))}
     </select>
-  );
-}
-
-/** Boutons de bascule de statut pour toute une vague. */
-export function WaveStatusButtons({ wave }: { wave: string }) {
-  const [pending, start] = useTransition();
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => start(() => markWaveStatus(wave, "imprimé"))}
-        className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-2xs font-medium text-text transition-colors hover:bg-bg disabled:opacity-60"
-      >
-        Tout imprimé
-      </button>
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => start(() => markWaveStatus(wave, "expédié"))}
-        className="rounded-md bg-accent px-2.5 py-1.5 text-2xs font-medium text-white transition-colors hover:bg-accentHover disabled:opacity-60"
-      >
-        Tout expédié
-      </button>
-    </div>
   );
 }
