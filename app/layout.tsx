@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
-import { Archivo_Black, DM_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
+// Polices AUTO-HÉBERGÉES (woff2 dans app/fonts) : plus aucune dépendance
+// réseau à Google Fonts au build (local & Vercel) → la typo ne « saute »
+// plus. Le sous-ensemble latin couvre le français, y compris la ligature œ/Œ.
+
 // Titres : substitut à « BN Mighty » (lourde, géométrique, poster).
-const display = Archivo_Black({
-  subsets: ["latin"],
+const display = localFont({
+  src: "./fonts/archivo-black-latin.woff2",
   weight: "400",
+  style: "normal",
   variable: "--font-display",
   display: "swap",
 });
 
-// Corps : DM Sans (typo principale de texte).
-const body = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+// Corps : DM Sans (police variable 400→700).
+const body = localFont({
+  src: "./fonts/dm-sans-latin.woff2",
+  weight: "400 700",
+  style: "normal",
   variable: "--font-sans",
   display: "swap",
 });
