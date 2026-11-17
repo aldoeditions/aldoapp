@@ -10,6 +10,7 @@ Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-
 - Commandes — suppression de la notion de « vagues d'impression » (onglet, colonne, champ)
 - Campagnes — export PDF « liste d'impression » (aperçu des visuels + quantités à imprimer)
 - Masque le module Tâches (menu, dashboard, fiche artiste) en attendant une refonte
+- Typo — polices auto-hébergées (next/font/local) : la typo ne saute plus si Google Fonts est inaccessible au build
 
 ## 2026-11-07
 
