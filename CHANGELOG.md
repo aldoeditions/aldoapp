@@ -3,6 +3,10 @@
 Évolutions notables de l'application de gestion **Aldo Éditions**.
 Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-JJ, plus récent en haut.
 
+## 2026-11-17
+
+- Relevés droits d'auteur — attribution des ventes par campagne de la commande (gère les rééditions)
+
 ## 2026-11-07
 
 - Relevés droits d'auteur — Phase 7 : certificat de précompte annuel

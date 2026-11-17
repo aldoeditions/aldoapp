@@ -51,36 +51,49 @@ export async function getCampaignRoyalties(dropId: string): Promise<CampaignRoya
   const admin = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [dropRes, oeuvresRes, progRes, rate, statementsRes] = await Promise.all([
+  const [dropRes, oeuvresRes, progRes, rate, statementsRes, paidOrdersRes] = await Promise.all([
     supabase.from("drops").select("id, name").eq("id", dropId).maybeSingle(),
-    supabase.from("oeuvres").select("id, name, format, artist_id").eq("drop_id", dropId),
+    supabase.from("oeuvres").select("id").eq("drop_id", dropId),
     supabase.from("drop_oeuvres").select("oeuvre_id, commission_pct").eq("drop_id", dropId),
     getRateForDate(today),
     supabase.from("royalty_statements").select("*").eq("drop_id", dropId).returns<RoyaltyStatement[]>(),
+    // Commandes PAYÉES rattachées À CETTE campagne (attribution par date de
+    // commande, cf. assignOrderToDrop) → gère les rééditions correctement.
+    supabase.from("orders").select("id").eq("financial_status", "paid").eq("drop_id", dropId),
   ]);
 
-  const oeuvres = (oeuvresRes.data ?? []) as { id: string; name: string; format: string | null; artist_id: string | null }[];
-  const oeuvreById = new Map(oeuvres.map((o) => [o.id, o]));
-  const oeuvreIds = oeuvres.map((o) => o.id);
   const commByOeuvre = new Map((progRes.data ?? []).map((p) => [p.oeuvre_id, Number(p.commission_pct)]));
+  const campaignOrderIds = (paidOrdersRes.data ?? []).map((o) => o.id);
 
-  const artistIds = Array.from(new Set(oeuvres.map((o) => o.artist_id).filter(Boolean))) as string[];
+  // Ventes de la campagne = lignes des commandes rattachées à ce drop.
+  const itemsRes = campaignOrderIds.length
+    ? await supabase.from("order_items").select("oeuvre_id, quantity, unit_price").in("order_id", campaignOrderIds)
+    : { data: [] as { oeuvre_id: string | null; quantity: number; unit_price: number }[] };
+
+  // Catalogue de la campagne = œuvres rattachées (drop_id) + programmées
+  // (drop_oeuvres, pour les rééditions) + toute œuvre réellement vendue dessus.
+  const neededIds = new Set<string>();
+  for (const o of oeuvresRes.data ?? []) neededIds.add(o.id);
+  for (const p of progRes.data ?? []) neededIds.add(p.oeuvre_id);
+  for (const it of itemsRes.data ?? []) if (it.oeuvre_id) neededIds.add(it.oeuvre_id);
+
+  const allOeuvreIds = Array.from(neededIds);
+  const { data: oeuvreRows } = allOeuvreIds.length
+    ? await supabase.from("oeuvres").select("id, name, format, artist_id").in("id", allOeuvreIds)
+    : { data: [] as { id: string; name: string; format: string | null; artist_id: string | null }[] };
+  const oeuvreById = new Map((oeuvreRows ?? []).map((o) => [o.id, o]));
+
+  const artistIds = Array.from(new Set((oeuvreRows ?? []).map((o) => o.artist_id).filter(Boolean))) as string[];
   if (artistIds.length === 0) {
     return { drop: dropRes.data ?? null, rate, rows: [] };
   }
 
-  // Ventes payées rattachées aux œuvres de la campagne.
-  const [{ data: paidOrders }, itemsRes, { data: artistsData }, bankingRes, exemptionsRes] = await Promise.all([
-    supabase.from("orders").select("id").eq("financial_status", "paid"),
-    oeuvreIds.length
-      ? supabase.from("order_items").select("oeuvre_id, quantity, unit_price, order_id").in("oeuvre_id", oeuvreIds)
-      : Promise.resolve({ data: [] as { oeuvre_id: string | null; quantity: number; unit_price: number; order_id: string }[] }),
+  const [{ data: artistsData }, bankingRes, exemptionsRes] = await Promise.all([
     supabase.from("artists").select("id, name, country, social_regime, commission_pct").in("id", artistIds),
     admin.from("artist_banking").select("artist_id").in("artist_id", artistIds),
     supabase.from("artist_precompte_exemptions").select("artist_id, valid_from, valid_to").in("artist_id", artistIds),
   ]);
 
-  const paidSet = new Set((paidOrders ?? []).map((o) => o.id));
   const hasRib = new Set((bankingRes.data ?? []).map((b) => b.artist_id));
   const artistById = new Map((artistsData ?? []).map((a) => [a.id, a]));
 
@@ -95,7 +108,7 @@ export async function getCampaignRoyalties(dropId: string): Promise<CampaignRoya
   // Lignes de vente par artiste (agrégées par œuvre + prix unitaire payé).
   const salesByArtist = new Map<string, Map<string, StatementSaleInput>>();
   for (const it of itemsRes.data ?? []) {
-    if (!it.oeuvre_id || !paidSet.has(it.order_id)) continue;
+    if (!it.oeuvre_id) continue;
     const o = oeuvreById.get(it.oeuvre_id);
     if (!o || !o.artist_id) continue;
     const unitCents = Math.round((it.unit_price ?? 0) * 100);
