@@ -6,6 +6,7 @@ import { assertNoSensitive } from "@/lib/mcp/redact";
 import { logMcpCall } from "@/lib/mcp/audit";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
 import { getDropContracts } from "@/lib/data/drop-contracts";
+import { getProgrammedOeuvres } from "@/lib/data/drop-oeuvres";
 import { generateContractInto, markContractSentInto } from "@/lib/contracts/service";
 
 /** Dernière migration connue du code (cf. supabase/migrations). */
@@ -90,13 +91,13 @@ export function registerAldoTools(server: McpServer): void {
         if (!dc.drop) return fail("Campagne introuvable.");
 
         const artistIds = dc.rows.map((r) => r.artist_id);
-        const [oeuvresRes, emailsRes] = await Promise.all([
-          s.supabase.from("oeuvres").select("id, name, format, artist_id").eq("drop_id", args.drop_id),
+        const [oeuvres, emailsRes] = await Promise.all([
+          // Œuvres programmées (drop_oeuvres) → gère les rééditions.
+          getProgrammedOeuvres(args.drop_id, s.supabase),
           artistIds.length
             ? s.supabase.from("artists").select("id, email").in("id", artistIds)
             : Promise.resolve({ data: [] as { id: string; email: string | null }[] }),
         ]);
-        const oeuvres = oeuvresRes.data;
         const emailById = new Map((emailsRes.data ?? []).map((a) => [a.id, a.email]));
 
         const artistes = dc.rows.map((r) => ({
@@ -272,28 +273,48 @@ export function registerAldoTools(server: McpServer): void {
     {
       title: "Générer les contrats manquants",
       description:
-        "Génère les contrats (brouillons) des artistes d'une campagne qui n'en ont pas encore. Les fiches identité incomplètes sont ignorées et signalées. Sans confirm=true, renvoie seulement un aperçu.",
+        "Génère les contrats (brouillons) des artistes d'une campagne qui n'en ont pas encore. Les fiches identité incomplètes et les artistes sans œuvre programmée sont ignorés et signalés. L'aperçu détaille l'annexe (œuvres) de chaque contrat. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
         drop_id: z.string(),
+        artist_ids: z.array(z.string()).optional().describe("Restreindre à ces artistes"),
         confirm: z.boolean().default(false).describe("false = aperçu ; true = exécute"),
       }),
     },
-    async (args: { drop_id: string; confirm?: boolean }, ctx: ToolCtx) => {
+    async (args: { drop_id: string; artist_ids?: string[]; confirm?: boolean }, ctx: ToolCtx) => {
       try {
         const s = sessionFromCtx(ctx);
-        const dc = await getDropContracts(args.drop_id, { supabase: s.supabase, admin: s.admin });
+        const [dc, programmes] = await Promise.all([
+          getDropContracts(args.drop_id, { supabase: s.supabase, admin: s.admin }),
+          getProgrammedOeuvres(args.drop_id, s.supabase),
+        ]);
         if (!dc.drop) return fail("Campagne introuvable.");
 
-        const aGenerer = dc.rows.filter((r) => !r.contract && r.missing.length === 0);
-        const incomplets = dc.rows.filter((r) => !r.contract && r.missing.length > 0);
-        const dejaFaits = dc.rows.filter((r) => r.contract);
+        // Annexe (œuvres programmées) par artiste, via drop_oeuvres → rééditions.
+        const oeuvresByArtist = new Map<string, { titre: string; format: string | null }[]>();
+        for (const o of programmes) {
+          if (!o.artist_id) continue;
+          const arr = oeuvresByArtist.get(o.artist_id) ?? [];
+          arr.push({ titre: o.name, format: o.format });
+          oeuvresByArtist.set(o.artist_id, arr);
+        }
+        const annexe = (id: string) => oeuvresByArtist.get(id) ?? [];
+
+        const idSet = args.artist_ids?.length ? new Set(args.artist_ids) : null;
+        const rows = idSet ? dc.rows.filter((r) => idSet.has(r.artist_id)) : dc.rows;
+
+        const sansContrat = rows.filter((r) => !r.contract);
+        const incomplets = sansContrat.filter((r) => r.missing.length > 0);
+        const sansOeuvre = sansContrat.filter((r) => r.missing.length === 0 && annexe(r.artist_id).length === 0);
+        const aGenerer = sansContrat.filter((r) => r.missing.length === 0 && annexe(r.artist_id).length > 0);
+        const dejaFaits = rows.filter((r) => r.contract);
 
         if (!args.confirm) {
           const payload = {
             apercu: true,
             campagne: dc.drop.name,
-            a_generer: aGenerer.map((r) => r.display_name),
+            a_generer: aGenerer.map((r) => ({ artiste: r.display_name, oeuvres: annexe(r.artist_id) })),
             ignores_identite_incomplete: incomplets.map((r) => ({ artiste: r.display_name, champs_manquants: r.missing })),
+            ignores_aucune_oeuvre: sansOeuvre.map((r) => r.display_name),
             deja_generes: dejaFaits.map((r) => r.display_name),
             message: `Aperçu : ${aGenerer.length} contrat(s) seraient générés. Rappelle avec confirm=true pour exécuter.`,
           };
@@ -314,6 +335,7 @@ export function registerAldoTools(server: McpServer): void {
           generes: crees,
           erreurs,
           ignores_identite_incomplete: incomplets.map((r) => ({ artiste: r.display_name, champs_manquants: r.missing })),
+          ignores_aucune_oeuvre: sansOeuvre.map((r) => r.display_name),
           message: `${crees.length} contrat(s) généré(s)${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.`,
         };
         await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "generer_contrats_manquants", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: crees.length, message: payload.message });

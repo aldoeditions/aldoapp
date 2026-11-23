@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { buildContractData, renderContractPdf, groupOeuvresByTitle } from "@/lib/contracts/generate";
+import { getProgrammedOeuvres } from "@/lib/data/drop-oeuvres";
 
 /**
  * Cœur métier de la génération / du statut des contrats, SANS vérification de
@@ -44,11 +45,13 @@ export async function generateContractInto(args: {
 }): Promise<{ error?: string }> {
   const { supabase, admin, artistId, dropId } = args;
 
-  const [artistRes, dropRes, bankingRes, oeuvresRes] = await Promise.all([
+  const [artistRes, dropRes, bankingRes, programmes] = await Promise.all([
     supabase.from("artists").select("*").eq("id", artistId).maybeSingle(),
     supabase.from("drops").select("*").eq("id", dropId).maybeSingle(),
     admin.from("artist_banking").select("iban").eq("artist_id", artistId).maybeSingle(),
-    supabase.from("oeuvres").select("id, name, format, created_at").eq("artist_id", artistId).eq("drop_id", dropId),
+    // Œuvres PROGRAMMÉES sur ce drop (drop_oeuvres) → prend en compte les
+    // rééditions, contrairement au seul oeuvres.drop_id.
+    getProgrammedOeuvres(dropId, supabase),
   ]);
 
   const artist = artistRes.data;
@@ -56,7 +59,11 @@ export async function generateContractInto(args: {
   if (!artist) return { error: "Artiste introuvable." };
   if (!drop) return { error: "Campagne introuvable." };
 
-  const oeuvreRows = oeuvresRes.data ?? [];
+  const oeuvreRows = programmes.filter((o) => o.artist_id === artistId);
+  // Garde-fou : jamais de contrat avec une annexe vide.
+  if (oeuvreRows.length === 0) {
+    return { error: "Aucune œuvre programmée sur cette campagne pour cet artiste." };
+  }
   const { data: files } = oeuvreRows.length
     ? await admin
         .from("artist_files")

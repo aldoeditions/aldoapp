@@ -7,13 +7,14 @@ Ce fichier sert à reprendre le travail sur n'importe quelle machine, dans Claud
 ## Dernière mise à jour
 
 **23/11/2026**, Claude Code (machine de Louison, Windows).
-Dernier commit : MCP — Phase 1 du connecteur Aldo (ce jour). Dernière migration : `0035_mcp_audit_log` (à jouer). `0034_order_items_dedup` est jouée.
+Dernier commit : correction rééditions (œuvres d'une campagne via `drop_oeuvres`) pour les contrats et le MCP. Dernière migration : `0035_mcp_audit_log` (à jouer). `0034_order_items_dedup` est jouée.
 
 ## Priorité du moment : les contrats du drop 3 (avant le 26/11)
 
 - **16 artistes** : Aglaé Rochette, Amélie Pichon, Ben Coosmans, Clément Causse, Elma Boisumeau, Félix Godefroy, Jeanne Guérard, Jeanne Tocqueville, Josué Fontaine, Julie Jup, Laure Lesage, Lucas Burtin, Marie-Lou Garcia, Matthieu Ossona, Nina Baldo, Tara Keogh.
 - **FAIT (23/11)** : section « Contrats » sur la fiche campagne (`app/(app)/drops/[id]`). Tableau par artiste (statut + dates), bouton « Générer les contrats manquants » (progression + erreurs, ne régénère jamais), zip des brouillons `C{n}_Prénom Nom_Contrat.pdf`, « Marquer tous comme envoyés », dépôt groupé des PDF signés rattachés par nom de fichier (accents/casse/suffixes tolérés, aperçu avant enregistrement). Réutilise `generateContract` / `markContractSent` / `markContractSigned` (source unique). Nouveaux fichiers : `lib/data/drop-contracts.ts`, `lib/contracts/filename.ts`, `components/drops/DropContractsPanel.tsx`, `app/(app)/drops/[id]/contract-actions.ts`, route zip `app/(app)/drops/[id]/contracts/zip/route.ts`. Dépendance ajoutée : `jszip`.
 - **Reste à faire pour Louison** : compléter l'identité des artistes dont la fiche est incomplète (le tableau signale « Identité incomplète »), puis générer, envoyer en signature, et déposer les signés.
+- **Corrigé (23/11)** : les contrats (annexe) et le MCP prenaient les œuvres via `oeuvres.drop_id`, ce qui ignorait les rééditions programmées via `drop_oeuvres`. Désormais tout passe par la programmation (`drop_oeuvres`, helper `lib/data/drop-oeuvres.ts`). Vérifié sur le drop 3 : 18 artistes / 72 œuvres programmées ; Josué Confort et Mathieu Pauget (4 œuvres chacun, rééditions) remontent de nouveau. Garde-fou : aucun contrat à annexe vide.
 - **Signature** : passage à **Youtrust** (ex-Yousign) acté côté app (le portail mentionne Youtrust ; le contrat art. 21 ne nomme plus la plateforme, formulation eIDAS neutre — 23/11). Reste la décision d'offre : Plus un mois (~30 € HT) pour les 16 envois, puis One (11 €/mois) ; essai gratuit 14 jours à vérifier.
 - **Classement** : chaque contrat signé est déposé dans l'app, puis dans le Drive `ALDO/Artistes/C3_{Prénom Nom}/Contrats/`. Claude (Cowork) peut s'en charger via le connecteur Google Drive, une fois celui-ci connecté au compte Google d'Aldo.
 - **À corriger dans le Drive** : renommer « C3_Josué Fontainte » en « C3_Josué Fontaine ». Harmoniser « C3_Jeanne Guérard » et « C2_Jeanne Guerrard » sur l'orthographe de la fiche identité.
@@ -54,3 +55,4 @@ Dernier commit : MCP — Phase 1 du connecteur Aldo (ce jour). Dernière migrati
 | 23/11/2026 | Claude Code | Relecture CLAUDE.md/REPRISE.md, convention CHANGELOG appliquée, gestion des contrats en lot sur la fiche campagne (génération, zip, envoi, dépôt des signés) |
 | 23/11/2026 | Claude Code | Contrat art. 21 : signature électronique sans nom de plateforme (eIDAS) ; portail → Youtrust. Drop 3 : aucun contrat encore généré, rien à régénérer |
 | 23/11/2026 | Claude Code | MCP — Phase 1 du connecteur Aldo : serveur `/api/mcp` OAuth 2.1 (Supabase), consentement, 7 outils, garde-fou anti-fuite + journal. Vérif doc (OAuth Supabase gratuit/beta). Build + 401 RFC 9728 OK en local ; reste activation Supabase + ajout connecteur |
+| 23/11/2026 | Claude Code | Correction rééditions : œuvres d'une campagne lues via `drop_oeuvres` (helper `getProgrammedOeuvres`) pour l'annexe des contrats et le MCP ; garde-fou annexe vide ; `generer_contrats_manquants` + `artist_ids` et annexe dans l'aperçu. Vérifié sur le drop 3 (Josué Confort, Mathieu Pauget). Build + tsc OK |
