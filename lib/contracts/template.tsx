@@ -14,6 +14,7 @@ import {
 } from "@react-pdf/renderer";
 import { buildContractBody, parseBlocks } from "./body";
 import { ALDO_LOGO } from "./aldo-logo";
+import { SIGN_BOX } from "./signature-layout";
 import type { ContractData } from "./types";
 
 /* ------------------------------- Fonts -------------------------------- */
@@ -127,9 +128,6 @@ const s = StyleSheet.create({
   signRow: { flexDirection: "row", justifyContent: "space-between", gap: 24 },
   signBlock: { flex: 1, borderWidth: 1, borderColor: "#d9d9de", borderRadius: 4, padding: 12 },
   signLabel: { fontWeight: 700, marginBottom: 4 },
-  signSpace: { height: 120 },
-  // Balise de champ DocuSeal : parsée puis retirée (remove_tags) du PDF signé.
-  signTag: { fontSize: 7, color: GREY },
   signName: { fontWeight: 500 },
   signRole: { color: GREY, fontSize: 8.5 },
 
@@ -234,31 +232,6 @@ export function ContractDocument({ data }: { data: ContractData }) {
         <Header />
         <Footer />
         <Body blocks={blocks} />
-
-        {/* FAIT À … + signatures */}
-        <View wrap={false}>
-          <Text style={s.faitLine}>
-            FAIT À {data.generationPlace}, LE {data.generationDate}, EN DEUX EXEMPLAIRES ORIGINAUX
-          </Text>
-          <View style={s.signRow}>
-            <View style={s.signBlock}>
-              <Text style={s.signLabel}>Pour la société ALDO</Text>
-              <View style={s.signSpace}>
-                {data.signatureTagAldo ? <Text style={s.signTag}>{data.signatureTagAldo}</Text> : null}
-              </View>
-              <Text style={s.signName}>Louison Dupont</Text>
-              <Text style={s.signRole}>Président</Text>
-            </View>
-            <View style={s.signBlock}>
-              <Text style={s.signLabel}>Pour l&apos;Artiste</Text>
-              <View style={s.signSpace}>
-                {data.signatureTag ? <Text style={s.signTag}>{data.signatureTag}</Text> : null}
-              </View>
-              <Text style={s.signName}>{data.fullName}</Text>
-              <Text style={s.signRole}>L&apos;Artiste</Text>
-            </View>
-          </View>
-        </View>
       </Page>
 
       {/* Annexe 1 */}
@@ -290,6 +263,39 @@ export function ContractDocument({ data }: { data: ContractData }) {
             </View>
           ))
         )}
+      </Page>
+
+      {/* Page de signature — TOUJOURS la dernière page. Les cadres sont à des
+          coordonnées fixes (signature-layout.ts) sur lesquelles DocuSeal place
+          les champs signature. */}
+      <Page size="A4" style={s.page}>
+        <Header />
+        <Footer />
+        <Text style={s.annexeTitle}>Signatures</Text>
+        <Text style={s.para}>
+          FAIT À {data.generationPlace}, LE {data.generationDate}, EN DEUX EXEMPLAIRES ORIGINAUX.
+        </Text>
+        <Text style={[s.para, { color: GREY }]}>
+          L&apos;Artiste signe, puis Aldo Éditions contre-signe. La signature couvre le présent contrat et son Annexe 1.
+        </Text>
+
+        {/* Pour la société ALDO (gauche) */}
+        <View style={{ position: "absolute", left: SIGN_BOX.aldo.x, top: SIGN_BOX.aldo.y, width: SIGN_BOX.aldo.w, height: SIGN_BOX.aldo.h, borderWidth: 1, borderColor: "#d9d9de", borderRadius: 4, padding: 12 }}>
+          <Text style={s.signLabel}>Pour la société ALDO</Text>
+        </View>
+        <View style={{ position: "absolute", left: SIGN_BOX.aldo.x, top: SIGN_BOX.aldo.y + SIGN_BOX.aldo.h + 6, width: SIGN_BOX.aldo.w }}>
+          <Text style={s.signName}>Louison Dupont</Text>
+          <Text style={s.signRole}>Président</Text>
+        </View>
+
+        {/* Pour l'Artiste (droite) */}
+        <View style={{ position: "absolute", left: SIGN_BOX.artiste.x, top: SIGN_BOX.artiste.y, width: SIGN_BOX.artiste.w, height: SIGN_BOX.artiste.h, borderWidth: 1, borderColor: "#d9d9de", borderRadius: 4, padding: 12 }}>
+          <Text style={s.signLabel}>Pour l&apos;Artiste</Text>
+        </View>
+        <View style={{ position: "absolute", left: SIGN_BOX.artiste.x, top: SIGN_BOX.artiste.y + SIGN_BOX.artiste.h + 6, width: SIGN_BOX.artiste.w }}>
+          <Text style={s.signName}>{data.fullName}</Text>
+          <Text style={s.signRole}>L&apos;Artiste</Text>
+        </View>
       </Page>
     </Document>
   );

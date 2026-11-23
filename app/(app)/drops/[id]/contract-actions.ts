@@ -112,7 +112,7 @@ export async function sendContractsForSignature(
  * d'un brouillon du drop, SANS modifier aucun contrat. À utiliser avant tout
  * envoi réel.
  */
-export async function sendTestSignatureToMe(dropId: string): Promise<{ error?: string; email?: string }> {
+export async function sendTestSignatureToMe(dropId: string): Promise<{ error?: string; email?: string; verification?: string }> {
   const user = await assertCanEdit();
   if (!user.email) return { error: "Votre compte n'a pas d'e-mail." };
   const supabase = createClient();
@@ -129,7 +129,7 @@ export async function sendTestSignatureToMe(dropId: string): Promise<{ error?: s
   try {
     const res = await sendTestSignature({ admin, contractId: draft.id, email: user.email, signerName: user.displayName });
     if (res.error) return { error: res.error };
-    return { email: user.email };
+    return { email: user.email, verification: res.verification };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };
   }

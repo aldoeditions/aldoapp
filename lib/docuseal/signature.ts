@@ -1,12 +1,20 @@
 import "server-only";
+import { PDFDocument } from "pdf-lib";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { CONTRACTS_BUCKET } from "@/lib/contracts/service";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
+import { signatureFields } from "@/lib/contracts/signature-layout";
 import { DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO } from "./config";
-import { createSubmissionFromPdf, getSubmission, fetchFileBuffer } from "./client";
+import { createSubmissionFromPdf, getSubmission, fetchFileBuffer, archiveSubmission, SUBMITTER_LINK } from "./client";
 
 type Db = SupabaseClient<Database>;
+
+/** Nombre de pages du PDF (base64) → la page de signature est la dernière. */
+async function pdfPageCount(base64: string): Promise<number> {
+  const doc = await PDFDocument.load(Buffer.from(base64, "base64"));
+  return doc.getPageCount();
+}
 
 /** Nom légal « Prénom Nom » (repli pseudo), comme dans le contrat. */
 function legalName(a: { first_name: string | null; last_name: string | null; name: string }): string {
@@ -68,12 +76,14 @@ export async function sendContractForSignature(args: {
   const num = campaignNumberFromDropName(drop?.name);
   const n = num != null ? String(num) : drop?.name ?? "";
   const fileBase64 = await downloadPdfBase64(admin, c.pdf_path);
+  const fields = signatureFields(await pdfPageCount(fileBase64)); // page signature = dernière page
   const bcc = await companyEmail(admin);
 
   const submission = await createSubmissionFromPdf({
     name: `Contrat C${n} — ${fullName}`.trim(),
     documentName: `Contrat C${n} ${fullName}`.trim(),
     fileBase64,
+    fields,
     submitters: [
       { role: DOCUSEAL_ROLE_ARTISTE, email, name: fullName, order: 0, external_id: contractId },
       { role: DOCUSEAL_ROLE_ALDO, email: countersignEmail, name: countersignName, order: 1, external_id: contractId },
@@ -81,7 +91,7 @@ export async function sendContractForSignature(args: {
     sendEmail: true,
     message: {
       subject: `Ton contrat Aldo Éditions — campagne ${n}`,
-      body: `Bonjour, voici ton contrat pour la campagne ${n} d'Aldo. Il reprend les œuvres retenues et ta rémunération de 30 % du prix hors taxes. Tu peux le signer en ligne en deux minutes. Si quelque chose ne te semble pas juste, réponds-nous avant de signer. Merci, et à très vite. Louison — Aldo Éditions`,
+      body: `Bonjour, voici ton contrat pour la campagne ${n} d'Aldo. Il reprend les œuvres retenues et ta rémunération de 30 % du prix hors taxes. Tu peux le signer en ligne en deux minutes : ${SUBMITTER_LINK} Si quelque chose ne te semble pas juste, réponds-nous avant de signer. Merci, et à très vite. Louison — Aldo Éditions`,
     },
     bccCompleted: bcc ?? undefined,
     replyTo: bcc ?? undefined,
@@ -110,7 +120,7 @@ export async function sendTestSignature(args: {
   contractId: string;
   email: string;
   signerName?: string;
-}): Promise<{ error?: string; submissionId?: number }> {
+}): Promise<{ error?: string; submissionId?: number; verification?: string }> {
   const { admin, contractId, email } = args;
   const { data } = await admin
     .from("contracts")
@@ -123,14 +133,32 @@ export async function sendTestSignature(args: {
   } | null;
   if (!c?.pdf_path) return { error: "Contrat de test introuvable ou sans PDF." };
 
+  // Archive le test précédent (trace dans docuseal_events) pour ne pas accumuler.
+  const { data: prior } = await admin
+    .from("docuseal_events")
+    .select("submission_id")
+    .eq("event_type", "test.created")
+    .order("received_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (prior?.submission_id) {
+    try {
+      await archiveSubmission(prior.submission_id);
+    } catch {
+      /* best-effort */
+    }
+  }
+
   const fileBase64 = await downloadPdfBase64(admin, c.pdf_path);
+  const fields = signatureFields(await pdfPageCount(fileBase64));
   const name = args.signerName || (c.artists ? legalName(c.artists) : "Test");
-  // Les deux rôles vont à la même adresse (toi) : tu signes d'abord côté
-  // Artiste, puis côté Aldo, pour valider tout le circuit.
+  // Les deux rôles vont à la même adresse (toi) : signe d'abord en Artiste,
+  // puis en Aldo, pour valider tout le circuit.
   const submission = await createSubmissionFromPdf({
     name: `TEST signature — ${name}`,
     documentName: `TEST Contrat ${name}`,
     fileBase64,
+    fields,
     submitters: [
       { role: DOCUSEAL_ROLE_ARTISTE, email, name, order: 0 },
       { role: DOCUSEAL_ROLE_ALDO, email, name: "Louison Dupont", order: 1 },
@@ -138,10 +166,26 @@ export async function sendTestSignature(args: {
     sendEmail: true,
     message: {
       subject: "TEST — contrat Aldo Éditions (ne pas transmettre)",
-      body: "Ceci est un test du circuit de signature Aldo Éditions. Signe d'abord en tant qu'Artiste puis en tant qu'Aldo pour vérifier le rendu.",
+      body: `Ceci est un test du circuit de signature Aldo Éditions. Signe d'abord en tant qu'Artiste puis en tant qu'Aldo : ${SUBMITTER_LINK}`,
     },
   });
-  return { submissionId: submission.id };
+
+  await admin.from("docuseal_events").insert({ event_type: "test.created", submission_id: submission.id, processed: true });
+
+  // Vérification via l'API : relit la soumission et contrôle les 2 rôles.
+  let verification = "";
+  try {
+    const sub = await getSubmission(submission.id);
+    const roles = (sub.submitters ?? []).map((x) => x.role).filter(Boolean);
+    const hasArtiste = roles.includes(DOCUSEAL_ROLE_ARTISTE);
+    const hasAldo = roles.includes(DOCUSEAL_ROLE_ALDO);
+    verification = `soumission #${submission.id} — ${roles.length} signataire(s) : ${roles.join(", ")}.` +
+      (hasArtiste && hasAldo ? " ✓ rôles Artiste + Aldo présents." : " ⚠ rôles attendus manquants !");
+  } catch {
+    verification = `soumission #${submission.id} créée (relecture API indisponible).`;
+  }
+
+  return { submissionId: submission.id, verification };
 }
 
 /**

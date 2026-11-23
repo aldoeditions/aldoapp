@@ -1,5 +1,6 @@
 import "server-only";
 import { getDocusealConfig } from "./config";
+import type { DocusealField } from "@/lib/contracts/signature-layout";
 
 /**
  * Client bas niveau de l'API DocuSeal. Aucune donnée sensible n'est journalisée
@@ -27,15 +28,21 @@ type CreateFromPdfArgs = {
   documentName: string;
   /** PDF encodé en base64 (sans préfixe data:). */
   fileBase64: string;
+  /** Champs placés par coordonnées (areas). Reliés au submitter par `role`. */
+  fields: DocusealField[];
   submitters: DocusealSubmitterInput[];
   /** true = envoie l'e-mail de signature ; false = ne notifie pas (test/manuel). */
   sendEmail: boolean;
-  /** Sujet / corps de l'e-mail de signature (français). */
+  /** Sujet / corps de l'e-mail de signature (français). Le corps DOIT contenir
+   *  le lien {{submitter.link}} (garde-fou). */
   message?: { subject?: string; body?: string };
   /** Adresse en copie à la fin (reçoit le contrat signé). */
   bccCompleted?: string;
   replyTo?: string;
 };
+
+/** Variable DocuSeal du lien personnel de signature. */
+export const SUBMITTER_LINK = "{{submitter.link}}";
 
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const { apiUrl, apiKey } = getDocusealConfig();
@@ -62,20 +69,25 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 /**
- * Crée une soumission à partir d'un PDF portant des balises de champ
- * (`{{…;role=Artiste;type=signature}}`). `remove_tags: true` retire les balises
- * du document signé final. `order: "preserved"` : signatures dans l'ordre.
+ * Crée une soumission à partir d'un PDF, les champs signature étant placés par
+ * COORDONNÉES (`documents[].fields[].areas`), reliés aux submitters par `role`.
+ * `order: "preserved"` : l'Artiste signe d'abord, Aldo ensuite.
+ *
+ * Garde-fou : si un e-mail est envoyé, le corps doit contenir le lien de
+ * signature {{submitter.link}}, sinon l'envoi est refusé.
  */
 export async function createSubmissionFromPdf(args: CreateFromPdfArgs): Promise<DocusealSubmissionResult> {
+  if (args.sendEmail && !(args.message?.body ?? "").includes(SUBMITTER_LINK)) {
+    throw new Error(`Envoi refusé : le corps de l'e-mail ne contient pas le lien de signature ${SUBMITTER_LINK}.`);
+  }
   const body = {
     name: args.name,
     order: "preserved",
     send_email: args.sendEmail,
-    remove_tags: true,
     bcc_completed: args.bccCompleted,
     reply_to: args.replyTo,
     message: args.message,
-    documents: [{ name: args.documentName, file: args.fileBase64 }],
+    documents: [{ name: args.documentName, file: args.fileBase64, fields: args.fields }],
     submitters: args.submitters.map((s, i) => ({
       role: s.role,
       email: s.email,
@@ -90,6 +102,11 @@ export async function createSubmissionFromPdf(args: CreateFromPdfArgs): Promise<
   });
 }
 
+/** Archive une soumission (DELETE /submissions/{id}). Best-effort. */
+export async function archiveSubmission(id: number): Promise<void> {
+  await request<unknown>(`/submissions/${id}`, { method: "DELETE" });
+}
+
 export type DocusealSubmission = {
   id: number;
   status: string | null;
@@ -97,7 +114,7 @@ export type DocusealSubmission = {
   combined_document_url: string | null;
   completed_at: string | null;
   documents: { name: string | null; url: string | null }[] | null;
-  submitters: { email: string | null; status: string | null; completed_at: string | null }[] | null;
+  submitters: { email: string | null; role: string | null; status: string | null; completed_at: string | null }[] | null;
 };
 
 /** Récupère une soumission (URLs de documents fraîches — elles expirent ~40 min). */

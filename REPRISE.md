@@ -7,7 +7,7 @@ Ce fichier sert à reprendre le travail sur n'importe quelle machine, dans Claud
 ## Dernière mise à jour
 
 **23/11/2026**, Claude Code (machine de Louison, Windows).
-Dernier commit : Phase 2 du connecteur — signature électronique DocuSeal. Dernière migration : `0036_docuseal` (à jouer). `0035_mcp_audit_log` et `0034_order_items_dedup` sont jouées.
+Dernier commit : signature DocuSeal — champs placés par coordonnées (repli après échec des balises). Dernière migration : `0036_docuseal` (à jouer, inclut `artist_signed_at` / `aldo_signed_at`). `0035_mcp_audit_log` et `0034_order_items_dedup` sont jouées.
 
 ## Priorité du moment : les contrats du drop 3 (avant le 26/11)
 
@@ -42,8 +42,9 @@ Dernier commit : Phase 2 du connecteur — signature électronique DocuSeal. Der
   2. Vérifier dans Vercel : `DOCUSEAL_API_KEY`, `DOCUSEAL_API_URL` (= `https://api.docuseal.eu`), `DOCUSEAL_WEBHOOK_SECRET`. **Important** : `DOCUSEAL_WEBHOOK_SECRET` doit être la valeur HMAC `whsec_…` (DocuSeal → webhook → Security → onglet **HMAC**, cliquer pour révéler), PAS le secret statique de l'onglet « Secret ».
   3. Dans DocuSeal, créer un **webhook** pointant vers `https://app.aldo-editions.com/api/webhooks/docuseal`, abonné aux événements `form.completed` et `submission.completed`.
   4. Régler la **langue du compte/espace DocuSeal sur le français** (l'API n'a pas de paramètre de langue : la langue de l'e-mail et de l'interface de signature vient des réglages du compte).
-  5. Sur la fiche du drop 3 : cliquer **« Régénérer les brouillons »** — **à refaire même si tu l'avais déjà fait** : la balise de contre-signature Aldo vient d'être ajoutée, les brouillons doivent la contenir. Puis **« Tester la signature »** (tu reçois les DEUX demandes à ton adresse : signe en Artiste puis en Aldo) et vérifie le rangement du PDF signé + de l'audit. **Ensuite seulement**, « Envoyer en signature » (ou via le connecteur : `envoyer_contrats_en_signature`).
-  - Si le test montre que DocuSeal ne détecte pas le champ signature (police sous-ensemblée), me le dire : repli prêt via l'API `fields` (coordonnées) au lieu des balises.
+  5. Sur la fiche du drop 3 : cliquer **« Régénérer les brouillons »** — **à refaire** : la mise en page de signature a changé (page de signature dédiée en dernière page). Puis **« Tester la signature »** (tu reçois les DEUX demandes à ton adresse : signe en Artiste puis en Aldo) et vérifie que, dans l'écran DocuSeal, le champ signature tombe bien **dans le cadre** de chaque bloc ; vérifie aussi le rangement du PDF signé + de l'audit. Le résultat du test affiche la confirmation API « 2 signataires : Artiste, Aldo ». **Ensuite seulement**, « Envoyer en signature » (ou via le connecteur : `envoyer_contrats_en_signature`).
+  - La soumission de test **ratée** (1 seul « First Party ») peut être archivée dans l'écran DocuSeal (Submissions → ⋯ → Archive) ; les tests suivants archivent automatiquement le test précédent.
+  - Repli déjà en place : les champs sont placés par **coordonnées** (plus de balises de texte). Si malgré tout le champ tombe à côté, me le dire (origine haut/bas à ajuster dans `signature-layout.ts`).
 - Le texte du contrat doit refléter les 30 % et assouplir la clause Maison des Artistes : à valider avec l'avocate.
 
 ## Décisions venues de Claude (Cowork)
@@ -64,4 +65,5 @@ Dernier commit : Phase 2 du connecteur — signature électronique DocuSeal. Der
 | 23/11/2026 | Claude Code | Contrat art. 21 : signature électronique sans nom de plateforme (eIDAS) ; portail → Youtrust. Drop 3 : aucun contrat encore généré, rien à régénérer |
 | 23/11/2026 | Claude Code | MCP — Phase 1 du connecteur Aldo : serveur `/api/mcp` OAuth 2.1 (Supabase), consentement, 7 outils, garde-fou anti-fuite + journal. Vérif doc (OAuth Supabase gratuit/beta). Build + 401 RFC 9728 OK en local ; reste activation Supabase + ajout connecteur |
 | 23/11/2026 | Claude Code | Correction rééditions : œuvres d'une campagne lues via `drop_oeuvres` (helper `getProgrammedOeuvres`) pour l'annexe des contrats et le MCP ; garde-fou annexe vide ; `generer_contrats_manquants` + `artist_ids` et annexe dans l'aperçu. Vérifié sur le drop 3 (Josué Confort, Mathieu Pauget). Build + tsc OK |
-| 23/11/2026 | Claude Code | Phase 2 du connecteur — signature DocuSeal (EU) : balise signature au template, `lib/docuseal/*`, webhook HMAC, régénération des brouillons, outils MCP `envoyer_contrats_en_signature` + `suivi_signatures`, bouton de test. Doc DocuSeal vérifiée avant de coder (2 écarts signalés : langue, secret HMAC). Build + tsc + rendu PDF OK ; reste migration 0036 + webhook + test réel |
+| 23/11/2026 | Claude Code | Phase 2 du connecteur — signature DocuSeal : `lib/docuseal/*`, webhook HMAC, régénération des brouillons, 2 signataires (Artiste + Aldo), outils MCP `envoyer_contrats_en_signature` + `suivi_signatures`, bouton de test. Doc vérifiée avant de coder. Build + tsc + rendu PDF OK ; reste migration 0036 + webhook + test réel |
+| 23/11/2026 | Claude Code | Signature — repli coordonnées : balises de texte non détectées (police sous-ensemblée) → champs placés par `areas` sur une page de signature dédiée (dernière page, géométrie `signature-layout.ts`). Lien `{{submitter.link}}` + garde-fou, auto-archivage du test précédent, relecture API des 2 signataires. tsc + build + smoke test géométrie OK. **Non vérifiable via l'API depuis le poste de dev (clés seulement sur Vercel) → vérif API intégrée au bouton de test** |

@@ -75,7 +75,11 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
     setNotice(null);
     start(async () => {
       const res = await sendTestSignatureToMe(dropId);
-      setNotice(res.error ? `Test impossible : ${res.error}` : `Contrat de test envoyé à ${res.email}. Vérifie ta boîte mail.`);
+      setNotice(
+        res.error
+          ? `Test impossible : ${res.error}`
+          : `Contrat de test envoyé à ${res.email}. Vérifie ta boîte mail. ${res.verification ?? ""}`.trim(),
+      );
     });
   }
 
