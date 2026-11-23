@@ -3,7 +3,8 @@ import type { ContractData } from "./types";
 /**
  * Texte JURIDIQUE INTÉGRAL du contrat, VERBATIM depuis la source, avec :
  *  - les seules valeurs variables remplacées par des {{PLACEHOLDERS}} ;
- *  - la coquille « Goodlfag » → « Goodflag » corrigée (art. 21).
+ *  - art. 21 : signature électronique sans nom de plateforme (formulation
+ *    neutre conforme au règlement eIDAS, au lieu de « Goodflag »).
  * Aucune autre formulation n'est modifiée. Le bloc « FAIT À … » + signatures
  * est rendu séparément (voir template.tsx).
  */
@@ -523,8 +524,8 @@ non-réclamation) ;
 ● À la date de l'accusé de réception électronique pour les emails (pour les communications non
 essentielles).
 ARTICLE 21 – SIGNATURE ÉLECTRONIQUE
-Le présent contrat peut être signé par voie électronique via la plateforme Goodflag, conformément
-aux dispositions du Règlement (UE) n° 910/2014 (règlement eIDAS) et des articles 1366 et 1367 du
+Le présent contrat peut être signé par voie électronique via une plateforme de signature électronique
+conforme au Règlement (UE) n° 910/2014 (règlement eIDAS), conformément aux articles 1366 et 1367 du
 Code civil.
 Chaque exemplaire signé électroniquement a valeur d'original. Les Parties reconnaissent que la
 signature électronique a la même force probante qu'une signature manuscrite.

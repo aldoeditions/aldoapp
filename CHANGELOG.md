@@ -5,6 +5,7 @@ Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-
 
 ## 2026-11-23
 
+- Contrats — article 21 (signature électronique) : la plateforme n'est plus nommée, formulation neutre conforme au règlement eIDAS ; le portail artiste mentionne désormais Youtrust au lieu de Goodflag (état : terminé) · à faire à la main : aucune (aucun contrat du drop 3 encore généré, rien à régénérer)
 - Contrats — gestion en lot depuis la fiche campagne : tableau par artiste (statut, dates), « Générer les contrats manquants » (un par un, avec progression et erreurs), zip des brouillons nommés `C{n}_Prénom Nom_Contrat.pdf`, « Marquer tous comme envoyés », dépôt groupé des PDF signés rattachés par nom de fichier (accents/casse/suffixes tolérés, aperçu avant enregistrement) (état : terminé) · dépendance : jszip · à faire à la main : aucune
 - Docs — CLAUDE.md et REPRISE.md relus contre le code (exacts) ; convention CHANGELOG (§7) appliquée à la section 2026-11-17 (état : terminé) · à faire à la main : aucune
 

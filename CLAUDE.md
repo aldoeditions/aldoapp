@@ -39,7 +39,7 @@ Ce fichier présente le projet à Claude, que ce soit Claude Code dans ce dépô
 | **Supabase** | Base Postgres, Auth, Storage | Cœur de l'app (offre gratuite, keep-alive GitHub Action tous les 3 jours) |
 | **Vercel** | Hébergement, région `cdg1` | Déploiement depuis `main` |
 | **Google Drive** | `ALDO/Artistes/C{n}_{Prénom Nom}/{Visuels, Contrats}` | Lien Drive saisi sur la fiche artiste (`artists.drive_link`) |
-| **Signature électronique** | Goodflag Community jusqu'ici. Passage prévu à Youtrust (ex-Yousign). | Manuel : l'app génère le PDF, le contrat signé est redéposé dans l'app |
+| **Signature électronique** | Youtrust (ex-Yousign) ; Goodflag Community utilisé jusqu'au drop 2. Le contrat ne nomme plus la plateforme (formulation eIDAS neutre). | Manuel : l'app génère le PDF, le contrat signé est redéposé dans l'app |
 | **Qonto** | Banque de la SAS | Virements aux artistes faits à la main (export groupé prévu) |
 | **Claude (Cowork)** | Supervise, prépare, tient les fiches du projet « Aldo » | Lit ce dépôt en lecture seule chaque matin (fiche « État de l'app Aldo ») |
 

@@ -23,7 +23,7 @@ export default async function ContratsPage() {
         <span aria-hidden>✍️</span>
         <p>
           <span className="font-medium text-text">La signature se fait par email.</span> Quand Aldo t&apos;envoie un
-          contrat, tu reçois un lien <span className="font-medium text-text">Goodflag</span> pour le signer
+          contrat, tu reçois un lien <span className="font-medium text-text">Youtrust</span> pour le signer
           électroniquement. Une fois signé, le PDF signé apparaît ici automatiquement.
         </p>
       </div>
