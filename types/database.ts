@@ -343,6 +343,34 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["webhook_events"]["Insert"]>;
         Relationships: [];
       };
+      mcp_audit_log: {
+        Row: {
+          id: string;
+          created_at: string;
+          user_id: string | null;
+          user_email: string | null;
+          client_id: string | null;
+          tool: string;
+          params: Json;
+          outcome: string;
+          affected: number;
+          message: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          user_id?: string | null;
+          user_email?: string | null;
+          client_id?: string | null;
+          tool: string;
+          params?: Json;
+          outcome?: string;
+          affected?: number;
+          message?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["mcp_audit_log"]["Insert"]>;
+        Relationships: [];
+      };
       sync_log: {
         Row: {
           id: string;

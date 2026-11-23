@@ -7,7 +7,7 @@ Ce fichier sert à reprendre le travail sur n'importe quelle machine, dans Claud
 ## Dernière mise à jour
 
 **23/11/2026**, Claude Code (machine de Louison, Windows).
-Dernier commit : article 21 du contrat — signature électronique sans nom de plateforme (ce jour). Dernière migration : `0034_order_items_dedup` (jouée).
+Dernier commit : MCP — Phase 1 du connecteur Aldo (ce jour). Dernière migration : `0035_mcp_audit_log` (à jouer). `0034_order_items_dedup` est jouée.
 
 ## Priorité du moment : les contrats du drop 3 (avant le 26/11)
 
@@ -20,14 +20,21 @@ Dernier commit : article 21 du contrat — signature électronique sans nom de p
 
 ## En cours / prochaines étapes
 
-1. **Serveur MCP de l'app**, pour que Claude (Cowork) puisse lire et agir. Approche retenue : un connecteur sur mesure dans l'app, et non le connecteur Supabase officiel, qui donnerait accès aux IBAN. Actions visées : lister les drops et leurs contrats, générer les contrats, marquer envoyé ou signé, déposer un PDF signé. Aucun IBAN, aucun n° de sécu. Le prompt est à rédiger par Claude (Cowork).
+1. **Serveur MCP de l'app (connecteur Aldo)** — plan en 3 phases (prompt de Claude Cowork).
+   - **Phase 1 FAITE (23/11)** : serveur MCP `/api/mcp` (mcp-handler 2.x, Streamable HTTP) authentifié OAuth 2.1 via Supabase Auth ; page de consentement `/oauth/consent` ; métadonnée RFC 9728 (`/.well-known/oauth-protected-resource`, réécrite depuis `/well-known/...`) ; 7 outils (5 lecture + 2 écriture avec `confirm`) ; garde-fou anti-fuite (`lib/mcp/redact.ts`, testé par `scripts/mcp-redaction-selftest.ts`) ; journal `mcp_audit_log`. Logique des contrats extraite dans `lib/contracts/service.ts` (source unique, réutilisée par les Server Actions ET le MCP). Build + tsc OK ; 401/RFC 9728 vérifiés en local. **Non testé en réel** tant que le serveur OAuth Supabase n'est pas activé et qu'un token admin n'est pas obtenu. Nouveaux fichiers : `lib/mcp/*`, `lib/supabase/bearer.ts`, `app/api/mcp/route.ts`, `app/well-known/oauth-protected-resource/route.ts`, `app/oauth/consent/*`.
+   - **Vérifié avant de coder** : Supabase « OAuth 2.1 Server » est en **beta, inclus dans l'offre gratuite** (pas de surcoût ; les connexions comptent en MAU) ; DCR, PKCE, rotation des refresh tokens supportés. Le paquet s'appelle `@modelcontextprotocol/server@2` (et non `@modelcontextprotocol/sdk`) ; `zod@4` requis par mcp-handler 2.x (ajouté, aucun conflit car zod n'était pas utilisé).
+   - **Reste (manuel, côté Louison) avant de tester** : voir « Actions manuelles en attente ».
+   - **Phases 2 et 3** (à venir) : signature DocuSeal (EU Cloud, dès le drop 4) + classement Google Drive, puis outils MCP d'envoi/suivi/relance/synchro des signatures. Pour le drop 3 on reste sur l'essai Youtrust + envoi manuel.
 2. **Avant le drop 3, côté site** : badges Nouveau / Bientôt fini / Terminé calculés à partir des dates Webflow, et clôture automatique dans Shopify à la date de fin.
 3. **Décembre** : push des produits vers Shopify et des artistes vers Webflow depuis l'app, export des virements groupés vers Qonto, envoi automatique des relevés.
 4. **Janvier** : chaîne d'impression (contrôle des fichiers, TIFF A3 et A4 avec marges, liste d'impression), résumé hebdomadaire par Claude.
 
 ## Actions manuelles en attente
 
-- Aucune migration en attente connue après la 0034.
+- **Migration `0035_mcp_audit_log`** : à jouer dans le SQL Editor Supabase (journal du connecteur MCP).
+- **Régénérer les types** après la migration : `npx supabase gen types typescript --project-id exdrjewvotwibqelogns > types/database.ts` (la table `mcp_audit_log` y a été ajoutée à la main en attendant).
+- **Activer le serveur OAuth dans Supabase** (Authentication → OAuth Server) : activer, Authorization Path = `/oauth/consent`, activer la *Dynamic Client Registration*. Vérifier que le Site URL (Authentication → URL Configuration) pointe bien sur l'app en prod. Callback à autoriser côté clients : `https://claude.ai/api/mcp/auth_callback` (Claude) ; la DCR couvre le loopback `http://localhost:*` de Claude Code (Supabase n'accepte que des URL exactes, pas de jokers).
+- **Ajouter le connecteur dans Claude** : Paramètres → Connecteurs → Ajouter un connecteur personnalisé → URL `https://app.aldo-editions.com/api/mcp`. Puis se connecter avec un compte **admin** (Louison ou Charley) et accepter sur la page de consentement. Test en ligne de commande possible : `npx @modelcontextprotocol/inspector` ou `claude mcp add --transport http aldo https://app.aldo-editions.com/api/mcp`.
 - Le texte du contrat doit refléter les 30 % et assouplir la clause Maison des Artistes : à valider avec l'avocate.
 
 ## Décisions venues de Claude (Cowork)
@@ -46,3 +53,4 @@ Dernier commit : article 21 du contrat — signature électronique sans nom de p
 | 23/11/2026 | Cowork | Création de CLAUDE.md et REPRISE.md, convention CHANGELOG, préparation des contrats du drop 3 |
 | 23/11/2026 | Claude Code | Relecture CLAUDE.md/REPRISE.md, convention CHANGELOG appliquée, gestion des contrats en lot sur la fiche campagne (génération, zip, envoi, dépôt des signés) |
 | 23/11/2026 | Claude Code | Contrat art. 21 : signature électronique sans nom de plateforme (eIDAS) ; portail → Youtrust. Drop 3 : aucun contrat encore généré, rien à régénérer |
+| 23/11/2026 | Claude Code | MCP — Phase 1 du connecteur Aldo : serveur `/api/mcp` OAuth 2.1 (Supabase), consentement, 7 outils, garde-fou anti-fuite + journal. Vérif doc (OAuth Supabase gratuit/beta). Build + 401 RFC 9728 OK en local ; reste activation Supabase + ajout connecteur |

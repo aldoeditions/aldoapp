@@ -24,6 +24,21 @@ const nextConfig = {
       },
     ],
   },
+  // Métadonnée OAuth de ressource protégée (serveur MCP). Next n'expose pas
+  // de route sous un dossier `.well-known` : on sert le handler depuis
+  // /well-known/... et on réécrit le chemin RFC 9728 public vers lui.
+  async rewrites() {
+    return [
+      {
+        source: "/.well-known/oauth-protected-resource",
+        destination: "/well-known/oauth-protected-resource",
+      },
+      {
+        source: "/.well-known/oauth-protected-resource/:path*",
+        destination: "/well-known/oauth-protected-resource/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

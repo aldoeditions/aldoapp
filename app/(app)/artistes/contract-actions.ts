@@ -5,29 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
-import { buildContractData, renderContractPdf, groupOeuvresByTitle } from "@/lib/contracts/generate";
+import {
+  CONTRACTS_BUCKET,
+  generateContractInto,
+  markContractSentInto,
+} from "@/lib/contracts/service";
 
-const BUCKET = "contracts";
+const BUCKET = CONTRACTS_BUCKET;
 
 async function assertCanEdit() {
   const user = await requireUser();
   if (!canEdit(user.role, "artistes")) throw new Error("Accès refusé : droits insuffisants.");
   return user;
-}
-
-function mimeLabel(mime: string | null): string {
-  const m = (mime ?? "").toLowerCase();
-  if (m.includes("jpeg") || m.includes("jpg")) return "JPEG";
-  if (m.includes("png")) return "PNG";
-  if (m.includes("tiff")) return "TIFF";
-  if (m.includes("pdf")) return "PDF";
-  if (m.includes("photoshop") || m.includes("psd")) return "PSD";
-  return m.split("/").pop()?.toUpperCase() || "Fichier";
-}
-
-function sizeMo(bytes: number | null): string {
-  if (!bytes) return "";
-  return ` · ${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} Mo`;
 }
 
 /** Génère le PDF du contrat, le stocke et crée l'entrée contracts (brouillon). */
@@ -37,80 +26,13 @@ export async function generateContract(
 ): Promise<{ error?: string }> {
   try {
     await assertCanEdit();
-    const supabase = createClient();
-    const admin = createAdminClient();
-
-    const [artistRes, dropRes, bankingRes, oeuvresRes] = await Promise.all([
-      supabase.from("artists").select("*").eq("id", artistId).maybeSingle(),
-      supabase.from("drops").select("*").eq("id", dropId).maybeSingle(),
-      admin.from("artist_banking").select("iban").eq("artist_id", artistId).maybeSingle(),
-      supabase.from("oeuvres").select("id, name, format, created_at").eq("artist_id", artistId).eq("drop_id", dropId),
-    ]);
-
-    const artist = artistRes.data;
-    const drop = dropRes.data;
-    if (!artist) return { error: "Artiste introuvable." };
-    if (!drop) return { error: "Campagne introuvable." };
-
-    const oeuvreRows = oeuvresRes.data ?? [];
-    // Caractéristiques du fichier : depuis le dernier dépôt validé de l'œuvre.
-    const { data: files } = oeuvreRows.length
-      ? await admin
-          .from("artist_files")
-          .select("oeuvre_id, status, mime_type, file_size, created_at")
-          .in("oeuvre_id", oeuvreRows.map((o) => o.id))
-      : { data: [] as { oeuvre_id: string | null; status: string | null; mime_type: string | null; file_size: number | null; created_at: string | null }[] };
-
-    const bestFile = new Map<string, { mime_type: string | null; file_size: number | null }>();
-    for (const f of files ?? []) {
-      if (!f.oeuvre_id) continue;
-      const cur = bestFile.get(f.oeuvre_id);
-      // priorité au validé ; sinon on garde le premier rencontré
-      if (!cur || f.status === "validé") bestFile.set(f.oeuvre_id, { mime_type: f.mime_type, file_size: f.file_size });
-    }
-
-    // Un visuel décliné en A3 + A4 = 2 lignes oeuvres → fusionnées en une seule.
-    const oeuvres = groupOeuvresByTitle(
-      oeuvreRows.map((o) => {
-        const f = bestFile.get(o.id);
-        return {
-          title: o.name,
-          format: o.format ?? null,
-          fileInfo: f ? `${mimeLabel(f.mime_type)}${sizeMo(f.file_size)}` : "Fichier HD fourni",
-          createdAt: o.created_at,
-        };
-      }),
-    );
-
-    const commissionPct = artist.commission_pct ?? 30;
-    const data = buildContractData({
-      artist,
-      iban: bankingRes.data?.iban ?? null,
-      drop,
-      oeuvres,
-      commissionPct,
+    const res = await generateContractInto({
+      supabase: createClient(),
+      admin: createAdminClient(),
+      artistId,
+      dropId,
     });
-
-    const pdf = await renderContractPdf(data);
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const path = `${artistId}/${dropId}-${dateStr}.pdf`;
-    const up = await admin.storage.from(BUCKET).upload(path, pdf, {
-      contentType: "application/pdf",
-      upsert: true,
-    });
-    if (up.error) return { error: up.error.message };
-
-    const { error } = await supabase.from("contracts").insert({
-      artist_id: artistId,
-      drop_id: dropId,
-      status: "brouillon",
-      commission_pct: commissionPct,
-      generated_at: new Date().toISOString(),
-      pdf_path: path,
-    });
-    if (error) return { error: error.message };
-
+    if (res.error) return res;
     revalidatePath(`/artistes/${artistId}`);
     return {};
   } catch (e) {
@@ -121,12 +43,8 @@ export async function generateContract(
 /** Marque le contrat comme envoyé. */
 export async function markContractSent(artistId: string, id: string) {
   await assertCanEdit();
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("contracts")
-    .update({ status: "envoyé", sent_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+  const res = await markContractSentInto({ supabase: createClient(), id });
+  if (res.error) throw new Error(res.error);
   revalidatePath(`/artistes/${artistId}`);
 }
 

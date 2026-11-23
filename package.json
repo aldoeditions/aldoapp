@@ -9,17 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "^2.4.0",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "jszip": "^3.10.1",
+    "mcp-handler": "^2.4.0",
     "next": "14.2.35",
     "pdf-lib": "^1.17.1",
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^3.9.1",
     "server-only": "^0.0.1",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",

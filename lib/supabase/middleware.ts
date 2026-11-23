@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
 /** Routes accessibles sans session. */
-const PUBLIC_PATHS = ["/login", "/auth", "/portail/login"];
+const PUBLIC_PATHS = ["/login", "/auth", "/portail/login", "/oauth"];
 
 /**
  * Rafraîchit la session Supabase et pré-oriente les routes.
@@ -54,9 +54,16 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Endpoints appelés par des tiers SANS session (Shopify) : jamais de redirection
-  // d'auth, sinon la requête est renvoyée vers /login et n'atteint pas le handler.
-  if (pathname.startsWith("/api/webhooks") || pathname.startsWith("/api/shopify")) {
+  // Endpoints appelés par des tiers SANS session (Shopify, serveur MCP, découverte
+  // OAuth) : jamais de redirection d'auth, sinon la requête est renvoyée vers
+  // /login et n'atteint pas le handler. Le serveur MCP répond lui-même 401.
+  if (
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/shopify") ||
+    pathname.startsWith("/api/mcp") ||
+    pathname.startsWith("/.well-known") ||
+    pathname.startsWith("/well-known")
+  ) {
     return supabaseResponse;
   }
 

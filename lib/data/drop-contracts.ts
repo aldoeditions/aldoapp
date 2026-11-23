@@ -1,7 +1,11 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { missingContractFields } from "@/lib/contracts/generate";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
+
+type Db = SupabaseClient<Database>;
 
 export type DropContractRow = {
   artist_id: string;
@@ -42,9 +46,12 @@ type ArtistIdentity = {
  * Les données bancaires ne sont jamais renvoyées (l'IBAN sert uniquement, côté
  * serveur, à calculer les champs manquants).
  */
-export async function getDropContracts(dropId: string): Promise<DropContracts> {
-  const supabase = createClient();
-  const admin = createAdminClient();
+export async function getDropContracts(
+  dropId: string,
+  clients?: { supabase: Db; admin: Db },
+): Promise<DropContracts> {
+  const supabase = clients?.supabase ?? createClient();
+  const admin = clients?.admin ?? createAdminClient();
 
   const [dropRes, progRes] = await Promise.all([
     supabase.from("drops").select("id, name").eq("id", dropId).maybeSingle(),
