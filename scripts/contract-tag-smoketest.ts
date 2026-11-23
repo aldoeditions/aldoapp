@@ -25,8 +25,9 @@ const data = buildContractData({
 });
 
 (async () => {
-  console.log("signatureTag =", data.signatureTag);
+  console.log("signatureTag (Artiste) =", data.signatureTag);
+  console.log("signatureTagAldo       =", data.signatureTagAldo);
   const pdf = await renderContractPdf(data);
   console.log("PDF rendu :", pdf.length, "octets");
-  console.log(data.signatureTag && pdf.length > 1000 ? "OK" : "ÉCHEC");
+  console.log(data.signatureTag && data.signatureTagAldo && pdf.length > 1000 ? "OK" : "ÉCHEC");
 })();

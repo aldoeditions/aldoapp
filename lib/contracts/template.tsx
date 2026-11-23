@@ -243,7 +243,9 @@ export function ContractDocument({ data }: { data: ContractData }) {
           <View style={s.signRow}>
             <View style={s.signBlock}>
               <Text style={s.signLabel}>Pour la société ALDO</Text>
-              <View style={s.signSpace} />
+              <View style={s.signSpace}>
+                {data.signatureTagAldo ? <Text style={s.signTag}>{data.signatureTagAldo}</Text> : null}
+              </View>
               <Text style={s.signName}>Louison Dupont</Text>
               <Text style={s.signRole}>Président</Text>
             </View>

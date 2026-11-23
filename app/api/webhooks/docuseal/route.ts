@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDocusealWebhookSecret, DOCUSEAL_EVENTS } from "@/lib/docuseal/config";
-import { ingestCompletedSubmission } from "@/lib/docuseal/signature";
+import { ingestCompletedSubmission, recordFormCompleted } from "@/lib/docuseal/signature";
 import type { Json } from "@/types/database";
 
 // Node runtime (crypto + service_role), jamais mis en cache.
@@ -35,7 +35,7 @@ function verifySignature(rawBody: string, header: string | null, secret: string)
 
 type Payload = {
   event_type?: string;
-  data?: { id?: number; submission?: { id?: number } };
+  data?: { id?: number; role?: string; completed_at?: string; submission?: { id?: number } };
 };
 
 export async function POST(req: NextRequest) {
@@ -68,26 +68,31 @@ export async function POST(req: NextRequest) {
     .select("id")
     .single();
 
-  const isCompletion =
-    eventType === DOCUSEAL_EVENTS.formCompleted || eventType === DOCUSEAL_EVENTS.submissionCompleted;
-
-  if (isCompletion && submissionId) {
-    try {
-      const res = await ingestCompletedSubmission({ admin, submissionId });
-      if (event?.id) {
-        await admin
-          .from("docuseal_events")
-          .update({ processed: !res.error, error: res.error ?? null })
-          .eq("id", event.id);
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur inattendue.";
-      if (event?.id) await admin.from("docuseal_events").update({ processed: false, error: msg }).eq("id", event.id);
-      console.error("[docuseal webhook]", msg);
-      // 200 quand même : l'événement est archivé et DocuSeal réessaiera / submission.completed suivra.
+  // form.completed → une partie a signé (horodatage du rôle, pas de statut).
+  // submission.completed → les deux ont signé → PDF signé rangé + statut « signé ».
+  try {
+    let res: { error?: string; skipped?: boolean } | null = null;
+    if (submissionId && eventType === DOCUSEAL_EVENTS.formCompleted) {
+      res = await recordFormCompleted({
+        admin,
+        submissionId,
+        role: payload.data?.role ?? null,
+        completedAt: payload.data?.completed_at ?? null,
+      });
+    } else if (submissionId && eventType === DOCUSEAL_EVENTS.submissionCompleted) {
+      res = await ingestCompletedSubmission({ admin, submissionId });
     }
-  } else if (event?.id) {
-    await admin.from("docuseal_events").update({ processed: true }).eq("id", event.id);
+    if (event?.id) {
+      await admin
+        .from("docuseal_events")
+        .update({ processed: !res?.error, error: res?.error ?? null })
+        .eq("id", event.id);
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erreur inattendue.";
+    if (event?.id) await admin.from("docuseal_events").update({ processed: false, error: msg }).eq("id", event.id);
+    console.error("[docuseal webhook]", msg);
+    // 200 quand même : l'événement est archivé et DocuSeal réessaiera.
   }
 
   return NextResponse.json({ ok: true });

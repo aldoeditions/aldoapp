@@ -39,7 +39,7 @@ Ce fichier présente le projet à Claude, que ce soit Claude Code dans ce dépô
 | **Supabase** | Base Postgres, Auth, Storage | Cœur de l'app (offre gratuite, keep-alive GitHub Action tous les 3 jours) |
 | **Vercel** | Hébergement, région `cdg1` | Déploiement depuis `main` |
 | **Google Drive** | `ALDO/Artistes/C{n}_{Prénom Nom}/{Visuels, Contrats}` | Lien Drive saisi sur la fiche artiste (`artists.drive_link`) |
-| **Signature électronique** | Youtrust (ex-Yousign) ; Goodflag Community utilisé jusqu'au drop 2. Le contrat ne nomme plus la plateforme (formulation eIDAS neutre). | Manuel : l'app génère le PDF, le contrat signé est redéposé dans l'app |
+| **Signature électronique** | **DocuSeal** (compte sur **docuseal.com**, hôte global `api.docuseal.com` ; pas la région UE). Youtrust/Goodflag utilisés jusqu'au drop 2. Le contrat ne nomme pas la plateforme (formulation eIDAS neutre). | Intégré depuis le drop 3 (`lib/docuseal/*`) : l'app crée la soumission depuis le PDF (balises de champ), l'Artiste signe puis Aldo contre-signe, et le webhook `/api/webhooks/docuseal` range le PDF signé + l'audit dans le bucket `contracts`. `DOCUSEAL_API_URL` pilote l'hôte ; `DOCUSEAL_WEBHOOK_SECRET` = valeur HMAC. |
 | **Qonto** | Banque de la SAS | Virements aux artistes faits à la main (export groupé prévu) |
 | **Claude (Cowork)** | Supervise, prépare, tient les fiches du projet « Aldo » | Lit ce dépôt en lecture seule chaque matin (fiche « État de l'app Aldo ») |
 
@@ -62,6 +62,7 @@ Ce fichier présente le projet à Claude, que ce soit Claude Code dans ce dépô
 | `SUPABASE_SERVICE_ROLE_KEY` | Client admin. Serveur uniquement. |
 | `ARTIST_DATA_KEY` | Clé AES-256-GCM pour chiffrer le n° de sécurité sociale (`lib/crypto.ts`) |
 | `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_ACCESS_TOKEN`, `SHOPIFY_WEBHOOK_SECRET` | API Admin Shopify et vérification HMAC du webhook |
+| `DOCUSEAL_API_KEY`, `DOCUSEAL_API_URL`, `DOCUSEAL_WEBHOOK_SECRET` | Signature DocuSeal : clé API (`X-Auth-Token`), hôte (`https://api.docuseal.com`), et valeur HMAC du webhook (`whsec_…`, onglet HMAC) |
 | `NEXT_PUBLIC_SITE_URL` | URL publique (liens d'invitation et de réinitialisation) |
 
 ## 4. Organisation du code

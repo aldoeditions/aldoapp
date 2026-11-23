@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { CONTRACTS_BUCKET } from "@/lib/contracts/service";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
-import { DOCUSEAL_ROLE_ARTISTE } from "./config";
+import { DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO } from "./config";
 import { createSubmissionFromPdf, getSubmission, fetchFileBuffer } from "./client";
 
 type Db = SupabaseClient<Database>;
@@ -27,16 +27,25 @@ async function companyEmail(admin: Db): Promise<string | null> {
 
 /**
  * Envoie en signature le contrat EN BROUILLON `contractId` : crée une
- * soumission DocuSeal (l'Artiste comme signataire) à partir du PDF stocké, puis
- * passe le contrat à « envoyé » avec l'id de soumission. Ne renvoie jamais le
- * PDF ni l'IBAN.
+ * soumission DocuSeal à deux signataires — l'Artiste (ordre 0) PUIS Aldo
+ * (contre-signature, ordre 1) — à partir du PDF stocké, puis passe le contrat à
+ * « envoyé ». Le contrat ne deviendra « signé » qu'à `submission.completed`,
+ * c.-à-d. quand les deux ont signé. Ne renvoie jamais le PDF ni l'IBAN.
+ *
+ * `countersignEmail` = adresse qui reçoit la demande de contre-signature Aldo
+ * (admin connecté côté app, ou company_settings.email côté MCP).
  */
 export async function sendContractForSignature(args: {
   supabase: Db;
   admin: Db;
   contractId: string;
+  countersignEmail: string;
+  countersignName?: string;
 }): Promise<{ error?: string; submissionId?: number; email?: string }> {
   const { supabase, admin, contractId } = args;
+  const countersignEmail = (args.countersignEmail ?? "").trim();
+  const countersignName = args.countersignName || "Louison Dupont";
+  if (!countersignEmail) return { error: "Aucune adresse de contre-signature Aldo (admin / company_settings)." };
 
   const { data: c } = await supabase
     .from("contracts")
@@ -57,19 +66,22 @@ export async function sendContractForSignature(args: {
 
   const fullName = legalName(artist);
   const num = campaignNumberFromDropName(drop?.name);
-  const campagne = num ? `C${num}` : drop?.name ?? "";
+  const n = num != null ? String(num) : drop?.name ?? "";
   const fileBase64 = await downloadPdfBase64(admin, c.pdf_path);
   const bcc = await companyEmail(admin);
 
   const submission = await createSubmissionFromPdf({
-    name: `Contrat ${campagne} — ${fullName}`.trim(),
-    documentName: `Contrat ${campagne} ${fullName}`.trim(),
+    name: `Contrat C${n} — ${fullName}`.trim(),
+    documentName: `Contrat C${n} ${fullName}`.trim(),
     fileBase64,
-    submitters: [{ role: DOCUSEAL_ROLE_ARTISTE, email, name: fullName, order: 0, external_id: contractId }],
+    submitters: [
+      { role: DOCUSEAL_ROLE_ARTISTE, email, name: fullName, order: 0, external_id: contractId },
+      { role: DOCUSEAL_ROLE_ALDO, email: countersignEmail, name: countersignName, order: 1, external_id: contractId },
+    ],
     sendEmail: true,
     message: {
-      subject: `Votre contrat Aldo Éditions à signer — ${campagne}`,
-      body: "Bonjour,\n\nVotre contrat de licence avec Aldo Éditions est prêt. Merci de le relire et de le signer en ligne. Vous en recevrez une copie signée par e-mail.\n\nL'équipe Aldo Éditions.",
+      subject: `Ton contrat Aldo Éditions — campagne ${n}`,
+      body: `Bonjour, voici ton contrat pour la campagne ${n} d'Aldo. Il reprend les œuvres retenues et ta rémunération de 30 % du prix hors taxes. Tu peux le signer en ligne en deux minutes. Si quelque chose ne te semble pas juste, réponds-nous avant de signer. Merci, et à très vite. Louison — Aldo Éditions`,
     },
     bccCompleted: bcc ?? undefined,
     replyTo: bcc ?? undefined,
@@ -113,24 +125,63 @@ export async function sendTestSignature(args: {
 
   const fileBase64 = await downloadPdfBase64(admin, c.pdf_path);
   const name = args.signerName || (c.artists ? legalName(c.artists) : "Test");
+  // Les deux rôles vont à la même adresse (toi) : tu signes d'abord côté
+  // Artiste, puis côté Aldo, pour valider tout le circuit.
   const submission = await createSubmissionFromPdf({
     name: `TEST signature — ${name}`,
     documentName: `TEST Contrat ${name}`,
     fileBase64,
-    submitters: [{ role: DOCUSEAL_ROLE_ARTISTE, email, name }],
+    submitters: [
+      { role: DOCUSEAL_ROLE_ARTISTE, email, name, order: 0 },
+      { role: DOCUSEAL_ROLE_ALDO, email, name: "Louison Dupont", order: 1 },
+    ],
     sendEmail: true,
     message: {
       subject: "TEST — contrat Aldo Éditions (ne pas transmettre)",
-      body: "Ceci est un test du circuit de signature Aldo Éditions. Vous pouvez signer pour vérifier le rendu.",
+      body: "Ceci est un test du circuit de signature Aldo Éditions. Signe d'abord en tant qu'Artiste puis en tant qu'Aldo pour vérifier le rendu.",
     },
   });
   return { submissionId: submission.id };
 }
 
 /**
- * Traite une soumission terminée : télécharge le PDF signé + le journal d'audit
- * (URLs fraîches, elles expirent vite) et les range dans le bucket `contracts`,
- * puis passe le contrat à « signé ». Idempotent. Utilise le client admin.
+ * Enregistre une signature PARTIELLE (événement `form.completed`) : horodate le
+ * rôle qui vient de signer (Artiste ou Aldo) sans changer le statut ni
+ * télécharger. Le passage à « signé » se fait à `submission.completed`.
+ * Idempotent. Utilise le client admin.
+ */
+export async function recordFormCompleted(args: {
+  admin: Db;
+  submissionId: number;
+  role: string | null;
+  completedAt: string | null;
+}): Promise<{ error?: string; skipped?: boolean }> {
+  const { admin, submissionId, role } = args;
+  const { data: c } = await admin
+    .from("contracts")
+    .select("id, status, artist_signed_at, aldo_signed_at")
+    .eq("docuseal_submission_id", submissionId)
+    .maybeSingle();
+  if (!c) return { skipped: true };
+
+  const when = args.completedAt ?? new Date().toISOString();
+  const patch: { artist_signed_at?: string; aldo_signed_at?: string } = {};
+  if (role === DOCUSEAL_ROLE_ALDO) {
+    if (!c.aldo_signed_at) patch.aldo_signed_at = when;
+  } else if (!c.artist_signed_at) {
+    patch.artist_signed_at = when; // rôle par défaut = Artiste
+  }
+  if (Object.keys(patch).length === 0) return { skipped: true };
+
+  const { error } = await admin.from("contracts").update(patch).eq("id", c.id);
+  return error ? { error: error.message } : {};
+}
+
+/**
+ * Traite une soumission TERMINÉE (les deux parties ont signé) : télécharge le
+ * PDF signé + le journal d'audit (URLs fraîches, elles expirent vite) et les
+ * range dans le bucket `contracts`, puis passe le contrat à « signé ».
+ * Idempotent. Utilise le client admin.
  */
 export async function ingestCompletedSubmission(args: {
   admin: Db;
@@ -140,7 +191,7 @@ export async function ingestCompletedSubmission(args: {
 
   const { data: c } = await admin
     .from("contracts")
-    .select("id, artist_id, status, file_path")
+    .select("id, artist_id, status, file_path, artist_signed_at, aldo_signed_at")
     .eq("docuseal_submission_id", submissionId)
     .maybeSingle();
   if (!c) return { skipped: true }; // soumission de test ou inconnue → ignorer
@@ -174,13 +225,16 @@ export async function ingestCompletedSubmission(args: {
     }
   }
 
+  const done = sub.completed_at ?? new Date().toISOString();
   const { error } = await admin
     .from("contracts")
     .update({
       status: "signé",
-      signed_at: sub.completed_at ?? new Date().toISOString(),
+      signed_at: done,
       file_path: signedPath,
       audit_log_path: auditPath,
+      artist_signed_at: c.artist_signed_at ?? done,
+      aldo_signed_at: c.aldo_signed_at ?? done,
     })
     .eq("id", c.id);
   if (error) return { error: error.message };

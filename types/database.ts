@@ -491,6 +491,8 @@ export type Database = {
           notes: string | null;
           docuseal_submission_id: number | null;
           audit_log_path: string | null;
+          artist_signed_at: string | null;
+          aldo_signed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -507,6 +509,8 @@ export type Database = {
           notes?: string | null;
           docuseal_submission_id?: number | null;
           audit_log_path?: string | null;
+          artist_signed_at?: string | null;
+          aldo_signed_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
         Relationships: [];

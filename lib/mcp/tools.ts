@@ -439,17 +439,24 @@ export function registerAldoTools(server: McpServer): void {
         }));
         const sansEmail = cibles.filter((c) => !c.email).map((c) => c.artiste);
 
+        // Contre-signature Aldo : adresse de company_settings (côté MCP).
+        const { data: company } = await s.admin.from("company_settings").select("email").limit(1).maybeSingle();
+        const countersignEmail = (company?.email ?? "").trim();
+
         if (!args.confirm) {
           const payload = {
             apercu: true,
             campagne: dc.drop.name,
             a_envoyer: cibles.filter((c) => c.email).map((c) => ({ artiste: c.artiste, email: c.email, nb_oeuvres: c.nb_oeuvres })),
             sans_email: sansEmail,
-            message: `Aperçu : ${cibles.filter((c) => c.email).length} contrat(s) seraient envoyés en signature. Rappelle avec confirm=true pour envoyer les e-mails.`,
+            contre_signature_aldo: countersignEmail || "(aucune adresse company_settings)",
+            message: `Aperçu : ${cibles.filter((c) => c.email).length} contrat(s) seraient envoyés (artiste puis contre-signature Aldo). Rappelle avec confirm=true pour envoyer les e-mails.`,
           };
           await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "envoyer_contrats_en_signature", params: { drop_id: args.drop_id, confirm: false }, outcome: "apercu", affected: payload.a_envoyer.length });
           return ok("envoyer_contrats_en_signature", payload);
         }
+
+        if (!countersignEmail) return fail("Impossible d'envoyer : aucune adresse de contre-signature Aldo (company_settings.email).");
 
         const envoyes: string[] = [];
         const erreurs: { artiste: string; erreur: string }[] = [];
@@ -458,7 +465,7 @@ export function registerAldoTools(server: McpServer): void {
             erreurs.push({ artiste: c.artiste, erreur: "aucun e-mail" });
             continue;
           }
-          const res = await sendContractForSignature({ supabase: s.supabase, admin: s.admin, contractId: c.contract_id });
+          const res = await sendContractForSignature({ supabase: s.supabase, admin: s.admin, contractId: c.contract_id, countersignEmail });
           if (res.error) erreurs.push({ artiste: c.artiste, erreur: res.error });
           else envoyes.push(c.artiste);
         }
@@ -490,7 +497,7 @@ export function registerAldoTools(server: McpServer): void {
         const s = sessionFromCtx(ctx);
         let q = s.supabase
           .from("contracts")
-          .select("id, status, sent_at, signed_at, docuseal_submission_id, drops(name), artists(name)")
+          .select("id, status, sent_at, signed_at, docuseal_submission_id, artist_signed_at, aldo_signed_at, drops(name), artists(name)")
           .order("sent_at", { ascending: false });
         if (args.drop_id) q = q.eq("drop_id", args.drop_id);
         const { data, error } = await q.returns<{
@@ -499,6 +506,8 @@ export function registerAldoTools(server: McpServer): void {
           sent_at: string | null;
           signed_at: string | null;
           docuseal_submission_id: number | null;
+          artist_signed_at: string | null;
+          aldo_signed_at: string | null;
           drops: { name: string | null } | null;
           artists: { name: string | null } | null;
         }[]>();
@@ -508,6 +517,8 @@ export function registerAldoTools(server: McpServer): void {
           campagne: c.drops?.name ?? null,
           statut: c.status,
           en_signature: c.docuseal_submission_id != null && c.status !== "signé",
+          signe_par_artiste_le: c.artist_signed_at,
+          signe_par_aldo_le: c.aldo_signed_at,
           envoye_le: c.sent_at,
           signe_le: c.signed_at,
         }));
@@ -515,6 +526,7 @@ export function registerAldoTools(server: McpServer): void {
           total: contrats.length,
           brouillon: contrats.filter((c) => c.statut === "brouillon").length,
           en_signature: contrats.filter((c) => c.en_signature).length,
+          signe_artiste_en_attente_aldo: contrats.filter((c) => c.signe_par_artiste_le && !c.signe_par_aldo_le && c.statut !== "signé").length,
           signe: contrats.filter((c) => c.statut === "signé").length,
         };
         await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "suivi_signatures", params: { drop_id: args.drop_id }, outcome: "ok", affected: contrats.length });

@@ -8,7 +8,9 @@
 -- 1. Suivi DocuSeal sur les contrats.
 alter table public.contracts
   add column if not exists docuseal_submission_id bigint,   -- id de la soumission DocuSeal
-  add column if not exists audit_log_path          text;    -- PDF d'audit signé (bucket contracts)
+  add column if not exists audit_log_path          text,    -- PDF d'audit signé (bucket contracts)
+  add column if not exists artist_signed_at        timestamptz,  -- signature de l'Artiste
+  add column if not exists aldo_signed_at          timestamptz;  -- contre-signature Aldo
 
 create index if not exists contracts_docuseal_submission_idx
   on public.contracts (docuseal_submission_id);
