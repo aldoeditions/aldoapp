@@ -3,6 +3,11 @@
 Évolutions notables de l'application de gestion **Aldo Éditions**.
 Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-JJ, plus récent en haut.
 
+## 2026-11-23
+
+- Contrats — gestion en lot depuis la fiche campagne : tableau par artiste (statut, dates), « Générer les contrats manquants » (un par un, avec progression et erreurs), zip des brouillons nommés `C{n}_Prénom Nom_Contrat.pdf`, « Marquer tous comme envoyés », dépôt groupé des PDF signés rattachés par nom de fichier (accents/casse/suffixes tolérés, aperçu avant enregistrement) (état : terminé) · dépendance : jszip · à faire à la main : aucune
+- Docs — CLAUDE.md et REPRISE.md relus contre le code (exacts) ; convention CHANGELOG (§7) appliquée à la section 2026-11-17 (état : terminé) · à faire à la main : aucune
+
 ## 2026-11-17
 
 - Relevés — les ventes sont rattachées à la campagne de la commande (et non à la campagne d'origine de l'œuvre) : les rééditions sont comptées correctement (état : terminé) · à faire à la main : aucune

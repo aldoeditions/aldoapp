@@ -23,6 +23,8 @@ import { getAttachableOeuvres, type AttachableOeuvre } from "@/lib/data/oeuvres"
 import { DeleteDropButton, DeleteOeuvreButton } from "@/components/drops/DeleteButtons";
 import { ReapplyCostsButton } from "@/components/drops/ReapplyCostsButton";
 import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
+import { getDropContracts, type DropContracts } from "@/lib/data/drop-contracts";
+import { DropContractsPanel } from "@/components/drops/DropContractsPanel";
 
 export default async function DropDetailPage({
   params,
@@ -31,10 +33,17 @@ export default async function DropDetailPage({
 }) {
   const user = await requireModule("drops");
   const editable = canEdit(user.role, "drops");
+  const canEditContracts = canEdit(user.role, "artistes");
 
   const detail = await getDropDetail(params.id);
   if (!detail) notFound();
   const { drop, pnl, oeuvres } = detail;
+
+  // Contrats du drop (gérés avec les droits « artistes »). Aucune donnée bancaire.
+  let dropContracts: DropContracts | null = null;
+  if (canEditContracts) {
+    dropContracts = await getDropContracts(params.id);
+  }
 
   // Données nécessaires au formulaire d'œuvre (seulement si édition permise).
   let artists: { id: string; name: string }[] = [];
@@ -234,6 +243,13 @@ export default async function DropDetailPage({
           )}
         </CardBody>
       </Card>
+
+      {/* Contrats du drop (génération, zip, envoi, dépôt des signés) */}
+      {canEditContracts && dropContracts && (
+        <Card>
+          <DropContractsPanel dropId={drop.id} data={dropContracts} />
+        </Card>
+      )}
     </div>
   );
 }
