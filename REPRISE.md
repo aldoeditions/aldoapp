@@ -7,7 +7,7 @@ Ce fichier sert à reprendre le travail sur n'importe quelle machine, dans Claud
 ## Dernière mise à jour
 
 **23/11/2026**, Claude Code (machine de Louison, Windows).
-Dernier commit : signature DocuSeal — e-mails (message artiste + message contre-signataire Aldo, test = gabarit réel). Dernière migration : `0036_docuseal` (à jouer, inclut `artist_signed_at` / `aldo_signed_at`). `0035_mcp_audit_log` et `0034_order_items_dedup` sont jouées.
+Dernier commit : signature DocuSeal — contre-signature Aldo toujours vers company_settings.email. Dernière migration : `0036_docuseal` (à jouer, inclut `artist_signed_at` / `aldo_signed_at`). `0035_mcp_audit_log` et `0034_order_items_dedup` sont jouées.
 
 ## Priorité du moment : les contrats du drop 3 (avant le 26/11)
 
@@ -68,3 +68,4 @@ Dernier commit : signature DocuSeal — e-mails (message artiste + message contr
 | 23/11/2026 | Claude Code | Phase 2 du connecteur — signature DocuSeal : `lib/docuseal/*`, webhook HMAC, régénération des brouillons, 2 signataires (Artiste + Aldo), outils MCP `envoyer_contrats_en_signature` + `suivi_signatures`, bouton de test. Doc vérifiée avant de coder. Build + tsc + rendu PDF OK ; reste migration 0036 + webhook + test réel |
 | 23/11/2026 | Claude Code | Signature — repli coordonnées : balises de texte non détectées (police sous-ensemblée) → champs placés par `areas` sur une page de signature dédiée (dernière page, géométrie `signature-layout.ts`). Lien `{{submitter.link}}` + garde-fou, auto-archivage du test précédent, relecture API des 2 signataires. tsc + build + smoke test géométrie OK. **Non vérifiable via l'API depuis le poste de dev (clés seulement sur Vercel) → vérif API intégrée au bouton de test** |
 | 23/11/2026 | Claude Code | Signature — e-mails : message artiste (gabarit Aldo) + message distinct contre-signataire (`submitters[].message`), test = gabarit réel avec faux artiste « Test Aldo ». Doc vérifiée (format du corps non documenté → texte brut ; logo = branding compte). tsc + build OK |
+| 23/11/2026 | Claude Code | Signature — contre-signature Aldo toujours vers `company_settings.email` (app ET MCP), résolue dans `sendContractForSignature` ; erreur claire si vide. Test = adresse admin pour les 2 rôles (inchangé). tsc + build OK |

@@ -80,8 +80,7 @@ export async function sendContractsForSignature(
   dropId: string,
   artistIds?: string[],
 ): Promise<{ sent: number; errors: string[] }> {
-  const user = await assertCanEdit();
-  if (!user.email) return { sent: 0, errors: ["Votre compte n'a pas d'e-mail pour la contre-signature Aldo."] };
+  await assertCanEdit();
   const supabase = createClient();
   const admin = createAdminClient();
   let q = supabase
@@ -96,7 +95,7 @@ export async function sendContractsForSignature(
   let sent = 0;
   for (const c of data ?? []) {
     try {
-      const res = await sendContractForSignature({ supabase, admin, contractId: c.id, countersignEmail: user.email });
+      const res = await sendContractForSignature({ supabase, admin, contractId: c.id });
       if (res.error) errors.push(`${c.artists?.name ?? c.artist_id} : ${res.error}`);
       else sent++;
     } catch (e) {

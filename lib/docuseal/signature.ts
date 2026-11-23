@@ -65,20 +65,20 @@ async function companyEmail(admin: Db): Promise<string | null> {
  * « envoyé ». Le contrat ne deviendra « signé » qu'à `submission.completed`,
  * c.-à-d. quand les deux ont signé. Ne renvoie jamais le PDF ni l'IBAN.
  *
- * `countersignEmail` = adresse qui reçoit la demande de contre-signature Aldo
- * (admin connecté côté app, ou company_settings.email côté MCP).
+ * La contre-signature Aldo part TOUJOURS vers `company_settings.email`
+ * (contact@aldo-editions.com), quel que soit l'appelant (bouton app ou MCP).
  */
 export async function sendContractForSignature(args: {
   supabase: Db;
   admin: Db;
   contractId: string;
-  countersignEmail: string;
-  countersignName?: string;
 }): Promise<{ error?: string; submissionId?: number; email?: string }> {
   const { supabase, admin, contractId } = args;
-  const countersignEmail = (args.countersignEmail ?? "").trim();
-  const countersignName = args.countersignName || "Louison Dupont";
-  if (!countersignEmail) return { error: "Aucune adresse de contre-signature Aldo (admin / company_settings)." };
+  const countersignEmail = ((await companyEmail(admin)) ?? "").trim();
+  const countersignName = "Louison Dupont";
+  if (!countersignEmail) {
+    return { error: "Contre-signature impossible : l'e-mail de la société (company_settings.email) est vide." };
+  }
 
   const { data: c } = await supabase
     .from("contracts")
@@ -102,7 +102,7 @@ export async function sendContractForSignature(args: {
   const n = num != null ? String(num) : drop?.name ?? "";
   const fileBase64 = await downloadPdfBase64(admin, c.pdf_path);
   const fields = signatureFields(await pdfPageCount(fileBase64)); // page signature = dernière page
-  const bcc = await companyEmail(admin);
+  const bcc = countersignEmail; // = company_settings.email
   const msgs = buildSignatureMessages(fullName, n);
 
   const submission = await createSubmissionFromPdf({

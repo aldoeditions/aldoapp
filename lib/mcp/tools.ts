@@ -465,7 +465,7 @@ export function registerAldoTools(server: McpServer): void {
             erreurs.push({ artiste: c.artiste, erreur: "aucun e-mail" });
             continue;
           }
-          const res = await sendContractForSignature({ supabase: s.supabase, admin: s.admin, contractId: c.contract_id, countersignEmail });
+          const res = await sendContractForSignature({ supabase: s.supabase, admin: s.admin, contractId: c.contract_id });
           if (res.error) erreurs.push({ artiste: c.artiste, erreur: res.error });
           else envoyes.push(c.artiste);
         }
