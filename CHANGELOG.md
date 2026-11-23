@@ -5,12 +5,12 @@ Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-
 
 ## 2026-11-17
 
-- Relevés droits d'auteur — attribution des ventes par campagne de la commande (gère les rééditions)
-- Commandes — fiabilisation des lignes Shopify : upsert idempotent + contrainte d'unicité anti-doublon (migration 0034)
-- Commandes — suppression de la notion de « vagues d'impression » (onglet, colonne, champ)
-- Campagnes — export PDF « liste d'impression » (aperçu des visuels + quantités à imprimer)
-- Masque le module Tâches (menu, dashboard, fiche artiste) en attendant une refonte
-- Typo — polices auto-hébergées (next/font/local) : la typo ne saute plus si Google Fonts est inaccessible au build
+- Relevés — les ventes sont rattachées à la campagne de la commande (et non à la campagne d'origine de l'œuvre) : les rééditions sont comptées correctement (état : terminé) · à faire à la main : aucune
+- Commandes — fiabilisation des lignes Shopify : upsert idempotent par ligne, fin des doublons (« 2 pièces » au lieu d'1) et du double comptage dans les relevés (état : terminé) · tables/migrations : 0034 (dédoublonnage + index d'unicité sur `order_items.shopify_line_item_id`) · à faire à la main : jouer 0034 dans le SQL Editor (faite le 23/11)
+- Commandes — suppression de la notion de « vagues d'impression » (onglet, colonne, champ) (état : terminé) · à faire à la main : aucune (colonne `orders.wave` laissée dormante)
+- Campagnes — nouvel export PDF « liste d'impression » (aperçu des visuels + quantités à imprimer, depuis la fiche campagne) (état : terminé) · à faire à la main : aucune
+- Tâches — module masqué (menu, dashboard, fiche artiste) en attendant une refonte ; routes et données conservées (état : terminé) · à faire à la main : aucune
+- Typo — polices de l'UI auto-hébergées (`next/font/local`) : la typo ne retombe plus en police système si Google Fonts est injoignable au build (état : terminé) · à faire à la main : redéployer
 
 ## 2026-11-07
 
