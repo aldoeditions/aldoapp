@@ -127,7 +127,7 @@ export async function sendTestSignatureToMe(dropId: string): Promise<{ error?: s
     .maybeSingle();
   if (!draft) return { error: "Aucun contrat en brouillon dans cette campagne pour tester." };
   try {
-    const res = await sendTestSignature({ admin, contractId: draft.id, email: user.email, signerName: user.displayName });
+    const res = await sendTestSignature({ admin, contractId: draft.id, email: user.email });
     if (res.error) return { error: res.error };
     return { email: user.email, verification: res.verification };
   } catch (e) {

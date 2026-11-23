@@ -13,6 +13,8 @@ export type DocusealSubmitterInput = {
   name?: string;
   order?: number;
   external_id?: string;
+  /** Message e-mail propre à ce signataire (prioritaire sur le message global). */
+  message?: { subject?: string; body?: string };
 };
 
 export type DocusealSubmissionResult = {
@@ -77,8 +79,15 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
  * signature {{submitter.link}}, sinon l'envoi est refusé.
  */
 export async function createSubmissionFromPdf(args: CreateFromPdfArgs): Promise<DocusealSubmissionResult> {
-  if (args.sendEmail && !(args.message?.body ?? "").includes(SUBMITTER_LINK)) {
-    throw new Error(`Envoi refusé : le corps de l'e-mail ne contient pas le lien de signature ${SUBMITTER_LINK}.`);
+  // Garde-fou : tout corps d'e-mail personnalisé doit contenir le lien de
+  // signature (sinon le signataire n'a aucun moyen de signer).
+  if (args.sendEmail) {
+    const bodies = [args.message?.body, ...args.submitters.map((s) => s.message?.body)].filter(
+      (b): b is string => typeof b === "string" && b.length > 0,
+    );
+    if (bodies.some((b) => !b.includes(SUBMITTER_LINK))) {
+      throw new Error(`Envoi refusé : un corps d'e-mail ne contient pas le lien de signature ${SUBMITTER_LINK}.`);
+    }
   }
   const body = {
     name: args.name,
@@ -94,6 +103,7 @@ export async function createSubmissionFromPdf(args: CreateFromPdfArgs): Promise<
       name: s.name,
       order: s.order ?? i,
       external_id: s.external_id,
+      message: s.message,
     })),
   };
   return request<DocusealSubmissionResult>("/submissions/pdf", {
