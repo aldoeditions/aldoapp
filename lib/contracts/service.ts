@@ -34,15 +34,17 @@ export function sizeMo(bytes: number | null): string {
 }
 
 /**
- * Génère le PDF du contrat (brouillon), le stocke et crée la ligne `contracts`.
- * Ne vérifie PAS les droits : l'appelant l'a déjà fait.
+ * Construit le PDF du contrat (sans le stocker ni créer de ligne). Charge
+ * l'artiste, la campagne, l'IBAN (admin) et les œuvres PROGRAMMÉES (drop_oeuvres).
+ * Garde-fou : refuse une annexe vide. Partagé par la génération et la
+ * régénération des brouillons.
  */
-export async function generateContractInto(args: {
+export async function buildContractPdf(args: {
   supabase: Db;
   admin: Db;
   artistId: string;
   dropId: string;
-}): Promise<{ error?: string }> {
+}): Promise<{ pdf?: Buffer; error?: string }> {
   const { supabase, admin, artistId, dropId } = args;
 
   const [artistRes, dropRes, bankingRes, programmes] = await Promise.all([
@@ -100,10 +102,30 @@ export async function generateContractInto(args: {
   });
 
   const pdf = await renderContractPdf(data);
+  return { pdf };
+}
+
+/**
+ * Génère le PDF du contrat (brouillon), le stocke et crée la ligne `contracts`.
+ * Ne vérifie PAS les droits : l'appelant l'a déjà fait.
+ */
+export async function generateContractInto(args: {
+  supabase: Db;
+  admin: Db;
+  artistId: string;
+  dropId: string;
+}): Promise<{ error?: string }> {
+  const { supabase, admin, artistId, dropId } = args;
+
+  const built = await buildContractPdf(args);
+  if (built.error || !built.pdf) return { error: built.error ?? "PDF indisponible." };
+
+  const { data: artist } = await supabase.from("artists").select("commission_pct").eq("id", artistId).maybeSingle();
+  const commissionPct = artist?.commission_pct ?? 30;
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const path = `${artistId}/${dropId}-${dateStr}.pdf`;
-  const up = await admin.storage.from(CONTRACTS_BUCKET).upload(path, pdf, {
+  const up = await admin.storage.from(CONTRACTS_BUCKET).upload(path, built.pdf, {
     contentType: "application/pdf",
     upsert: true,
   });
@@ -117,6 +139,47 @@ export async function generateContractInto(args: {
     generated_at: new Date().toISOString(),
     pdf_path: path,
   });
+  if (error) return { error: error.message };
+
+  return {};
+}
+
+/**
+ * Régénère le PDF d'un contrat EN BROUILLON (pour y intégrer les balises de
+ * signature ajoutées au template). Ne touche JAMAIS un contrat envoyé ou signé.
+ * Écrase le PDF existant (même chemin) ; aucune nouvelle ligne n'est créée.
+ */
+export async function regenerateDraftContractInto(args: {
+  supabase: Db;
+  admin: Db;
+  contractId: string;
+}): Promise<{ error?: string; skipped?: boolean }> {
+  const { supabase, admin, contractId } = args;
+
+  const { data: c } = await supabase
+    .from("contracts")
+    .select("id, artist_id, drop_id, status, pdf_path")
+    .eq("id", contractId)
+    .maybeSingle();
+  if (!c) return { error: "Contrat introuvable." };
+  if (c.status !== "brouillon") return { skipped: true };
+  if (!c.drop_id) return { error: "Contrat sans campagne." };
+
+  const built = await buildContractPdf({ supabase, admin, artistId: c.artist_id, dropId: c.drop_id });
+  if (built.error || !built.pdf) return { error: built.error ?? "PDF indisponible." };
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const path = c.pdf_path || `${c.artist_id}/${c.drop_id}-${dateStr}.pdf`;
+  const up = await admin.storage.from(CONTRACTS_BUCKET).upload(path, built.pdf, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (up.error) return { error: up.error.message };
+
+  const { error } = await supabase
+    .from("contracts")
+    .update({ pdf_path: path, generated_at: new Date().toISOString() })
+    .eq("id", contractId);
   if (error) return { error: error.message };
 
   return {};

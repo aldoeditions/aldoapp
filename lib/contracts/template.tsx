@@ -128,6 +128,8 @@ const s = StyleSheet.create({
   signBlock: { flex: 1, borderWidth: 1, borderColor: "#d9d9de", borderRadius: 4, padding: 12 },
   signLabel: { fontWeight: 700, marginBottom: 4 },
   signSpace: { height: 120 },
+  // Balise de champ DocuSeal : parsée puis retirée (remove_tags) du PDF signé.
+  signTag: { fontSize: 7, color: GREY },
   signName: { fontWeight: 500 },
   signRole: { color: GREY, fontSize: 8.5 },
 
@@ -247,7 +249,9 @@ export function ContractDocument({ data }: { data: ContractData }) {
             </View>
             <View style={s.signBlock}>
               <Text style={s.signLabel}>Pour l&apos;Artiste</Text>
-              <View style={s.signSpace} />
+              <View style={s.signSpace}>
+                {data.signatureTag ? <Text style={s.signTag}>{data.signatureTag}</Text> : null}
+              </View>
               <Text style={s.signName}>{data.fullName}</Text>
               <Text style={s.signRole}>L&apos;Artiste</Text>
             </View>

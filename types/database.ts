@@ -489,6 +489,8 @@ export type Database = {
           signed_at: string | null;
           commission_pct: number | null;
           notes: string | null;
+          docuseal_submission_id: number | null;
+          audit_log_path: string | null;
         };
         Insert: {
           id?: string;
@@ -503,8 +505,32 @@ export type Database = {
           signed_at?: string | null;
           commission_pct?: number | null;
           notes?: string | null;
+          docuseal_submission_id?: number | null;
+          audit_log_path?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
+        Relationships: [];
+      };
+      docuseal_events: {
+        Row: {
+          id: string;
+          received_at: string;
+          event_type: string | null;
+          submission_id: number | null;
+          processed: boolean;
+          error: string | null;
+          payload: Json | null;
+        };
+        Insert: {
+          id?: string;
+          received_at?: string;
+          event_type?: string | null;
+          submission_id?: number | null;
+          processed?: boolean;
+          error?: string | null;
+          payload?: Json | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["docuseal_events"]["Insert"]>;
         Relationships: [];
       };
       payments: {

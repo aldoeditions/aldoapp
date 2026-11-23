@@ -35,4 +35,8 @@ export type ContractData = {
 
   /* Annexe 1 */
   oeuvres: ContractOeuvre[];
+
+  /* Signature électronique : balise de champ DocuSeal insérée dans le bloc
+   * signature de l'Artiste (retirée du PDF signé via remove_tags). */
+  signatureTag?: string;
 };

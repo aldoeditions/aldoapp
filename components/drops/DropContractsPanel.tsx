@@ -7,7 +7,13 @@ import { FileDownloadButton } from "@/components/portail/FileDownloadButton";
 import { CONTRACT_DOC_STATUS } from "@/lib/constants";
 import { dateCourte } from "@/lib/format";
 import { generateContract } from "@/app/(app)/artistes/contract-actions";
-import { markAllContractsSent, attachSignedContracts } from "@/app/(app)/drops/[id]/contract-actions";
+import {
+  markAllContractsSent,
+  attachSignedContracts,
+  regenerateDraftContracts,
+  sendContractsForSignature,
+  sendTestSignatureToMe,
+} from "@/app/(app)/drops/[id]/contract-actions";
 import { matchSignedToArtist } from "@/lib/contracts/filename";
 import type { DropContracts, DropContractRow } from "@/lib/data/drop-contracts";
 
@@ -47,8 +53,48 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
     });
   }
 
-  // --- Marquer tous comme envoyés ------------------------------------------
+  // --- Signature électronique (DocuSeal) -----------------------------------
   const nbBrouillons = data.rows.filter((r) => r.contract?.status === "brouillon").length;
+
+  function regenerateDrafts() {
+    if (nbBrouillons === 0) return;
+    if (!confirm(`Régénérer ${nbBrouillons} brouillon(s) pour y intégrer les balises de signature ? (les contrats envoyés/signés ne sont pas touchés)`)) return;
+    setNotice(null);
+    start(async () => {
+      const res = await regenerateDraftContracts(dropId);
+      setNotice(
+        res.errors.length
+          ? `${res.count} brouillon(s) régénéré(s), ${res.errors.length} en erreur : ${res.errors[0]}`
+          : `${res.count} brouillon(s) régénéré(s).`,
+      );
+      router.refresh();
+    });
+  }
+
+  function testSignature() {
+    setNotice(null);
+    start(async () => {
+      const res = await sendTestSignatureToMe(dropId);
+      setNotice(res.error ? `Test impossible : ${res.error}` : `Contrat de test envoyé à ${res.email}. Vérifie ta boîte mail.`);
+    });
+  }
+
+  function sendSignature() {
+    if (nbBrouillons === 0) return;
+    if (!confirm(`Envoyer ${nbBrouillons} contrat(s) en signature ? Chaque artiste recevra un e-mail DocuSeal. Action réelle.`)) return;
+    setNotice(null);
+    start(async () => {
+      const res = await sendContractsForSignature(dropId);
+      setNotice(
+        res.errors.length
+          ? `${res.sent} envoyé(s) en signature, ${res.errors.length} en erreur : ${res.errors[0]}`
+          : `${res.sent} contrat(s) envoyé(s) en signature.`,
+      );
+      router.refresh();
+    });
+  }
+
+  // --- Marquer tous comme envoyés ------------------------------------------
   function markAllSent() {
     if (!confirm(`Marquer ${nbBrouillons} contrat(s) brouillon comme envoyés ?`)) return;
     setNotice(null);
@@ -140,11 +186,32 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
             </a>
           )}
           <button
+            onClick={regenerateDrafts}
+            disabled={pending || nbBrouillons === 0}
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-2xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+          >
+            Régénérer les brouillons{nbBrouillons > 0 ? ` (${nbBrouillons})` : ""}
+          </button>
+          <button
+            onClick={testSignature}
+            disabled={pending || nbBrouillons === 0}
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-2xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+          >
+            Tester la signature
+          </button>
+          <button
+            onClick={sendSignature}
+            disabled={pending || nbBrouillons === 0}
+            className="rounded-md bg-accent px-3 py-1.5 text-2xs font-semibold text-white transition-colors hover:bg-accentHover disabled:opacity-50"
+          >
+            Envoyer en signature{nbBrouillons > 0 ? ` (${nbBrouillons})` : ""}
+          </button>
+          <button
             onClick={markAllSent}
             disabled={pending || nbBrouillons === 0}
             className="rounded-md border border-border bg-surface px-3 py-1.5 text-2xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
           >
-            Marquer tous comme envoyés{nbBrouillons > 0 ? ` (${nbBrouillons})` : ""}
+            Marquer envoyés (manuel){nbBrouillons > 0 ? ` (${nbBrouillons})` : ""}
           </button>
         </div>
       </div>

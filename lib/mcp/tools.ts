@@ -8,9 +8,10 @@ import { campaignNumberFromDropName } from "@/lib/contracts/filename";
 import { getDropContracts } from "@/lib/data/drop-contracts";
 import { getProgrammedOeuvres } from "@/lib/data/drop-oeuvres";
 import { generateContractInto, markContractSentInto } from "@/lib/contracts/service";
+import { sendContractForSignature } from "@/lib/docuseal/signature";
 
 /** Dernière migration connue du code (cf. supabase/migrations). */
-const LATEST_MIGRATION = "0035_mcp_audit_log";
+const LATEST_MIGRATION = "0036_docuseal";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -391,6 +392,133 @@ export function registerAldoTools(server: McpServer): void {
         const payload = { apercu: false, envoyes: count, erreurs, message: `${count} contrat(s) marqué(s) comme envoyés${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.` };
         await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "marquer_contrats_envoyes", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: count, message: payload.message });
         return ok("marquer_contrats_envoyes", payload);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "envoyer_contrats_en_signature",
+    {
+      title: "Envoyer les contrats en signature",
+      description:
+        "Envoie en signature électronique (DocuSeal) les contrats EN BROUILLON d'une campagne : chaque artiste reçoit un e-mail pour signer. L'aperçu liste les artistes, leur e-mail et le nombre d'œuvres. Sans confirm=true, renvoie seulement un aperçu.",
+      inputSchema: z.object({
+        drop_id: z.string(),
+        artist_ids: z.array(z.string()).optional().describe("Restreindre à ces artistes"),
+        confirm: z.boolean().default(false).describe("false = aperçu ; true = envoie réellement les e-mails"),
+      }),
+    },
+    async (args: { drop_id: string; artist_ids?: string[]; confirm?: boolean }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+        const [dc, programmes] = await Promise.all([
+          getDropContracts(args.drop_id, { supabase: s.supabase, admin: s.admin }),
+          getProgrammedOeuvres(args.drop_id, s.supabase),
+        ]);
+        if (!dc.drop) return fail("Campagne introuvable.");
+
+        const nbByArtist = new Map<string, number>();
+        for (const o of programmes) if (o.artist_id) nbByArtist.set(o.artist_id, (nbByArtist.get(o.artist_id) ?? 0) + 1);
+
+        const idSet = args.artist_ids?.length ? new Set(args.artist_ids) : null;
+        const rows = (idSet ? dc.rows.filter((r) => idSet.has(r.artist_id)) : dc.rows)
+          .filter((r) => r.contract && r.contract.status === "brouillon");
+
+        const emailsRes = rows.length
+          ? await s.supabase.from("artists").select("id, email").in("id", rows.map((r) => r.artist_id))
+          : { data: [] as { id: string; email: string | null }[] };
+        const emailById = new Map((emailsRes.data ?? []).map((a) => [a.id, a.email]));
+
+        const cibles = rows.map((r) => ({
+          artiste: r.display_name,
+          email: emailById.get(r.artist_id) ?? null,
+          nb_oeuvres: nbByArtist.get(r.artist_id) ?? 0,
+          contract_id: r.contract!.id,
+        }));
+        const sansEmail = cibles.filter((c) => !c.email).map((c) => c.artiste);
+
+        if (!args.confirm) {
+          const payload = {
+            apercu: true,
+            campagne: dc.drop.name,
+            a_envoyer: cibles.filter((c) => c.email).map((c) => ({ artiste: c.artiste, email: c.email, nb_oeuvres: c.nb_oeuvres })),
+            sans_email: sansEmail,
+            message: `Aperçu : ${cibles.filter((c) => c.email).length} contrat(s) seraient envoyés en signature. Rappelle avec confirm=true pour envoyer les e-mails.`,
+          };
+          await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "envoyer_contrats_en_signature", params: { drop_id: args.drop_id, confirm: false }, outcome: "apercu", affected: payload.a_envoyer.length });
+          return ok("envoyer_contrats_en_signature", payload);
+        }
+
+        const envoyes: string[] = [];
+        const erreurs: { artiste: string; erreur: string }[] = [];
+        for (const c of cibles) {
+          if (!c.email) {
+            erreurs.push({ artiste: c.artiste, erreur: "aucun e-mail" });
+            continue;
+          }
+          const res = await sendContractForSignature({ supabase: s.supabase, admin: s.admin, contractId: c.contract_id });
+          if (res.error) erreurs.push({ artiste: c.artiste, erreur: res.error });
+          else envoyes.push(c.artiste);
+        }
+        const payload = {
+          apercu: false,
+          campagne: dc.drop.name,
+          envoyes,
+          erreurs,
+          message: `${envoyes.length} contrat(s) envoyé(s) en signature${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.`,
+        };
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "envoyer_contrats_en_signature", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: envoyes.length, message: payload.message });
+        return ok("envoyer_contrats_en_signature", payload);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "suivi_signatures",
+    {
+      title: "Suivi des signatures",
+      description:
+        "État de signature des contrats (brouillon / envoyé en signature / signé), avec les dates. Filtrable par campagne. Aucune donnée sensible.",
+      inputSchema: z.object({ drop_id: z.string().optional() }),
+    },
+    async (args: { drop_id?: string }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+        let q = s.supabase
+          .from("contracts")
+          .select("id, status, sent_at, signed_at, docuseal_submission_id, drops(name), artists(name)")
+          .order("sent_at", { ascending: false });
+        if (args.drop_id) q = q.eq("drop_id", args.drop_id);
+        const { data, error } = await q.returns<{
+          id: string;
+          status: string;
+          sent_at: string | null;
+          signed_at: string | null;
+          docuseal_submission_id: number | null;
+          drops: { name: string | null } | null;
+          artists: { name: string | null } | null;
+        }[]>();
+        if (error) return fail(error.message);
+        const contrats = (data ?? []).map((c) => ({
+          artiste: c.artists?.name ?? null,
+          campagne: c.drops?.name ?? null,
+          statut: c.status,
+          en_signature: c.docuseal_submission_id != null && c.status !== "signé",
+          envoye_le: c.sent_at,
+          signe_le: c.signed_at,
+        }));
+        const resume = {
+          total: contrats.length,
+          brouillon: contrats.filter((c) => c.statut === "brouillon").length,
+          en_signature: contrats.filter((c) => c.en_signature).length,
+          signe: contrats.filter((c) => c.statut === "signé").length,
+        };
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "suivi_signatures", params: { drop_id: args.drop_id }, outcome: "ok", affected: contrats.length });
+        return ok("suivi_signatures", { resume, contrats });
       } catch (e) {
         return fail(e instanceof Error ? e.message : "Erreur inattendue.");
       }

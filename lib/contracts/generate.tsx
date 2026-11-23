@@ -127,6 +127,9 @@ export function buildContractData(input: GenInput): ContractData {
     generationDate: dateJjMmAaaa(input.generationDate ?? new Date()),
     generationPlace: "Bordeaux",
     oeuvres,
+    // Balise DocuSeal : champ signature de l'Artiste (role=Artiste). Retirée du
+    // PDF signé par `remove_tags`. Le rôle doit correspondre au submitter.
+    signatureTag: "{{Signature;type=signature;role=Artiste;required=true}}",
   };
 }
 
