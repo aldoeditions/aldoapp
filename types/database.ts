@@ -696,6 +696,9 @@ export type Database = {
           country: string | null;
           email: string | null;
           updated_at: string | null;
+          google_drive_refresh_token_enc: string | null;
+          google_drive_connected_email: string | null;
+          google_drive_connected_at: string | null;
         };
         Insert: {
           id?: number;
@@ -713,6 +716,9 @@ export type Database = {
           country?: string | null;
           email?: string | null;
           updated_at?: string | null;
+          google_drive_refresh_token_enc?: string | null;
+          google_drive_connected_email?: string | null;
+          google_drive_connected_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["company_settings"]["Insert"]>;
         Relationships: [];

@@ -1,64 +1,122 @@
 import "server-only";
-import { createSign } from "node:crypto";
-import { getGoogleDriveConfig } from "./config";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+import { decryptSensitive } from "@/lib/crypto";
+import { getGoogleDriveConfig, GOOGLE_OAUTH_SCOPE } from "./config";
 
 /**
- * Authentification OAuth2 du compte de service Google, SANS dépendance (JWT
- * signé à la main avec `node:crypto`, comme la vérification HMAC du webhook
- * DocuSeal). Flux "Service Account" standard :
- *   1. on signe un JWT (RS256) avec la clé privée du compte de service ;
- *   2. on l'échange contre un access token auprès de Google.
- * Portée `drive` (lecture/écriture) : nécessaire pour retrouver un dossier
- * déjà partagé avec le compte de service (la portée `drive.file` ne verrait
- * que les fichiers créés par l'app elle-même).
+ * OAuth 2.0 UTILISATEUR Google (compte contact@aldo-editions.com), connecté
+ * depuis Paramètres. Le refresh token est stocké CHIFFRÉ dans
+ * `company_settings` (même mécanisme que `lib/crypto.ts`, clé `ARTIST_DATA_KEY`).
+ *
+ * L'app Google est en mode « Test » : le refresh token expire au bout de
+ * 7 jours sans reconnexion (limite Google, pas un bug) — d'où la date de
+ * connexion affichée dans Paramètres.
  */
 
+type Db = SupabaseClient<Database>;
+
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const SCOPE = "https://www.googleapis.com/auth/drive";
+const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
+const USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
-function base64url(input: Buffer | string): string {
-  return Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+/** URL de l'écran de consentement Google (access_type=offline + prompt=consent → refresh token garanti). */
+export function buildGoogleAuthUrl(state: string): string {
+  const { clientId, redirectUri } = getGoogleDriveConfig();
+  const url = new URL(AUTH_URL);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", GOOGLE_OAUTH_SCOPE);
+  url.searchParams.set("access_type", "offline");
+  url.searchParams.set("prompt", "consent");
+  url.searchParams.set("state", state);
+  return url.toString();
 }
 
-function signJwt(clientEmail: string, privateKey: string): string {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claims = {
-    iss: clientEmail,
-    scope: SCOPE,
-    aud: TOKEN_URL,
-    iat: now,
-    exp: now + 3600,
-  };
-  const signingInput = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
-  const signature = createSign("RSA-SHA256").update(signingInput).sign(privateKey);
-  return `${signingInput}.${base64url(signature)}`;
-}
+export type GoogleTokenResponse = { access_token: string; refresh_token?: string; expires_in: number };
 
-let cached: { token: string; expiresAt: number } | null = null;
-
-/** Access token Google (mis en cache en mémoire pour la durée de vie de l'instance). */
-export async function getDriveAccessToken(): Promise<string> {
-  const now = Date.now();
-  if (cached && cached.expiresAt > now + 60_000) return cached.token;
-
-  const { clientEmail, privateKey } = getGoogleDriveConfig();
-  const assertion = signJwt(clientEmail, privateKey);
-
+/** Échange le `code` de retour contre un access token + (normalement) un refresh token. */
+export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
+  const { clientId, clientSecret, redirectUri } = getGoogleDriveConfig();
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion,
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
     }),
     cache: "no-store",
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`Authentification Google Drive refusée (${res.status})${detail ? ` : ${detail.slice(0, 200)}` : ""}.`);
+    throw new Error(`Échange du code Google refusé (${res.status})${detail ? ` : ${detail.slice(0, 200)}` : ""}.`);
   }
-  const data = (await res.json()) as { access_token: string; expires_in: number };
-  cached = { token: data.access_token, expiresAt: now + data.expires_in * 1000 };
+  return (await res.json()) as GoogleTokenResponse;
+}
+
+/** E-mail du compte connecté (pour l'affichage « Connecté en tant que … »). */
+export async function fetchGoogleEmail(accessToken: string): Promise<string | null> {
+  const res = await fetch(USERINFO_URL, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { email?: string };
+  return data.email ?? null;
+}
+
+/** Révoque le refresh token côté Google (best-effort, appelé à la déconnexion). */
+export async function revokeGoogleToken(token: string): Promise<void> {
+  await fetch(`${REVOKE_URL}?token=${encodeURIComponent(token)}`, { method: "POST", cache: "no-store" }).catch(() => {});
+}
+
+let cached: { token: string; expiresAt: number } | null = null;
+
+/** Vide le cache en mémoire (à appeler à la déconnexion). */
+export function clearDriveTokenCache(): void {
+  cached = null;
+}
+
+/**
+ * Access token Drive courant (rafraîchi depuis le refresh token stocké).
+ * Erreur CLAIRE et distincte si Drive n'est pas connecté vs connexion expirée/révoquée.
+ */
+export async function getDriveAccessToken(admin: Db): Promise<string> {
+  const now = Date.now();
+  if (cached && cached.expiresAt > now + 60_000) return cached.token;
+
+  const { data } = await admin
+    .from("company_settings")
+    .select("google_drive_refresh_token_enc")
+    .eq("id", 1)
+    .maybeSingle();
+  const refreshToken = decryptSensitive(data?.google_drive_refresh_token_enc ?? null);
+  if (!refreshToken) {
+    throw new Error("Google Drive n'est pas connecté — connecte-le dans Paramètres.");
+  }
+
+  const { clientId, clientSecret } = getGoogleDriveConfig();
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    if (res.status === 400 && /invalid_grant/i.test(detail)) {
+      throw new Error("Connexion Google Drive expirée ou révoquée — reconnecte-la dans Paramètres.");
+    }
+    throw new Error(`Authentification Google Drive refusée (${res.status}).`);
+  }
+  const json = (await res.json()) as { access_token: string; expires_in: number };
+  cached = { token: json.access_token, expiresAt: now + json.expires_in * 1000 };
   return cached.token;
 }

@@ -55,12 +55,16 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Endpoints appelés par des tiers SANS session (Shopify, serveur MCP, découverte
-  // OAuth) : jamais de redirection d'auth, sinon la requête est renvoyée vers
-  // /login et n'atteint pas le handler. Le serveur MCP répond lui-même 401.
+  // OAuth), ou arrivant par une redirection externe cross-site (retour OAuth
+  // Google — le cookie de session peut ne pas être vu à temps par le
+  // middleware selon le navigateur) : jamais de redirection d'auth ici, sinon
+  // la requête est renvoyée vers /login et perd ses paramètres (code/state).
+  // Chaque route gère elle-même ses droits (401, ou requireUser() côté route).
   if (
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/shopify") ||
     pathname.startsWith("/api/mcp") ||
+    pathname.startsWith("/api/google") ||
     pathname.startsWith("/.well-known") ||
     pathname.startsWith("/well-known")
   ) {

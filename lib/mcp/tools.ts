@@ -19,7 +19,7 @@ import { DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO } from "@/lib/docuseal/config
 import { classifyContractInDrive, previewArtistCampaignFolder } from "@/lib/gdrive/classify";
 
 /** Dernière migration connue du code (cf. supabase/migrations). */
-const LATEST_MIGRATION = "0037_drive_classement";
+const LATEST_MIGRATION = "0038_google_drive_oauth";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 

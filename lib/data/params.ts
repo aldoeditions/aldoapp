@@ -2,6 +2,27 @@ import { createClient } from "@/lib/supabase/server";
 
 export type PackagingItem = { name: string; valeur: number };
 
+export type GoogleDriveStatus = {
+  connected: boolean;
+  email: string | null;
+  connectedAt: string | null;
+};
+
+/** État de la connexion Google Drive (Paramètres). Ne lit jamais le refresh token. */
+export async function getGoogleDriveStatus(): Promise<GoogleDriveStatus> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("company_settings")
+    .select("google_drive_refresh_token_enc, google_drive_connected_email, google_drive_connected_at")
+    .eq("id", 1)
+    .maybeSingle();
+  return {
+    connected: Boolean(data?.google_drive_refresh_token_enc),
+    email: data?.google_drive_connected_email ?? null,
+    connectedAt: data?.google_drive_connected_at ?? null,
+  };
+}
+
 export type FormatCosts = {
   format: string;
   prix: number;
