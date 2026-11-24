@@ -8,6 +8,7 @@ import { canEdit } from "@/lib/auth/permissions";
 import { markContractSent, markContractSigned } from "@/app/(app)/artistes/contract-actions";
 import { regenerateDraftContractInto } from "@/lib/contracts/service";
 import { sendContractForSignature, sendTestSignature, cancelContractSending } from "@/lib/docuseal/signature";
+import { classifyContractInDrive } from "@/lib/gdrive/classify";
 
 async function assertCanEdit() {
   const user = await requireUser();
@@ -149,6 +150,43 @@ export async function cancelSentContract(
   const res = await cancelContractSending({ supabase, admin, contractId });
   revalidatePath(`/drops/${dropId}`);
   return res;
+}
+
+/**
+ * Classe dans Drive les contrats SIGNÉS du drop pas encore classés (idempotent
+ * côté classifyContractInDrive : ignore ceux qui ont déjà un drive_file_id).
+ * Un dossier artiste introuvable est signalé sans rien créer.
+ */
+export async function classifyDropContractsInDrive(
+  dropId: string,
+): Promise<{ count: number; folderMissing: string[]; errors: string[] }> {
+  await assertCanEdit();
+  const supabase = createClient();
+  const admin = createAdminClient();
+  const { data } = await supabase
+    .from("contracts")
+    .select("id, artist_id, artists(name)")
+    .eq("drop_id", dropId)
+    .eq("status", "signé")
+    .is("drive_file_id", null)
+    .returns<{ id: string; artist_id: string | null; artists: { name: string | null } | null }[]>();
+
+  let count = 0;
+  const folderMissing: string[] = [];
+  const errors: string[] = [];
+  for (const c of data ?? []) {
+    const label = c.artists?.name ?? c.artist_id ?? "?";
+    try {
+      const res = await classifyContractInDrive({ admin, contractId: c.id });
+      if (res.error) errors.push(`${label} : ${res.error}`);
+      else if (res.folderMissing) folderMissing.push(label);
+      else if (!res.skipped) count++;
+    } catch (e) {
+      errors.push(`${label} : ${e instanceof Error ? e.message : "Erreur inattendue."}`);
+    }
+  }
+  revalidatePath(`/drops/${dropId}`);
+  return { count, folderMissing, errors };
 }
 
 export type SignedResult = { contract_id: string; ok: boolean; error?: string };

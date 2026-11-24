@@ -75,6 +75,7 @@ function artistFieldsFrom(fd: FormData) {
     contrat_status: str(fd, "contrat_status"),
     commission_pct: num(fd, "commission_pct"),
     drive_link: str(fd, "drive_link"),
+    drive_folder_name: str(fd, "drive_folder_name"),
     dans_le_pipe: fd.get("dans_le_pipe") === "on", // « pour les prochains drop »
     first_contact_date: str(fd, "first_contact_date"),
     kit_impression: str(fd, "kit_impression"),

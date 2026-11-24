@@ -14,6 +14,7 @@ import {
   sendContractsForSignature,
   sendTestSignatureToMe,
   cancelSentContract,
+  classifyDropContractsInDrive,
 } from "@/app/(app)/drops/[id]/contract-actions";
 import { matchSignedToArtist } from "@/lib/contracts/filename";
 import type { DropContracts, DropContractRow } from "@/lib/data/drop-contracts";
@@ -174,6 +175,22 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
     });
   }
 
+  // --- Classement Drive des contrats signés ---------------------------------
+  const nbAClasser = data.rows.filter((r) => r.contract?.status === "signé" && !r.contract.drive_file_id).length;
+
+  function classifyInDrive() {
+    if (nbAClasser === 0) return;
+    setNotice(null);
+    start(async () => {
+      const res = await classifyDropContractsInDrive(dropId);
+      const parts = [`${res.count} classé(s) dans Drive.`];
+      if (res.folderMissing.length) parts.push(`Dossier introuvable pour : ${res.folderMissing.join(", ")}.`);
+      if (res.errors.length) parts.push(`${res.errors.length} erreur(s) : ${res.errors[0]}`);
+      setNotice(parts.join(" "));
+      router.refresh();
+    });
+  }
+
   const hasDrafts = data.rows.some((r) => r.contract?.status === "brouillon");
 
   return (
@@ -229,6 +246,13 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
           >
             Marquer envoyés (manuel){nbBrouillons > 0 ? ` (${nbBrouillons})` : ""}
           </button>
+          <button
+            onClick={classifyInDrive}
+            disabled={pending || nbAClasser === 0}
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-2xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+          >
+            Classer dans Drive{nbAClasser > 0 ? ` (${nbAClasser})` : ""}
+          </button>
         </div>
       </div>
 
@@ -261,6 +285,7 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
                 <th className="px-3 py-2.5 font-semibold">Généré</th>
                 <th className="px-3 py-2.5 font-semibold">Envoyé</th>
                 <th className="px-3 py-2.5 font-semibold">Signé</th>
+                <th className="px-3 py-2.5 font-semibold">Drive</th>
                 <th className="px-5 py-2.5 font-semibold" />
               </tr>
             </thead>
@@ -360,6 +385,17 @@ function ContractLine({
       <td className="px-3 py-2.5 text-2xs text-muted">{c?.generated_at ? dateCourte(c.generated_at) : "—"}</td>
       <td className="px-3 py-2.5 text-2xs text-muted">{c?.sent_at ? dateCourte(c.sent_at) : "—"}</td>
       <td className="px-3 py-2.5 text-2xs text-muted">{c?.signed_at ? dateCourte(c.signed_at) : "—"}</td>
+      <td className="px-3 py-2.5 text-2xs">
+        {c?.status !== "signé" ? (
+          <span className="text-faint">—</span>
+        ) : c.drive_file_id ? (
+          <span className="text-success">Classé</span>
+        ) : c.drive_folder_missing ? (
+          <span className="text-danger">Dossier introuvable</span>
+        ) : (
+          <span className="text-muted">À classer</span>
+        )}
+      </td>
       <td className="px-5 py-2.5">
         <div className="flex items-center justify-end gap-3">
           {c?.status === "envoyé" && (

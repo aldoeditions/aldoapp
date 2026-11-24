@@ -309,6 +309,17 @@ export function ArtistForm({
             <Select label="Contrat" name="contrat_status" defaultValue={artist?.contrat_status} options={CONTRACT_STATUSES} />
             <Field label="Lien Drive" name="drive_link" defaultValue={artist?.drive_link} placeholder="https://" />
           </div>
+          <div>
+            <Field
+              label="Nom du dossier Drive"
+              name="drive_folder_name"
+              defaultValue={artist?.drive_folder_name ?? artist?.name}
+              placeholder="Nom affiché par défaut"
+            />
+            <p className="mt-1 text-2xs text-faint">
+              Utilisé pour retrouver le dossier « C{"{n}"}_{"{ce nom}"} » dans ALDO/Artistes lors du classement des contrats signés. À corriger si le dossier Drive porte un autre nom (ex. le nom légal plutôt que le pseudo).
+            </p>
+          </div>
         </div>
       </div>
 

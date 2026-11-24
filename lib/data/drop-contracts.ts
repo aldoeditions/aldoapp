@@ -20,6 +20,8 @@ export type DropContractRow = {
     signed_at: string | null;
     pdf_path: string | null;
     file_path: string | null;
+    drive_file_id: string | null;
+    drive_folder_missing: boolean;
   } | null;
 };
 
@@ -80,7 +82,7 @@ export async function getDropContracts(
     admin.from("artist_banking").select("artist_id, iban").in("artist_id", artistIds),
     supabase
       .from("contracts")
-      .select("id, artist_id, status, generated_at, sent_at, signed_at, pdf_path, file_path")
+      .select("id, artist_id, status, generated_at, sent_at, signed_at, pdf_path, file_path, drive_file_id, drive_folder_missing")
       .eq("drop_id", dropId)
       .order("created_at", { ascending: false }),
   ]);
@@ -98,6 +100,8 @@ export async function getDropContracts(
       signed_at: c.signed_at,
       pdf_path: c.pdf_path,
       file_path: c.file_path,
+      drive_file_id: c.drive_file_id,
+      drive_folder_missing: c.drive_folder_missing,
     });
   }
 

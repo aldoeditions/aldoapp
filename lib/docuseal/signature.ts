@@ -6,7 +6,15 @@ import { CONTRACTS_BUCKET, buildContractPdf } from "@/lib/contracts/service";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
 import { signatureFields } from "@/lib/contracts/signature-layout";
 import { DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO } from "./config";
-import { createSubmissionFromPdf, getSubmission, fetchFileBuffer, archiveSubmission, SUBMITTER_LINK } from "./client";
+import {
+  createSubmissionFromPdf,
+  getSubmission,
+  fetchFileBuffer,
+  archiveSubmission,
+  resendSubmitterEmail,
+  SUBMITTER_LINK,
+} from "./client";
+import { classifyContractInDrive } from "@/lib/gdrive/classify";
 
 type Db = SupabaseClient<Database>;
 
@@ -131,6 +139,38 @@ export async function sendContractForSignature(args: {
   if (error) return { error: error.message };
 
   return { submissionId: submission.id, email };
+}
+
+/**
+ * Relance (ré-envoie l'e-mail de signature) le signataire actuellement en
+ * attente d'un contrat « envoyé » : l'Artiste s'il n'a pas encore signé,
+ * sinon Aldo (contre-signature). Vérifié dans la doc DocuSeal : pas d'endpoint
+ * « resend » dédié, c'est `PUT /submitters/{id}` avec `send_email: true`.
+ */
+export async function resendSignatureReminder(args: {
+  supabase: Db;
+  contractId: string;
+}): Promise<{ error?: string; role?: string; email?: string }> {
+  const { supabase, contractId } = args;
+  const { data: c } = await supabase
+    .from("contracts")
+    .select("id, status, docuseal_submission_id")
+    .eq("id", contractId)
+    .maybeSingle();
+  if (!c) return { error: "Contrat introuvable." };
+  if (c.status !== "envoyé") return { error: "Seuls les contrats envoyés en signature peuvent être relancés." };
+  if (!c.docuseal_submission_id) return { error: "Aucune soumission DocuSeal associée à ce contrat." };
+
+  const sub = await getSubmission(c.docuseal_submission_id);
+  const submitters = sub.submitters ?? [];
+  // Ordre préservé : on relance l'Artiste s'il n'a pas signé, sinon Aldo.
+  const pending =
+    submitters.find((s) => s.role === DOCUSEAL_ROLE_ARTISTE && !s.completed_at) ??
+    submitters.find((s) => s.role === DOCUSEAL_ROLE_ALDO && !s.completed_at);
+  if (!pending) return { error: "Aucun signataire en attente (vérifier manuellement dans DocuSeal)." };
+
+  await resendSubmitterEmail(pending.id);
+  return { role: pending.role ?? undefined, email: pending.email ?? undefined };
 }
 
 /**
@@ -363,5 +403,56 @@ export async function ingestCompletedSubmission(args: {
     .eq("id", c.id);
   if (error) return { error: error.message };
 
+  // Classement Drive best-effort : la signature elle-même ne doit jamais
+  // échouer pour une raison Drive (dossier introuvable, Drive indisponible…).
+  // Un contrat non classé reste visible comme tel sur la fiche campagne et
+  // peut être rattrapé (bouton « Classer dans Drive » / MCP `classer_contrats_drive`).
+  try {
+    await classifyContractInDrive({ admin, contractId: c.id });
+  } catch (e) {
+    console.error("[docuseal webhook] classement Drive", e instanceof Error ? e.message : e);
+  }
+
   return {};
+}
+
+/**
+ * Resynchronise un contrat « envoyé » avec l'état réel de sa soumission
+ * DocuSeal (rattrapage si un webhook a été manqué) : horodate les signatures
+ * déjà effectuées (`recordFormCompleted`) et, si les DEUX parties ont signé,
+ * finalise via `ingestCompletedSubmission` (même chemin que le webhook — PDF
+ * signé rangé, contrat passé à « signé », classement Drive déclenché).
+ * Idempotent, ne fait rien si déjà signé ou sans soumission associée.
+ */
+export async function syncContractSignature(args: {
+  admin: Db;
+  contractId: string;
+}): Promise<{ error?: string; skipped?: boolean; updated?: boolean; became_signed?: boolean }> {
+  const { admin, contractId } = args;
+  const { data: c } = await admin
+    .from("contracts")
+    .select("id, status, docuseal_submission_id, artist_signed_at, aldo_signed_at")
+    .eq("id", contractId)
+    .maybeSingle();
+  if (!c) return { error: "Contrat introuvable." };
+  if (!c.docuseal_submission_id) return { skipped: true };
+  if (c.status === "signé") return { skipped: true };
+
+  const sub = await getSubmission(c.docuseal_submission_id);
+  const submitters = sub.submitters ?? [];
+
+  let updated = false;
+  for (const s of submitters) {
+    if (!s.completed_at) continue;
+    const res = await recordFormCompleted({ admin, submissionId: c.docuseal_submission_id, role: s.role, completedAt: s.completed_at });
+    if (!res.skipped && !res.error) updated = true;
+  }
+
+  const expectedRoles = [DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO];
+  const allSigned = expectedRoles.every((role) => submitters.some((s) => s.role === role && s.completed_at));
+  if (!allSigned) return { updated };
+
+  const done = await ingestCompletedSubmission({ admin, submissionId: c.docuseal_submission_id });
+  if (done.error) return { error: done.error, updated };
+  return { updated: true, became_signed: !done.skipped };
 }

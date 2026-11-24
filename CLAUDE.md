@@ -38,7 +38,7 @@ Ce fichier présente le projet à Claude, que ce soit Claude Code dans ce dépô
 | **Smootify** | Relie Webflow et Shopify | Synchronise certains champs Webflow : ne jamais les écraser |
 | **Supabase** | Base Postgres, Auth, Storage | Cœur de l'app (offre gratuite, keep-alive GitHub Action tous les 3 jours) |
 | **Vercel** | Hébergement, région `cdg1` | Déploiement depuis `main` |
-| **Google Drive** | `ALDO/Artistes/C{n}_{Prénom Nom}/{Visuels, Contrats}` | Lien Drive saisi sur la fiche artiste (`artists.drive_link`) |
+| **Google Drive** | `ALDO/Artistes/C{n}_{Prénom Nom}/{Visuels, Contrats}` | Lien Drive saisi sur la fiche artiste (`artists.drive_link`). Depuis le drop 3 : **classement automatique** des contrats signés (`lib/gdrive/*`) — dès qu'un contrat passe « signé », son PDF + le journal d'audit sont déposés dans le sous-dossier `Contrats` du dossier de campagne de l'artiste (recherché via `artists.drive_folder_name`, par défaut le nom affiché). Accès par compte de service Google (partagé en éditeur sur `ALDO/Artistes`), aucune dépendance ajoutée (JWT signé à la main + API Drive v3 en REST direct). |
 | **Signature électronique** | **DocuSeal** (compte sur **docuseal.com**, hôte global `api.docuseal.com` ; pas la région UE). Youtrust/Goodflag utilisés jusqu'au drop 2. Le contrat ne nomme pas la plateforme (formulation eIDAS neutre). | Intégré depuis le drop 3 (`lib/docuseal/*`) : l'app crée la soumission depuis le PDF (balises de champ), l'Artiste signe puis Aldo contre-signe, et le webhook `/api/webhooks/docuseal` range le PDF signé + l'audit dans le bucket `contracts`. `DOCUSEAL_API_URL` pilote l'hôte ; `DOCUSEAL_WEBHOOK_SECRET` = valeur HMAC. |
 | **Qonto** | Banque de la SAS | Virements aux artistes faits à la main (export groupé prévu) |
 | **Claude (Cowork)** | Supervise, prépare, tient les fiches du projet « Aldo » | Lit ce dépôt en lecture seule chaque matin (fiche « État de l'app Aldo ») |
@@ -63,6 +63,7 @@ Ce fichier présente le projet à Claude, que ce soit Claude Code dans ce dépô
 | `ARTIST_DATA_KEY` | Clé AES-256-GCM pour chiffrer le n° de sécurité sociale (`lib/crypto.ts`) |
 | `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_ACCESS_TOKEN`, `SHOPIFY_WEBHOOK_SECRET` | API Admin Shopify et vérification HMAC du webhook |
 | `DOCUSEAL_API_KEY`, `DOCUSEAL_API_URL`, `DOCUSEAL_WEBHOOK_SECRET` | Signature DocuSeal : clé API (`X-Auth-Token`), hôte (`https://api.docuseal.com`), et valeur HMAC du webhook (`whsec_…`, onglet HMAC) |
+| `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_DRIVE_ARTISTES_FOLDER_ID` | Classement Drive des contrats signés : JSON entier de la clé du compte de service Google (jamais commité), et id du dossier `ALDO/Artistes` (partagé en éditeur avec l'e-mail du compte de service) |
 | `NEXT_PUBLIC_SITE_URL` | URL publique (liens d'invitation et de réinitialisation) |
 
 ## 4. Organisation du code
@@ -83,9 +84,10 @@ lib/
   royalties/      relevés de droits d'auteur, certificat de précompte
   releve/, print/ PDF annexes (relevé, liste d'impression)
   shopify/        client, sync, sku, csv
+  gdrive/         config, auth (JWT compte de service), client (API Drive v3 REST), classify (classement des contrats signés)
   constants.ts    règles commerciales (prix, TVA, commission, frais de paiement)
   crypto.ts, fiscal.ts, format.ts
-supabase/migrations/   SQL numéroté 0001 → 0034, à lancer à la main dans le SQL Editor
+supabase/migrations/   SQL numéroté 0001 → 0037, à lancer à la main dans le SQL Editor
 scripts/          selftests (fiscal, royalties, shopify), seed/test contrat, import Notion
 types/database.ts types générés Supabase
 ```

@@ -69,6 +69,7 @@ export type Database = {
           contrat_status: string | null;
           commission_pct: number | null;
           drive_link: string | null;
+          drive_folder_name: string | null;
           dans_le_pipe: boolean | null;
           user_id: string | null;
           iban: string | null;
@@ -124,6 +125,7 @@ export type Database = {
           contrat_status?: string | null;
           commission_pct?: number | null;
           drive_link?: string | null;
+          drive_folder_name?: string | null;
           dans_le_pipe?: boolean | null;
           onboarded_at?: string | null;
           questionnaire?: Json | null;
@@ -493,6 +495,10 @@ export type Database = {
           audit_log_path: string | null;
           artist_signed_at: string | null;
           aldo_signed_at: string | null;
+          drive_file_id: string | null;
+          drive_audit_file_id: string | null;
+          drive_classed_at: string | null;
+          drive_folder_missing: boolean;
         };
         Insert: {
           id?: string;
@@ -511,6 +517,10 @@ export type Database = {
           audit_log_path?: string | null;
           artist_signed_at?: string | null;
           aldo_signed_at?: string | null;
+          drive_file_id?: string | null;
+          drive_audit_file_id?: string | null;
+          drive_classed_at?: string | null;
+          drive_folder_missing?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
         Relationships: [];

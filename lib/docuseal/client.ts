@@ -124,12 +124,24 @@ export type DocusealSubmission = {
   combined_document_url: string | null;
   completed_at: string | null;
   documents: { name: string | null; url: string | null }[] | null;
-  submitters: { email: string | null; role: string | null; status: string | null; completed_at: string | null }[] | null;
+  submitters: { id: number; email: string | null; role: string | null; status: string | null; completed_at: string | null }[] | null;
 };
 
 /** Récupère une soumission (URLs de documents fraîches — elles expirent ~40 min). */
 export async function getSubmission(id: number): Promise<DocusealSubmission> {
   return request<DocusealSubmission>(`/submissions/${id}`, { method: "GET" });
+}
+
+/**
+ * Renvoie l'e-mail de signature à un signataire précis (PUT /submitters/{id},
+ * `send_email: true` — vérifié dans la doc DocuSeal : pas d'endpoint « resend »
+ * dédié, c'est la mise à jour du submitter qui ré-envoie l'e-mail).
+ */
+export async function resendSubmitterEmail(submitterId: number): Promise<void> {
+  await request<unknown>(`/submitters/${submitterId}`, {
+    method: "PUT",
+    body: JSON.stringify({ send_email: true }),
+  });
 }
 
 /** Télécharge un fichier DocuSeal (URL signée, courte durée) en Buffer. */

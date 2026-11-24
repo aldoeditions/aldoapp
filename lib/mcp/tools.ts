@@ -8,10 +8,18 @@ import { campaignNumberFromDropName } from "@/lib/contracts/filename";
 import { getDropContracts } from "@/lib/data/drop-contracts";
 import { getProgrammedOeuvres } from "@/lib/data/drop-oeuvres";
 import { generateContractInto, markContractSentInto } from "@/lib/contracts/service";
-import { sendContractForSignature, cancelContractSending } from "@/lib/docuseal/signature";
+import {
+  sendContractForSignature,
+  cancelContractSending,
+  resendSignatureReminder,
+  syncContractSignature,
+} from "@/lib/docuseal/signature";
+import { getSubmission } from "@/lib/docuseal/client";
+import { DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO } from "@/lib/docuseal/config";
+import { classifyContractInDrive, previewArtistCampaignFolder } from "@/lib/gdrive/classify";
 
 /** Dernière migration connue du code (cf. supabase/migrations). */
-const LATEST_MIGRATION = "0036_docuseal";
+const LATEST_MIGRATION = "0037_drive_classement";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -587,6 +595,216 @@ export function registerAldoTools(server: McpServer): void {
         };
         await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "suivi_signatures", params: { drop_id: args.drop_id }, outcome: "ok", affected: contrats.length });
         return ok("suivi_signatures", { resume, contrats });
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "relancer_signature",
+    {
+      title: "Relancer un signataire",
+      description:
+        "Renvoie l'e-mail de signature au signataire actuellement en attente (l'Artiste s'il n'a pas signé, sinon Aldo) pour les contrats « envoyé » d'une campagne. Sans confirm=true, renvoie seulement un aperçu.",
+      inputSchema: z.object({
+        drop_id: z.string(),
+        artist_ids: z.array(z.string()).optional().describe("Restreindre à ces artistes"),
+        confirm: z.boolean().default(false),
+      }),
+    },
+    async (args: { drop_id: string; artist_ids?: string[]; confirm?: boolean }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+        let q = s.supabase
+          .from("contracts")
+          .select("id, artist_id, status, docuseal_submission_id, artists(name)")
+          .eq("drop_id", args.drop_id)
+          .eq("status", "envoyé");
+        if (args.artist_ids?.length) q = q.in("artist_id", args.artist_ids);
+        const { data, error } = await q.returns<{
+          id: string;
+          artist_id: string | null;
+          status: string;
+          docuseal_submission_id: number | null;
+          artists: { name: string | null } | null;
+        }[]>();
+        if (error) return fail(error.message);
+        const envoyes = (data ?? []).filter((c) => c.docuseal_submission_id != null);
+
+        // Aperçu : qui est en attente, sur QUI (lecture DocuSeal, aucun e-mail envoyé).
+        const cibles: { contract_id: string; artiste: string | null; en_attente_de: string; email: string | null }[] = [];
+        for (const c of envoyes) {
+          try {
+            const sub = await getSubmission(c.docuseal_submission_id!);
+            const submitters = sub.submitters ?? [];
+            const pending =
+              submitters.find((x) => x.role === DOCUSEAL_ROLE_ARTISTE && !x.completed_at) ??
+              submitters.find((x) => x.role === DOCUSEAL_ROLE_ALDO && !x.completed_at);
+            if (pending) cibles.push({ contract_id: c.id, artiste: c.artists?.name ?? null, en_attente_de: pending.role ?? "?", email: pending.email ?? null });
+          } catch {
+            /* soumission introuvable côté DocuSeal : ignorée, visible via suivi_signatures */
+          }
+        }
+
+        if (!args.confirm) {
+          const payload = {
+            apercu: true,
+            a_relancer: cibles,
+            message: `Aperçu : ${cibles.length} relance(s) seraient envoyées. Rappelle avec confirm=true pour exécuter.`,
+          };
+          await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "relancer_signature", params: { drop_id: args.drop_id, confirm: false }, outcome: "apercu", affected: cibles.length });
+          return ok("relancer_signature", payload);
+        }
+
+        let count = 0;
+        const erreurs: { artiste: string | null; erreur: string }[] = [];
+        for (const c of cibles) {
+          const res = await resendSignatureReminder({ supabase: s.supabase, contractId: c.contract_id });
+          if (res.error) erreurs.push({ artiste: c.artiste, erreur: res.error });
+          else count++;
+        }
+        const payload = { apercu: false, relances: count, erreurs, message: `${count} relance(s) envoyée(s)${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.` };
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "relancer_signature", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: count, message: payload.message });
+        return ok("relancer_signature", payload);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "synchroniser_signatures",
+    {
+      title: "Synchroniser les signatures",
+      description:
+        "Rattrapage si un webhook DocuSeal a été manqué : relit l'état réel de la soumission de chaque contrat « envoyé » (d'une campagne, ou de toutes si drop_id est omis) et met à jour l'app en conséquence (horodatage des signatures, passage à « signé » si les deux parties ont signé). Sans confirm=true, renvoie seulement un aperçu.",
+      inputSchema: z.object({
+        drop_id: z.string().optional(),
+        confirm: z.boolean().default(false),
+      }),
+    },
+    async (args: { drop_id?: string; confirm?: boolean }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+        let q = s.supabase
+          .from("contracts")
+          .select("id, artist_id, status, docuseal_submission_id, artists(name)")
+          .eq("status", "envoyé");
+        if (args.drop_id) q = q.eq("drop_id", args.drop_id);
+        const { data, error } = await q.returns<{
+          id: string;
+          artist_id: string | null;
+          status: string;
+          docuseal_submission_id: number | null;
+          artists: { name: string | null } | null;
+        }[]>();
+        if (error) return fail(error.message);
+        const candidats = (data ?? []).filter((c) => c.docuseal_submission_id != null);
+
+        if (!args.confirm) {
+          const payload = {
+            apercu: true,
+            a_verifier: candidats.map((c) => ({ contract_id: c.id, artiste: c.artists?.name ?? null })),
+            message: `Aperçu : ${candidats.length} contrat(s) seraient resynchronisés avec DocuSeal. Rappelle avec confirm=true pour exécuter.`,
+          };
+          await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "synchroniser_signatures", params: { drop_id: args.drop_id, confirm: false }, outcome: "apercu", affected: candidats.length });
+          return ok("synchroniser_signatures", payload);
+        }
+
+        const devenus_signes: string[] = [];
+        const mis_a_jour: string[] = [];
+        const erreurs: { artiste: string | null; erreur: string }[] = [];
+        for (const c of candidats) {
+          const res = await syncContractSignature({ admin: s.admin, contractId: c.id });
+          if (res.error) erreurs.push({ artiste: c.artists?.name ?? null, erreur: res.error });
+          else if (res.became_signed) devenus_signes.push(c.artists?.name ?? c.id);
+          else if (res.updated) mis_a_jour.push(c.artists?.name ?? c.id);
+        }
+        const payload = {
+          apercu: false,
+          devenus_signes,
+          mis_a_jour,
+          erreurs,
+          message: `${devenus_signes.length} contrat(s) passé(s) à « signé », ${mis_a_jour.length} mis à jour${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.`,
+        };
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "synchroniser_signatures", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: devenus_signes.length + mis_a_jour.length, message: payload.message });
+        return ok("synchroniser_signatures", payload);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "classer_contrats_drive",
+    {
+      title: "Classer les contrats signés dans Drive",
+      description:
+        "Classe dans Google Drive (ALDO/Artistes/C{n}_{nom}/Contrats) les contrats SIGNÉS d'une campagne pas encore classés. Un dossier artiste introuvable n'est jamais créé : signalé dans l'aperçu et dans le résultat. Sans confirm=true, renvoie seulement un aperçu.",
+      inputSchema: z.object({
+        drop_id: z.string(),
+        artist_ids: z.array(z.string()).optional().describe("Restreindre à ces artistes"),
+        confirm: z.boolean().default(false),
+      }),
+    },
+    async (args: { drop_id: string; artist_ids?: string[]; confirm?: boolean }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+        let q = s.supabase
+          .from("contracts")
+          .select("id, artist_id, drop_id, status, drive_file_id, artists(name)")
+          .eq("drop_id", args.drop_id)
+          .eq("status", "signé")
+          .is("drive_file_id", null);
+        if (args.artist_ids?.length) q = q.in("artist_id", args.artist_ids);
+        const { data, error } = await q.returns<{
+          id: string;
+          artist_id: string;
+          drop_id: string;
+          status: string;
+          drive_file_id: string | null;
+          artists: { name: string | null } | null;
+        }[]>();
+        if (error) return fail(error.message);
+        const candidats = data ?? [];
+
+        if (!args.confirm) {
+          const trouves: { artiste: string | null; dossier: string }[] = [];
+          const introuvables: { artiste: string | null; dossier_recherche: string }[] = [];
+          for (const c of candidats) {
+            const preview = await previewArtistCampaignFolder({ admin: s.admin, artistId: c.artist_id, dropId: c.drop_id });
+            if (preview.found) trouves.push({ artiste: c.artists?.name ?? null, dossier: preview.target_folder });
+            else introuvables.push({ artiste: c.artists?.name ?? null, dossier_recherche: preview.target_folder });
+          }
+          const payload = {
+            apercu: true,
+            a_classer: trouves,
+            dossier_introuvable: introuvables,
+            message: `Aperçu : ${trouves.length} contrat(s) seraient classés, ${introuvables.length} dossier(s) introuvable(s). Rappelle avec confirm=true pour exécuter.`,
+          };
+          await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "classer_contrats_drive", params: { drop_id: args.drop_id, confirm: false }, outcome: "apercu", affected: trouves.length });
+          return ok("classer_contrats_drive", payload);
+        }
+
+        let count = 0;
+        const introuvables: string[] = [];
+        const erreurs: { artiste: string | null; erreur: string }[] = [];
+        for (const c of candidats) {
+          const res = await classifyContractInDrive({ admin: s.admin, contractId: c.id });
+          if (res.error) erreurs.push({ artiste: c.artists?.name ?? null, erreur: res.error });
+          else if (res.folderMissing) introuvables.push(c.artists?.name ?? c.id);
+          else if (!res.skipped) count++;
+        }
+        const payload = {
+          apercu: false,
+          classes: count,
+          dossier_introuvable: introuvables,
+          erreurs,
+          message: `${count} contrat(s) classé(s) dans Drive${introuvables.length ? `, ${introuvables.length} dossier(s) introuvable(s)` : ""}${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.`,
+        };
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "classer_contrats_drive", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: count, message: payload.message });
+        return ok("classer_contrats_drive", payload);
       } catch (e) {
         return fail(e instanceof Error ? e.message : "Erreur inattendue.");
       }
