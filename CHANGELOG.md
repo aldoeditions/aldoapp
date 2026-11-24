@@ -3,6 +3,12 @@
 Évolutions notables de l'application de gestion **Aldo Éditions**.
 Généré depuis l'historique Git (messages de commit). Dates au format AAAA-MM-JJ, plus récent en haut.
 
+## 2026-11-24
+
+- Contrat — article 8.2 (limitation de responsabilité) : la parenthèse d'exclusions du plafond ajoute « toute atteinte par Aldo aux droits d'auteur, patrimoniaux et moraux, de l'Artiste sur les Œuvres », en plus des dommages corporels, de la violation des droits de tiers (art. 6) et de la faute lourde ou dolosive. Demande explicite de Louison (règle 6 de CLAUDE.md) (état : terminé) · fichiers : `lib/contracts/body.ts` · à faire à la main : **les contrats déjà générés (brouillon) ou déjà envoyés en signature portent l'ancien texte** — régénérer les brouillons, et pour les contrats déjà « envoyés », utiliser « Annuler l'envoi » (ci-dessous) puis renvoyer si le nouveau texte doit s'appliquer
+- Contrats — action « Annuler l'envoi » sur un contrat au statut « envoyé » (fiche campagne, bouton par ligne ; outil MCP `annuler_envoi` avec `confirm`) : archive la soumission DocuSeal, repasse le contrat en brouillon et régénère son PDF avec les données ACTUELLES de la fiche (régime social compris) (état : terminé, à tester en réel) · fichiers : `lib/docuseal/signature.ts` (`cancelContractSending`), `app/(app)/drops/[id]/contract-actions.ts`, `components/drops/DropContractsPanel.tsx`, `lib/mcp/tools.ts` · à faire à la main : aucune
+- MCP `etat_campagne` — chaque œuvre renvoyée inclut désormais son SKU (`ALDO-XXX-NNN-A3/A4`) (état : terminé) · fichiers : `lib/data/drop-oeuvres.ts`, `lib/mcp/tools.ts` · à faire à la main : aucune
+
 ## 2026-11-23
 
 - Signature — la contre-signature Aldo part **toujours** vers `company_settings.email` (contact@aldo-editions.com), que l'envoi vienne du bouton de l'app ou du connecteur MCP (plus l'e-mail de l'admin connecté). Erreur claire si `company_settings.email` est vide. Le « Tester la signature » continue d'utiliser l'adresse de l'admin connecté pour les deux rôles (état : terminé) · fichiers : `lib/docuseal/signature.ts`, `app/(app)/drops/[id]/contract-actions.ts` · à faire à la main : aucune (vérifier que `company_settings.email` = contact@aldo-editions.com)

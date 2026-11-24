@@ -13,6 +13,7 @@ import {
   regenerateDraftContracts,
   sendContractsForSignature,
   sendTestSignatureToMe,
+  cancelSentContract,
 } from "@/app/(app)/drops/[id]/contract-actions";
 import { matchSignedToArtist } from "@/lib/contracts/filename";
 import type { DropContracts, DropContractRow } from "@/lib/data/drop-contracts";
@@ -162,6 +163,17 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
     });
   }
 
+  // --- Annuler l'envoi d'un contrat (envoyé → brouillon) -------------------
+  function cancelSent(contractId: string, displayName: string) {
+    if (!confirm(`Annuler l'envoi du contrat de ${displayName} ? La soumission DocuSeal sera archivée et le contrat repasse en brouillon (PDF régénéré).`)) return;
+    setNotice(null);
+    start(async () => {
+      const res = await cancelSentContract(dropId, contractId);
+      setNotice(res.error ? `Annulation impossible : ${res.error}` : `Envoi annulé pour ${displayName}, contrat repassé en brouillon.`);
+      router.refresh();
+    });
+  }
+
   const hasDrafts = data.rows.some((r) => r.contract?.status === "brouillon");
 
   return (
@@ -254,7 +266,7 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
             </thead>
             <tbody>
               {data.rows.map((r) => (
-                <ContractLine key={r.artist_id} row={r} />
+                <ContractLine key={r.artist_id} row={r} pending={pending} onCancelSent={cancelSent} />
               ))}
             </tbody>
           </table>
@@ -320,7 +332,15 @@ export function DropContractsPanel({ dropId, data }: { dropId: string; data: Dro
   );
 }
 
-function ContractLine({ row }: { row: DropContractRow }) {
+function ContractLine({
+  row,
+  pending,
+  onCancelSent,
+}: {
+  row: DropContractRow;
+  pending: boolean;
+  onCancelSent: (contractId: string, displayName: string) => void;
+}) {
   const c = row.contract;
   return (
     <tr className="border-b border-border last:border-0">
@@ -342,6 +362,15 @@ function ContractLine({ row }: { row: DropContractRow }) {
       <td className="px-3 py-2.5 text-2xs text-muted">{c?.signed_at ? dateCourte(c.signed_at) : "—"}</td>
       <td className="px-5 py-2.5">
         <div className="flex items-center justify-end gap-3">
+          {c?.status === "envoyé" && (
+            <button
+              onClick={() => onCancelSent(c.id, row.display_name)}
+              disabled={pending}
+              className="text-2xs font-medium text-danger hover:underline disabled:opacity-50"
+            >
+              Annuler l&apos;envoi
+            </button>
+          )}
           {c?.pdf_path && <FileDownloadButton bucket="contracts" path={c.pdf_path} label="PDF" />}
           {c?.file_path && <FileDownloadButton bucket="contracts" path={c.file_path} label="Signé" />}
         </div>

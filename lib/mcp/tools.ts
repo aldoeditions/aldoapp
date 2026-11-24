@@ -8,7 +8,7 @@ import { campaignNumberFromDropName } from "@/lib/contracts/filename";
 import { getDropContracts } from "@/lib/data/drop-contracts";
 import { getProgrammedOeuvres } from "@/lib/data/drop-oeuvres";
 import { generateContractInto, markContractSentInto } from "@/lib/contracts/service";
-import { sendContractForSignature } from "@/lib/docuseal/signature";
+import { sendContractForSignature, cancelContractSending } from "@/lib/docuseal/signature";
 
 /** Dernière migration connue du code (cf. supabase/migrations). */
 const LATEST_MIGRATION = "0036_docuseal";
@@ -82,7 +82,7 @@ export function registerAldoTools(server: McpServer): void {
     {
       title: "État d'une campagne",
       description:
-        "Pour une campagne : artistes (nom affiché, prénom et nom du contrat, e-mail pro, fiche identité complète ou non), œuvres, et statut de chaque contrat avec ses dates.",
+        "Pour une campagne : artistes (nom affiché, prénom et nom du contrat, e-mail pro, fiche identité complète ou non), œuvres (avec leur SKU, ALDO-XXX-NNN-A3/A4), et statut de chaque contrat avec ses dates.",
       inputSchema: z.object({ drop_id: z.string().describe("Identifiant du drop") }),
     },
     async (args: { drop_id: string }, ctx: ToolCtx) => {
@@ -108,7 +108,7 @@ export function registerAldoTools(server: McpServer): void {
           email_pro: emailById.get(r.artist_id) ?? null,
           identite_complete: r.missing.length === 0,
           champs_manquants: r.missing,
-          oeuvres: (oeuvres ?? []).filter((o) => o.artist_id === r.artist_id).map((o) => ({ id: o.id, titre: o.name, format: o.format })),
+          oeuvres: (oeuvres ?? []).filter((o) => o.artist_id === r.artist_id).map((o) => ({ id: o.id, titre: o.name, format: o.format, sku: o.sku })),
           contrat: r.contract
             ? {
                 statut: r.contract.status,
@@ -478,6 +478,62 @@ export function registerAldoTools(server: McpServer): void {
         };
         await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "envoyer_contrats_en_signature", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: envoyes.length, message: payload.message });
         return ok("envoyer_contrats_en_signature", payload);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "annuler_envoi",
+    {
+      title: "Annuler l'envoi en signature",
+      description:
+        "Annule l'envoi en signature des contrats au statut « envoyé » d'une campagne (ou d'une liste d'artistes) : archive la soumission DocuSeal, repasse chaque contrat en brouillon et régénère son PDF avec les données ACTUELLES de la fiche (régime social compris). N'affecte jamais un contrat déjà signé. Sans confirm=true, renvoie seulement un aperçu.",
+      inputSchema: z.object({
+        drop_id: z.string(),
+        artist_ids: z.array(z.string()).optional().describe("Restreindre à ces artistes"),
+        confirm: z.boolean().default(false).describe("false = aperçu ; true = exécute"),
+      }),
+    },
+    async (args: { drop_id: string; artist_ids?: string[]; confirm?: boolean }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+        let q = s.supabase
+          .from("contracts")
+          .select("id, artist_id, status, artists(name)")
+          .eq("drop_id", args.drop_id)
+          .eq("status", "envoyé");
+        if (args.artist_ids?.length) q = q.in("artist_id", args.artist_ids);
+        const { data, error } = await q.returns<{ id: string; artist_id: string | null; status: string; artists: { name: string | null } | null }[]>();
+        if (error) return fail(error.message);
+        const envoyes = data ?? [];
+
+        if (!args.confirm) {
+          const payload = {
+            apercu: true,
+            a_annuler: envoyes.map((c) => c.artists?.name ?? c.artist_id),
+            message: `Aperçu : ${envoyes.length} contrat(s) repasseraient en brouillon (soumission DocuSeal archivée, PDF régénéré). Rappelle avec confirm=true pour exécuter.`,
+          };
+          await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "annuler_envoi", params: { drop_id: args.drop_id, confirm: false }, outcome: "apercu", affected: envoyes.length });
+          return ok("annuler_envoi", payload);
+        }
+
+        let count = 0;
+        const erreurs: { artiste: string; erreur: string }[] = [];
+        for (const c of envoyes) {
+          const res = await cancelContractSending({ supabase: s.supabase, admin: s.admin, contractId: c.id });
+          if (res.error) erreurs.push({ artiste: c.artists?.name ?? c.artist_id ?? "?", erreur: res.error });
+          else count++;
+        }
+        const payload = {
+          apercu: false,
+          annules: count,
+          erreurs,
+          message: `${count} contrat(s) repassé(s) en brouillon${erreurs.length ? `, ${erreurs.length} erreur(s)` : ""}.`,
+        };
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "annuler_envoi", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: count, message: payload.message });
+        return ok("annuler_envoi", payload);
       } catch (e) {
         return fail(e instanceof Error ? e.message : "Erreur inattendue.");
       }

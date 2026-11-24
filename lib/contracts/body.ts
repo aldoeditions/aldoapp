@@ -241,7 +241,8 @@ l'article 1218 du Code civil .
 8.2. Limitation de responsabilité
 La responsabilité de chaque Partie au titre du présent contrat, tous dommages confondus (à
 l'exception des dommages corporels, de la violation des droits de propriété intellectuelle de tiers
-engageant les garanties de l'article 6, et de la faute lourde ou dolosive), est limitée au montant total
+engageant les garanties de l'article 6, de toute atteinte par Aldo aux droits d'auteur, patrimoniaux et
+moraux, de l'Artiste sur les Œuvres, et de la faute lourde ou dolosive), est limitée au montant total
 des rémunérations effectivement versées à l'Artiste au cours des douze (12) mois précédant la
 survenance du dommage.
 Aucune des Parties ne pourra être tenue responsable des dommages indirects tels que la perte de

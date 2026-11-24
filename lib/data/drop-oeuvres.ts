@@ -10,6 +10,7 @@ export type ProgrammedOeuvre = {
   format: string | null;
   artist_id: string | null;
   created_at: string | null;
+  sku: string | null;
 };
 
 /**
@@ -29,7 +30,7 @@ export async function getProgrammedOeuvres(
   const supabase = client ?? createClient();
   const { data } = await supabase
     .from("drop_oeuvres")
-    .select("oeuvres(id, name, format, artist_id, created_at)")
+    .select("oeuvres(id, name, format, artist_id, created_at, sku)")
     .eq("drop_id", dropId);
 
   const rows = ((data ?? []) as unknown as { oeuvres: ProgrammedOeuvre | null }[])

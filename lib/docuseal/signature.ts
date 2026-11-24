@@ -2,7 +2,7 @@ import "server-only";
 import { PDFDocument } from "pdf-lib";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import { CONTRACTS_BUCKET } from "@/lib/contracts/service";
+import { CONTRACTS_BUCKET, buildContractPdf } from "@/lib/contracts/service";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
 import { signatureFields } from "@/lib/contracts/signature-layout";
 import { DOCUSEAL_ROLE_ARTISTE, DOCUSEAL_ROLE_ALDO } from "./config";
@@ -131,6 +131,65 @@ export async function sendContractForSignature(args: {
   if (error) return { error: error.message };
 
   return { submissionId: submission.id, email };
+}
+
+/**
+ * Annule l'envoi en signature d'un contrat au statut « envoyé » : archive la
+ * soumission DocuSeal (best-effort — une soumission déjà complétée, expirée ou
+ * absente ne doit pas bloquer l'annulation), repasse le contrat en brouillon et
+ * régénère son PDF avec les données ACTUELLES de la fiche artiste (régime
+ * social compris). Ne touche jamais un contrat déjà signé.
+ */
+export async function cancelContractSending(args: {
+  supabase: Db;
+  admin: Db;
+  contractId: string;
+}): Promise<{ error?: string }> {
+  const { supabase, admin, contractId } = args;
+
+  const { data: c } = await supabase
+    .from("contracts")
+    .select("id, artist_id, drop_id, status, docuseal_submission_id, pdf_path")
+    .eq("id", contractId)
+    .maybeSingle();
+  if (!c) return { error: "Contrat introuvable." };
+  if (c.status !== "envoyé") return { error: "Seuls les contrats envoyés peuvent être annulés." };
+  if (!c.drop_id) return { error: "Contrat sans campagne." };
+
+  if (c.docuseal_submission_id) {
+    try {
+      await archiveSubmission(c.docuseal_submission_id);
+    } catch {
+      /* best-effort : l'archivage DocuSeal ne doit pas bloquer l'annulation côté app */
+    }
+  }
+
+  const built = await buildContractPdf({ supabase, admin, artistId: c.artist_id, dropId: c.drop_id });
+  if (built.error || !built.pdf) return { error: built.error ?? "PDF indisponible." };
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const path = c.pdf_path || `${c.artist_id}/${c.drop_id}-${dateStr}.pdf`;
+  const up = await admin.storage.from(CONTRACTS_BUCKET).upload(path, built.pdf, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (up.error) return { error: up.error.message };
+
+  const { error } = await supabase
+    .from("contracts")
+    .update({
+      status: "brouillon",
+      pdf_path: path,
+      generated_at: new Date().toISOString(),
+      sent_at: null,
+      docuseal_submission_id: null,
+      artist_signed_at: null,
+      aldo_signed_at: null,
+    })
+    .eq("id", contractId);
+  if (error) return { error: error.message };
+
+  return {};
 }
 
 /**

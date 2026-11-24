@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/permissions";
 import { markContractSent, markContractSigned } from "@/app/(app)/artistes/contract-actions";
 import { regenerateDraftContractInto } from "@/lib/contracts/service";
-import { sendContractForSignature, sendTestSignature } from "@/lib/docuseal/signature";
+import { sendContractForSignature, sendTestSignature, cancelContractSending } from "@/lib/docuseal/signature";
 
 async function assertCanEdit() {
   const user = await requireUser();
@@ -132,6 +132,23 @@ export async function sendTestSignatureToMe(dropId: string): Promise<{ error?: s
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erreur inattendue." };
   }
+}
+
+/**
+ * Annule l'envoi en signature d'un contrat « envoyé » : archive la soumission
+ * DocuSeal, repasse le contrat en brouillon et régénère son PDF avec les
+ * données actuelles de la fiche (régime social compris).
+ */
+export async function cancelSentContract(
+  dropId: string,
+  contractId: string,
+): Promise<{ error?: string }> {
+  await assertCanEdit();
+  const supabase = createClient();
+  const admin = createAdminClient();
+  const res = await cancelContractSending({ supabase, admin, contractId });
+  revalidatePath(`/drops/${dropId}`);
+  return res;
 }
 
 export type SignedResult = { contract_id: string; ok: boolean; error?: string };
