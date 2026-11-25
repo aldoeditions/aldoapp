@@ -5,6 +5,7 @@ import { sessionFromCtx, type ToolCtx } from "@/lib/mcp/context";
 import { assertNoSensitive } from "@/lib/mcp/redact";
 import { logMcpCall } from "@/lib/mcp/audit";
 import { campaignNumberFromDropName } from "@/lib/contracts/filename";
+import { ARTIST_QUESTIONS } from "@/lib/constants";
 import { getDropContracts } from "@/lib/data/drop-contracts";
 import { getProgrammedOeuvres } from "@/lib/data/drop-oeuvres";
 import { generateContractInto, markContractSentInto } from "@/lib/contracts/service";
@@ -47,6 +48,7 @@ export function registerAldoTools(server: McpServer): void {
     "lister_campagnes",
     {
       title: "Lister les campagnes",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
         "Liste les campagnes (drops) : numéro, nom, dates, statut, nombre d'œuvres et d'artistes.",
       inputSchema: z.object({}),
@@ -89,6 +91,7 @@ export function registerAldoTools(server: McpServer): void {
     "etat_campagne",
     {
       title: "État d'une campagne",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
         "Pour une campagne : artistes (nom affiché, prénom et nom du contrat, e-mail pro, fiche identité complète ou non), œuvres (avec leur SKU, ALDO-XXX-NNN-A3/A4), et statut de chaque contrat avec ses dates.",
       inputSchema: z.object({ drop_id: z.string().describe("Identifiant du drop") }),
@@ -143,6 +146,7 @@ export function registerAldoTools(server: McpServer): void {
     "lister_contrats",
     {
       title: "Lister les contrats",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description: "Liste les contrats, filtrables par campagne et par statut (brouillon, envoyé, signé).",
       inputSchema: z.object({
         drop_id: z.string().optional(),
@@ -189,6 +193,7 @@ export function registerAldoTools(server: McpServer): void {
     "ventes_campagne",
     {
       title: "Ventes d'une campagne",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
         "Chiffre d'affaires TTC et HT, nombre d'exemplaires et commissions dues, par œuvre et par artiste. Aucune donnée client, aucun coût.",
       inputSchema: z.object({ drop_id: z.string() }),
@@ -254,6 +259,7 @@ export function registerAldoTools(server: McpServer): void {
     "etat_app",
     {
       title: "État de l'app",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description: "Version, dernier déploiement (commit Vercel) et dernière migration attendue.",
       inputSchema: z.object({}),
     },
@@ -281,6 +287,7 @@ export function registerAldoTools(server: McpServer): void {
     "generer_contrats_manquants",
     {
       title: "Générer les contrats manquants",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         "Génère les contrats (brouillons) des artistes d'une campagne qui n'en ont pas encore. Les fiches identité incomplètes et les artistes sans œuvre programmée sont ignorés et signalés. L'aperçu détaille l'annexe (œuvres) de chaque contrat. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -359,6 +366,7 @@ export function registerAldoTools(server: McpServer): void {
     "marquer_contrats_envoyes",
     {
       title: "Marquer des contrats comme envoyés",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         "Passe à « envoyé » les contrats au statut brouillon d'une campagne (ou d'une liste d'artistes). N'affecte jamais les contrats déjà envoyés ou signés. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -410,6 +418,7 @@ export function registerAldoTools(server: McpServer): void {
     "envoyer_contrats_en_signature",
     {
       title: "Envoyer les contrats en signature",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       description:
         "Envoie en signature électronique (DocuSeal) les contrats EN BROUILLON d'une campagne : chaque artiste reçoit un e-mail pour signer. L'aperçu liste les artistes, leur e-mail et le nombre d'œuvres. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -496,6 +505,7 @@ export function registerAldoTools(server: McpServer): void {
     "annuler_envoi",
     {
       title: "Annuler l'envoi en signature",
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       description:
         "Annule l'envoi en signature des contrats au statut « envoyé » d'une campagne (ou d'une liste d'artistes) : archive la soumission DocuSeal, repasse chaque contrat en brouillon et régénère son PDF avec les données ACTUELLES de la fiche (régime social compris). N'affecte jamais un contrat déjà signé. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -552,6 +562,7 @@ export function registerAldoTools(server: McpServer): void {
     "suivi_signatures",
     {
       title: "Suivi des signatures",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
         "État de signature des contrats (brouillon / envoyé en signature / signé), avec les dates. Filtrable par campagne. Aucune donnée sensible.",
       inputSchema: z.object({ drop_id: z.string().optional() }),
@@ -605,6 +616,7 @@ export function registerAldoTools(server: McpServer): void {
     "relancer_signature",
     {
       title: "Relancer un signataire",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       description:
         "Renvoie l'e-mail de signature au signataire actuellement en attente (l'Artiste s'il n'a pas signé, sinon Aldo) pour les contrats « envoyé » d'une campagne. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -677,6 +689,7 @@ export function registerAldoTools(server: McpServer): void {
     "synchroniser_signatures",
     {
       title: "Synchroniser les signatures",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       description:
         "Rattrapage si un webhook DocuSeal a été manqué : relit l'état réel de la soumission de chaque contrat « envoyé » (d'une campagne, ou de toutes si drop_id est omis) et met à jour l'app en conséquence (horodatage des signatures, passage à « signé » si les deux parties ont signé). Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -740,6 +753,7 @@ export function registerAldoTools(server: McpServer): void {
     "classer_contrats_drive",
     {
       title: "Classer les contrats signés dans Drive",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       description:
         "Classe dans Google Drive (ALDO/Artistes/C{n}_{nom}/Contrats) les contrats SIGNÉS d'une campagne pas encore classés. Un dossier artiste introuvable n'est jamais créé : signalé dans l'aperçu et dans le résultat. Sans confirm=true, renvoie seulement un aperçu.",
       inputSchema: z.object({
@@ -805,6 +819,81 @@ export function registerAldoTools(server: McpServer): void {
         };
         await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "classer_contrats_drive", params: { drop_id: args.drop_id, confirm: true }, outcome: erreurs.length ? "erreur" : "ok", affected: count, message: payload.message });
         return ok("classer_contrats_drive", payload);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Erreur inattendue.");
+      }
+    },
+  );
+
+  // Données PUBLIQUES de l'artiste (pour remplir les pages du site Webflow).
+  server.registerTool(
+    "fiche_publique_artiste",
+    {
+      title: "Fiche publique d'un artiste",
+      description:
+        "Données PUBLIQUES d'un ou plusieurs artistes (pour les pages du site) : nom affiché, pseudo, bio, Instagram, site web, avatar, questions/réponses de l'interview, photos d'atelier. Par drop_id : tous les artistes programmés (rééditions comprises). Aucune donnée personnelle, bancaire, sociale ni commerciale.",
+      annotations: { readOnlyHint: true, openWorldHint: false },
+      inputSchema: z.object({
+        artist_ids: z.array(z.string()).optional().describe("Identifiants d'artistes"),
+        drop_id: z.string().optional().describe("Tous les artistes programmés dans ce drop (rééditions comprises)"),
+      }),
+    },
+    async (args: { artist_ids?: string[]; drop_id?: string }, ctx: ToolCtx) => {
+      try {
+        const s = sessionFromCtx(ctx);
+
+        let ids: string[] = [];
+        if (args.drop_id) {
+          const prog = await getProgrammedOeuvres(args.drop_id, s.supabase);
+          ids = Array.from(new Set(prog.map((o) => o.artist_id).filter((x): x is string => Boolean(x))));
+        } else if (args.artist_ids?.length) {
+          ids = Array.from(new Set(args.artist_ids));
+        } else {
+          return fail("Fournis « drop_id » ou « artist_ids ».");
+        }
+        if (ids.length === 0) return ok("fiche_publique_artiste", { artistes: [] });
+
+        // Liste blanche stricte : on ne sélectionne QUE des colonnes publiques.
+        const { data, error } = await s.supabase
+          .from("artists")
+          .select("id, name, pseudo, bio, instagram, portfolio_url, avatar_url, questionnaire, studio_photos")
+          .in("id", ids);
+        if (error) return fail(error.message);
+
+        const fiches = (data ?? []).map((a) => {
+          const answers =
+            a.questionnaire && typeof a.questionnaire === "object" && !Array.isArray(a.questionnaire)
+              ? (a.questionnaire as Record<string, string>)
+              : {};
+          const interview = ARTIST_QUESTIONS
+            .map((q) => ({ question: q.label, reponse: (answers[q.id] ?? "").trim() }))
+            .filter((qr) => qr.reponse.length > 0);
+          const photos_atelier = Array.isArray(a.studio_photos) ? (a.studio_photos as string[]) : [];
+
+          const manquants: string[] = [];
+          if (!(a.bio ?? "").trim()) manquants.push("Bio");
+          if (!a.avatar_url) manquants.push("Avatar");
+          if (!(a.instagram ?? "").trim()) manquants.push("Instagram");
+          if (!(a.portfolio_url ?? "").trim()) manquants.push("Site web");
+          if (interview.length === 0) manquants.push("Interview");
+
+          return {
+            artist_id: a.id,
+            nom_affiche: a.name,
+            pseudo: a.pseudo ?? null,
+            bio: a.bio ?? null,
+            instagram: a.instagram ?? null,
+            site_web: a.portfolio_url ?? null,
+            avatar_url: a.avatar_url ?? null,
+            interview,
+            photos_atelier,
+            fiche_complete: manquants.length === 0,
+            champs_publics_manquants: manquants,
+          };
+        });
+
+        await logMcpCall({ principal: s.principal, clientId: s.clientId, tool: "fiche_publique_artiste", params: { drop_id: args.drop_id, artist_ids: args.artist_ids }, outcome: "ok", affected: fiches.length });
+        return ok("fiche_publique_artiste", { artistes: fiches });
       } catch (e) {
         return fail(e instanceof Error ? e.message : "Erreur inattendue.");
       }

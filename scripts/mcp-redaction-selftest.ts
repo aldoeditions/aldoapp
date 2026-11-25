@@ -46,6 +46,15 @@ shouldPass("etat_campagne avec e-mail pro", {
   artistes: [{ nom_affiche: "Nina", nom_contrat: "Nina Baldo", email_pro: "nina@exemple.fr", identite_complete: true, champs_manquants: [] }],
 });
 shouldPass("ventes_campagne", { par_oeuvre: [{ oeuvre: "Aube", artiste: "Nina", exemplaires: 4, ca_ttc: 100, ca_ht: 83.33, commission_due: 25 }] });
+shouldPass("fiche_publique_artiste", {
+  artistes: [{
+    artist_id: "a1", nom_affiche: "Nina", pseudo: "nina", bio: "Illustratrice à Tours.",
+    instagram: "https://instagram.com/nina", site_web: "https://nina.art",
+    avatar_url: "https://x.supabase.co/storage/v1/object/public/artist-assets/a1/avatar.jpg",
+    interview: [{ question: "Ton premier contact avec l'art ?", reponse: "Un livre d'images." }],
+    fiche_complete: false, champs_publics_manquants: ["Site web"],
+  }],
+});
 
 console.log("\nSorties interdites (doivent échouer) :");
 shouldFail("IBAN en clé", { artiste: "Nina", iban: "FR7630006000011234567890189" });
@@ -57,6 +66,9 @@ shouldFail("coût imbriqué", { campagne: { nom: "N°3", total_cout: 420 } });
 shouldFail("résultat net (marge)", { drop: { resultat_net: 1200 } });
 shouldFail("donnée client", { vente: { client_email: "acheteur@exemple.fr" } });
 shouldFail("contribution diffuseur", { ligne: { diffuseur: 1.1 } });
+shouldFail("téléphone (fiche publique)", { artistes: [{ nom_affiche: "Nina", telephone: "06 12 34 56 78" }] });
+shouldFail("statut social (fiche publique)", { artistes: [{ nom_affiche: "Nina", social_regime: "artiste_auteur_precompte" }] });
+shouldFail("SIRET (fiche publique)", { artistes: [{ nom_affiche: "Nina", siret: "12345678900012" }] });
 
 console.log(`\n${pass} ok, ${fail} échec(s).`);
 process.exit(fail === 0 ? 0 : 1);
