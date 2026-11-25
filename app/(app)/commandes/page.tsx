@@ -14,6 +14,7 @@ import { ORDER_STATUS } from "@/lib/constants";
 import { euros, nombre } from "@/lib/format";
 import { CommandesToolbar } from "@/components/orders/CommandesToolbar";
 import { OrderFormButton } from "@/components/orders/OrderFormButton";
+import { OeuvrePreview } from "@/components/oeuvres/OeuvrePreview";
 
 export default async function CommandesPage({
   searchParams,
@@ -79,6 +80,7 @@ async function OrdersList({
               <tr className="border-b border-border text-left text-2xs uppercase tracking-wider text-faint">
                 <th className="px-5 py-2.5 font-semibold">N°</th>
                 <th className="px-3 py-2.5 font-semibold">Client</th>
+                <th className="px-3 py-2.5 font-semibold">Œuvre(s)</th>
                 <th className="px-3 py-2.5 font-semibold">Drop</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Pièces</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Montant</th>
@@ -94,6 +96,28 @@ async function OrdersList({
                     </Link>
                   </td>
                   <td className="px-3 py-2.5 text-muted">{o.client_name}</td>
+                  <td className="px-3 py-2.5">
+                    {o.items.length === 0 ? (
+                      <span className="text-faint">—</span>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {o.items.map((it, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <OeuvrePreview name={it.oeuvre_name} src={it.file_url} />
+                            <span className="text-text">{it.oeuvre_name ?? "—"}</span>
+                            {it.oeuvre_format && (
+                              <span className="rounded bg-bg px-1.5 py-0.5 text-2xs font-medium uppercase text-muted">
+                                {it.oeuvre_format}
+                              </span>
+                            )}
+                            {it.quantity > 1 && (
+                              <span className="text-2xs text-faint">×{it.quantity}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5 text-muted">{o.drop_name ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right text-muted">{nombre(o.nb_pieces)}</td>
                   <td className="px-3 py-2.5 text-right font-medium text-text">{euros(o.total_amount)}</td>

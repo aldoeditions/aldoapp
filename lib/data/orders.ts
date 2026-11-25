@@ -7,9 +7,21 @@ export type OrdersFilter = {
   q?: string;
 };
 
-export type OrderRow = Order & { drop_name: string | null; nb_pieces: number };
+/** Un article de commande résumé pour la liste (visuel, nom, format, quantité). */
+export type OrderItemSummary = {
+  oeuvre_name: string | null;
+  oeuvre_format: string | null;
+  file_url: string | null;
+  quantity: number;
+};
 
-/** Liste des commandes (+ nom du drop, nb de pièces). */
+export type OrderRow = Order & {
+  drop_name: string | null;
+  nb_pieces: number;
+  items: OrderItemSummary[];
+};
+
+/** Liste des commandes (+ nom du drop, nb de pièces, articles avec visuel). */
 export async function getOrders(filter: OrdersFilter = {}): Promise<OrderRow[]> {
   const supabase = createClient();
   let query = supabase
@@ -23,17 +35,40 @@ export async function getOrders(filter: OrdersFilter = {}): Promise<OrderRow[]> 
 
   const [ordersRes, itemsRes] = await Promise.all([
     query.returns<(Order & { drops: { name: string } | null })[]>(),
-    supabase.from("order_items").select("order_id, quantity"),
+    supabase
+      .from("order_items")
+      .select("order_id, quantity, oeuvres(name, format, file_url)")
+      .returns<
+        {
+          order_id: string;
+          quantity: number | null;
+          oeuvres: { name: string; format: string; file_url: string | null } | null;
+        }[]
+      >(),
   ]);
 
   const pieces = new Map<string, number>();
+  const items = new Map<string, OrderItemSummary[]>();
   for (const it of itemsRes.data ?? []) {
     pieces.set(it.order_id, (pieces.get(it.order_id) ?? 0) + (it.quantity ?? 0));
+    const list = items.get(it.order_id) ?? [];
+    list.push({
+      oeuvre_name: it.oeuvres?.name ?? null,
+      oeuvre_format: it.oeuvres?.format ?? null,
+      file_url: it.oeuvres?.file_url ?? null,
+      quantity: it.quantity ?? 0,
+    });
+    items.set(it.order_id, list);
   }
 
   return (ordersRes.data ?? []).map((o) => {
     const { drops, ...rest } = o;
-    return { ...rest, drop_name: drops?.name ?? null, nb_pieces: pieces.get(o.id) ?? 0 };
+    return {
+      ...rest,
+      drop_name: drops?.name ?? null,
+      nb_pieces: pieces.get(o.id) ?? 0,
+      items: items.get(o.id) ?? [],
+    };
   });
 }
 
